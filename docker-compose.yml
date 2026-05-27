@@ -1,0 +1,48 @@
+services:
+  db:
+    image: postgis/postgis:17-3.5
+    container_name: danventures_postgis
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-danventures}
+      POSTGRES_USER: ${POSTGRES_USER:-dan}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-devpassword}
+    ports:
+      - "127.0.0.1:5432:5432"
+    volumes:
+      - danventures_postgis_data:/var/lib/postgresql/data
+
+  api:
+    build: ./backend
+    container_name: danventures_api
+    restart: unless-stopped
+    environment:
+      DATABASE_URL: ${DATABASE_URL:-postgresql+psycopg://dan:devpassword@db:5432/danventures}
+      CORS_ORIGINS: ${CORS_ORIGINS:-http://localhost:5173,http://127.0.0.1:5173}
+    depends_on:
+      - db
+    ports:
+      - "127.0.0.1:8000:8000"
+
+  caddy:
+    image: caddy:2
+    container_name: danventures_caddy
+    restart: unless-stopped
+    profiles:
+      - production
+    environment:
+      API_DOMAIN: ${API_DOMAIN}
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    depends_on:
+      - api
+
+volumes:
+  danventures_postgis_data:
+  caddy_data:
+  caddy_config:

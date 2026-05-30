@@ -1,4 +1,3 @@
-import { X } from "lucide-react";
 import type { SelectedChartPart, TransportStat } from "../types";
 import { TransportPieChart } from "./TransportPieChart";
 
@@ -22,21 +21,7 @@ export function TransportDistancePanel({
       <div className="panel-heading">
         <div>
           <h2>Transport distance</h2>
-          <p>Click a mode to highlight its tracks.</p>
         </div>
-        {selectedTransport && (
-          <button
-            type="button"
-            className="clear-button"
-            onClick={() => {
-              onSelectTransport(null);
-              onSelectChartPart(null);
-            }}
-            title="Clear selection"
-          >
-            <X size={16} />
-          </button>
-        )}
       </div>
 
       <TransportPieChart

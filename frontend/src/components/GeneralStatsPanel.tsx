@@ -1,3 +1,11 @@
+import {
+  BedDouble,
+  CalendarDays,
+  CircleDollarSign,
+  MapPinned,
+  Route,
+  Sparkles,
+} from "lucide-react";
 import type { GeneralStats } from "../types";
 import { formatCount, formatKm } from "../utils";
 
@@ -6,34 +14,68 @@ type GeneralStatsPanelProps = {
 };
 
 export function GeneralStatsPanel({ generalStats }: GeneralStatsPanelProps) {
+  const travelRatio =
+    generalStats.totalDays > 0
+      ? Math.round((generalStats.travelDayCount / generalStats.totalDays) * 100)
+      : 0;
+  const secondaryStats = [
+    {
+      icon: <Route size={15} />,
+      label: "Rides",
+      value: formatCount(generalStats.rideCount),
+    },
+    {
+      icon: <CalendarDays size={15} />,
+      label: "Travel days",
+      value: formatCount(generalStats.travelDayCount),
+    },
+    {
+      icon: <CircleDollarSign size={15} />,
+      label: "Transport costs",
+      value: formatCount(generalStats.transportCostTotal),
+    },
+    {
+      icon: <BedDouble size={15} />,
+      label: "Sleeping costs",
+      value: formatCount(generalStats.sleepCostTotal),
+    },
+  ];
+
   return (
     <div className="general-stats-content">
-      <dl className="general-stats-grid">
+      <section className="general-hero-stat">
+        <span className="general-hero-icon">
+          <MapPinned size={19} />
+        </span>
         <div>
-          <dt>Total distance</dt>
-          <dd>{formatKm(generalStats.totalDistanceKm)} km</dd>
+          <span>Total distance</span>
+          <strong>{formatKm(generalStats.totalDistanceKm)} km</strong>
         </div>
+      </section>
+
+      <section className="general-days-card">
         <div>
-          <dt>Number of rides</dt>
-          <dd>{formatCount(generalStats.rideCount)}</dd>
+          <span>On the road</span>
+          <strong>{formatCount(generalStats.totalDays)} days</strong>
         </div>
-        <div>
-          <dt>Total days</dt>
-          <dd>{formatCount(generalStats.totalDays)}</dd>
+        <div className="general-days-meter" aria-hidden="true">
+          <span style={{ width: `${Math.min(travelRatio, 100)}%` }} />
         </div>
-        <div>
-          <dt>Travel days</dt>
-          <dd>{formatCount(generalStats.travelDayCount)}</dd>
-        </div>
-        <div>
-          <dt>Sleeping costs</dt>
-          <dd>{formatCount(generalStats.sleepCostTotal)}</dd>
-        </div>
-        <div>
-          <dt>Transport costs</dt>
-          <dd>{formatCount(generalStats.transportCostTotal)}</dd>
-        </div>
-      </dl>
+        <p>
+          <Sparkles size={14} />
+          {travelRatio}% of the trip days include travel movement
+        </p>
+      </section>
+
+      <div className="general-stat-list">
+        {secondaryStats.map((item) => (
+          <div className="general-stat-row" key={item.label}>
+            <span className="general-stat-icon">{item.icon}</span>
+            <span>{item.label}</span>
+            <strong>{item.value}</strong>
+          </div>
+        ))}
+      </div>
     </div>
   );
 }

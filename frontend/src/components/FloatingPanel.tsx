@@ -4,7 +4,6 @@ import type { ReactNode } from "react";
 type FloatingPanelProps = {
   children: ReactNode;
   className?: string;
-  icon: ReactNode;
   isOpen: boolean;
   onToggle: () => void;
   title: string;
@@ -13,13 +12,14 @@ type FloatingPanelProps = {
 export function FloatingPanel({
   children,
   className = "",
-  icon,
   isOpen,
   onToggle,
   title,
 }: FloatingPanelProps) {
+  if (!isOpen) return null;
+
   return (
-    <section className={`floating-panel ${className} ${isOpen ? "open" : ""}`}>
+    <section className={`floating-panel ${className} open`}>
       <button
         type="button"
         className="floating-panel-toggle"
@@ -28,12 +28,11 @@ export function FloatingPanel({
         title={title}
       >
         <span className="floating-panel-title">
-          <span className="floating-panel-icon">{icon}</span>
           <span className="floating-panel-label">{title}</span>
         </span>
         <ChevronDown size={17} />
       </button>
-      {isOpen && <div className="floating-panel-body">{children}</div>}
+      <div className="floating-panel-body">{children}</div>
     </section>
   );
 }

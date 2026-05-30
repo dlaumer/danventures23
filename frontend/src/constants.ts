@@ -48,6 +48,19 @@ export const sleepCategoryOptions = [
   "friends",
 ];
 
+export const sleepCategoryDisplayOrder = [
+  "camping",
+  "couchsurfing",
+  "boat",
+  "house",
+  "volunteering",
+  "friends",
+  "campingPaid",
+  "renting",
+  "hostel",
+  "airbnb",
+];
+
 export const transportColors: Record<string, string> = {
   car: "#68a7ff",
   truck: "#6ed6f1",
@@ -61,6 +74,19 @@ export const transportColors: Record<string, string> = {
   taxi: "#00b95a",
   train: "#0d8f20",
   bus: "#a8cf35",
+};
+
+export const sleepCategoryColors: Record<string, string> = {
+  camping: "#2f8f6b",
+  couchsurfing: "#5877c8",
+  boat: "#1aa6a6",
+  house: "#8d6ab8",
+  volunteering: "#d08a31",
+  friends: "#6ea344",
+  campingPaid: "#e35d52",
+  renting: "#c0447a",
+  hostel: "#bf7a2a",
+  airbnb: "#7e4cc2",
 };
 
 export const freeTransportModes = new Set([

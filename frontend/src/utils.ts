@@ -3,6 +3,7 @@ import {
   displayedFreeRideModes,
   freeTransportModes,
   paidSleepCategories,
+  sleepCategoryColors,
   transportColors,
 } from "./constants";
 import type { FeatureCollection, LocationFormState } from "./types";
@@ -12,9 +13,19 @@ export function colorForTransport(value: string | null) {
   return transportColors[value] ?? "#6f7782";
 }
 
+export function colorForSleepCategory(value: string | null) {
+  if (!value) return "#6f7782";
+  return sleepCategoryColors[value] ?? "#6f7782";
+}
+
 export function transportLabel(value: string | null) {
   if (!value) return "unknown";
   return value.replace(/([a-z])([A-Z])/g, "$1 $2");
+}
+
+export function sleepCategoryLabel(value: string | null) {
+  if (!value) return "unknown";
+  return optionLabel(value);
 }
 
 export function optionLabel(value: string) {
@@ -53,6 +64,10 @@ export function isFreeTransport(value: string | null) {
 
 export function isDisplayedFreeRide(value: string | null) {
   return Boolean(value && displayedFreeRideModes.has(value));
+}
+
+export function isPaidSleepCategory(value: string | null) {
+  return Boolean(value && paidSleepCategories.has(value));
 }
 
 export function polarToCartesian(

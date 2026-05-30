@@ -1,72 +1,66 @@
-import { costGroupColors, transportDisplayOrder } from "../constants";
 import type { CSSProperties } from "react";
 import {
-  Bike,
-  Bus,
-  Car,
-  Footprints,
-  Plane,
-  Ship,
-  Train,
-  Truck,
+  BedDouble,
+  HandHeart,
+  Home,
+  Sailboat,
+  Tent,
   Users,
 } from "lucide-react";
-import type { SelectedChartPart, TransportStat } from "../types";
+import { costGroupColors, sleepCategoryDisplayOrder } from "../constants";
+import type { SelectedChartPart, SleepStat } from "../types";
 import {
-  colorForTransport,
-  formatKm,
-  isFreeTransport,
-  numberFromKm,
-  transportLabel,
+  colorForSleepCategory,
+  formatCount,
+  isPaidSleepCategory,
+  sleepCategoryLabel,
 } from "../utils";
 
-type TransportPieChartProps = {
+type SleepPieChartProps = {
   selectedPart: SelectedChartPart | null;
-  stats: TransportStat[];
-  selectedTransport: string | null;
+  selectedSleepCategory: string | null;
+  stats: SleepStat[];
   onSelectPart: (part: SelectedChartPart | null) => void;
-  onSelectTransport: (transport: string | null) => void;
+  onSelectSleepCategory: (sleepCategory: string | null) => void;
 };
 
-type TransportBarItem = TransportStat & {
+type SleepBarItem = SleepStat & {
   color: string;
-  distanceValue: number;
   group: "free" | "paid";
   label: string;
 };
 
-function transportOrder(value: string | null) {
-  const index = transportDisplayOrder.indexOf(value ?? "");
-  return index === -1 ? transportDisplayOrder.length : index;
+function sleepCategoryOrder(value: string | null) {
+  const index = sleepCategoryDisplayOrder.indexOf(value ?? "");
+  return index === -1 ? sleepCategoryDisplayOrder.length : index;
 }
 
-function transportIconFor(value: string | null) {
+function sleepIconFor(value: string | null) {
   const size = 14;
 
   switch (value) {
-    case "bike":
-      return <Bike size={size} />;
-    case "bus":
-      return <Bus size={size} />;
+    case "camping":
+    case "campingPaid":
+      return <Tent size={size} />;
     case "boat":
-    case "ferry":
-      return <Ship size={size} />;
-    case "foot":
-      return <Footprints size={size} />;
-    case "plane":
-      return <Plane size={size} />;
-    case "train":
-      return <Train size={size} />;
-    case "truck":
-      return <Truck size={size} />;
+      return <Sailboat size={size} />;
+    case "house":
+    case "airbnb":
+    case "renting":
+      return <Home size={size} />;
     case "friends":
+    case "couchsurfing":
       return <Users size={size} />;
-    case "car":
-    case "rentalCar":
-    case "taxi":
+    case "volunteering":
+      return <HandHeart size={size} />;
+    case "hostel":
     default:
-      return <Car size={size} />;
+      return <BedDouble size={size} />;
   }
+}
+
+function describeNights(value: number) {
+  return `${formatCount(value)} ${value === 1 ? "night" : "nights"}`;
 }
 
 function logarithmicBarWidth(value: number, maxValue: number) {
@@ -87,50 +81,52 @@ function paleColor(color: string) {
   return `rgba(${red}, ${green}, ${blue}, 0.18)`;
 }
 
-export function TransportPieChart({
+export function SleepPieChart({
   selectedPart,
+  selectedSleepCategory,
   stats,
-  selectedTransport,
   onSelectPart,
-  onSelectTransport,
-}: TransportPieChartProps) {
-  const items: TransportBarItem[] = stats
+  onSelectSleepCategory,
+}: SleepPieChartProps) {
+  const items: SleepBarItem[] = stats
+    .filter((item) => item.night_count > 0)
     .map((item) => ({
       ...item,
-      color: colorForTransport(item.transport),
-      distanceValue: numberFromKm(item.distance_km),
-      group: (isFreeTransport(item.transport) ? "free" : "paid") as
+      color: colorForSleepCategory(item.sleepcategory),
+      group: (isPaidSleepCategory(item.sleepcategory) ? "paid" : "free") as
         | "free"
         | "paid",
-      label: transportLabel(item.transport),
+      label: sleepCategoryLabel(item.sleepcategory),
     }))
-    .filter((item) => item.distanceValue > 0)
     .sort((a, b) => {
       if (a.group !== b.group) return a.group === "free" ? -1 : 1;
-      return transportOrder(a.transport) - transportOrder(b.transport);
+      return (
+        sleepCategoryOrder(a.sleepcategory) -
+        sleepCategoryOrder(b.sleepcategory)
+      );
     });
-  const maxValue = Math.max(...items.map((item) => item.distanceValue), 0);
+  const maxValue = Math.max(...items.map((item) => item.night_count), 0);
   const groupTotals = {
     free: items
       .filter((item) => item.group === "free")
-      .reduce((sum, item) => sum + item.distanceValue, 0),
+      .reduce((sum, item) => sum + item.night_count, 0),
     paid: items
       .filter((item) => item.group === "paid")
-      .reduce((sum, item) => sum + item.distanceValue, 0),
+      .reduce((sum, item) => sum + item.night_count, 0),
   };
 
   if (!items.length || !maxValue) {
-    return <div className="transport-chart empty">No distance data</div>;
+    return <div className="transport-chart empty">No sleep data</div>;
   }
 
   return (
-    <div className="bar-chart" aria-label="Kilometers by transport">
+    <div className="bar-chart sleep-chart" aria-label="Nights by sleep category">
       {(["free", "paid"] as const).map((group) => {
         const groupItems = items.filter((item) => item.group === group);
         if (!groupItems.length) return null;
         const color =
           group === "free" ? costGroupColors.free : costGroupColors.paid;
-        const isGroupSelected = selectedPart?.id === `cost:${group}`;
+        const isGroupSelected = selectedPart?.id === `sleep-cost:${group}`;
 
         return (
           <div className="bar-chart-group" key={group}>
@@ -140,13 +136,13 @@ export function TransportPieChart({
                 isGroupSelected ? "selected" : ""
               }`}
               onClick={() => {
-                onSelectTransport(null);
+                onSelectSleepCategory(null);
                 onSelectPart(
                   isGroupSelected
                     ? null
                     : {
                         color,
-                        id: `cost:${group}`,
+                        id: `sleep-cost:${group}`,
                         label: group === "free" ? "Free" : "Paid",
                         value: groupTotals[group],
                       },
@@ -158,31 +154,31 @@ export function TransportPieChart({
                   "--group-fill": paleColor(color),
                 } as CSSProperties
               }
-              title={group === "free" ? "Free transport" : "Paid transport"}
+              title={group === "free" ? "Free stays" : "Paid stays"}
             />
             <div className="bar-chart-rows">
               {groupItems.map((item) => {
-                const isSelected = selectedTransport === item.transport;
-                const width = logarithmicBarWidth(
-                  item.distanceValue,
-                  maxValue,
-                );
+                const isSelected =
+                  selectedSleepCategory === item.sleepcategory;
+                const width = logarithmicBarWidth(item.night_count, maxValue);
 
                 return (
                   <button
                     type="button"
                     className={`bar-chart-row ${isSelected ? "selected" : ""}`}
-                    key={item.transport ?? "unknown"}
+                    key={item.sleepcategory ?? "unknown"}
                     onClick={() => {
-                      onSelectTransport(isSelected ? null : item.transport);
+                      onSelectSleepCategory(
+                        isSelected ? null : item.sleepcategory,
+                      );
                       onSelectPart(
                         isSelected
                           ? null
                           : {
                               color: item.color,
-                              id: `transport:${item.transport ?? "unknown"}`,
+                              id: `sleep:${item.sleepcategory ?? "unknown"}`,
                               label: item.label,
-                              value: item.distanceValue,
+                              value: item.night_count,
                             },
                       );
                     }}
@@ -192,7 +188,7 @@ export function TransportPieChart({
                         className="bar-chart-icon"
                         style={{ color: item.color }}
                       >
-                        {transportIconFor(item.transport)}
+                        {sleepIconFor(item.sleepcategory)}
                       </span>
                       <span>{item.label}</span>
                     </span>
@@ -206,7 +202,7 @@ export function TransportPieChart({
                         }}
                       />
                     </span>
-                    <strong>{formatKm(item.distanceValue)} km</strong>
+                    <strong>{describeNights(item.night_count)}</strong>
                   </button>
                 );
               })}
@@ -214,13 +210,13 @@ export function TransportPieChart({
           </div>
         );
       })}
-      {selectedPart?.id.startsWith("cost:") && (
+      {selectedPart?.id.startsWith("sleep-cost:") && (
         <div className="chart-selection compact">
           <span>
             <i style={{ backgroundColor: selectedPart.color }} />
             {selectedPart.label}
           </span>
-          <strong>{formatKm(selectedPart.value)} km</strong>
+          <strong>{describeNights(selectedPart.value)}</strong>
         </div>
       )}
     </div>

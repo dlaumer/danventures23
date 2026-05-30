@@ -1,10 +1,17 @@
 import { useCallback, useEffect, useMemo, useState, type FormEvent } from "react";
-import { ChartPie, Clock3, ListChecks } from "lucide-react";
+import {
+  ChartPie,
+  Clock3,
+  LocateFixed,
+  MapPinPlus,
+  Moon,
+  ListChecks,
+} from "lucide-react";
 import "./App.css";
 import { API_BASE_URL, paidSleepCategories, transportDisplayOrder } from "./constants";
-import { FloatingPanel } from "./components/FloatingPanel";
 import { GeneralStatsPanel } from "./components/GeneralStatsPanel";
 import { LocationDialog } from "./components/LocationDialog";
+import { SleepCategoryPanel } from "./components/SleepCategoryPanel";
 import { TransportDistancePanel } from "./components/TransportDistancePanel";
 import { TravelMap } from "./components/TravelMap";
 import { TravelTimeline } from "./components/TravelTimeline";
@@ -13,6 +20,7 @@ import type {
   GeneralStats,
   LocationFormState,
   SelectedChartPart,
+  SleepStat,
   TransportStat,
 } from "./types";
 import {
@@ -27,10 +35,10 @@ import {
 } from "./utils";
 
 type PanelState = {
-  general: boolean;
   timeline: boolean;
-  transport: boolean;
 };
+
+type AnalysisPanel = "general" | "sleep" | "transport";
 
 async function fetchTravelData() {
   const [locationsResponse, legsResponse, statsResponse] = await Promise.all([
@@ -106,6 +114,35 @@ function calculateGeneralStats(
   };
 }
 
+function calculateSleepStats(locations: FeatureCollection | null): SleepStat[] {
+  const statsByCategory = new Map<string, number>();
+
+  locations?.features.forEach((feature) => {
+    const properties = feature.properties ?? {};
+    if (properties.pointtype !== "sleep") return;
+
+    const sleepCategory =
+      properties.sleepcategory === null ||
+      properties.sleepcategory === undefined ||
+      properties.sleepcategory === ""
+        ? "unknown"
+        : String(properties.sleepcategory);
+    const nights = numberFromValue(properties.nonights);
+
+    statsByCategory.set(
+      sleepCategory,
+      (statsByCategory.get(sleepCategory) ?? 0) + (nights > 0 ? nights : 1),
+    );
+  });
+
+  return Array.from(statsByCategory.entries()).map(
+    ([sleepcategory, night_count]) => ({
+      sleepcategory,
+      night_count,
+    }),
+  );
+}
+
 function App() {
   const [locations, setLocations] = useState<FeatureCollection | null>(null);
   const [legs, setLegs] = useState<FeatureCollection | null>(null);
@@ -115,17 +152,31 @@ function App() {
   );
   const [selectedChartPart, setSelectedChartPart] =
     useState<SelectedChartPart | null>(null);
+  const [selectedSleepCategory, setSelectedSleepCategory] = useState<
+    string | null
+  >(null);
+  const [selectedSleepChartPart, setSelectedSleepChartPart] =
+    useState<SelectedChartPart | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isPlacingLocation, setIsPlacingLocation] = useState(false);
   const [panels, setPanels] = useState<PanelState>({
-    general: true,
-    timeline: true,
-    transport: true,
+    timeline:
+      typeof window === "undefined"
+        ? true
+        : !window.matchMedia("(max-width: 900px)").matches,
   });
+  const [activeAnalysisPanel, setActiveAnalysisPanel] =
+    useState<AnalysisPanel | null>(() =>
+      typeof window === "undefined" ||
+      !window.matchMedia("(max-width: 900px)").matches
+        ? "general"
+        : null,
+    );
   const [timelineTargetEntryId, setTimelineTargetEntryId] = useState<
     string | null
   >(null);
   const [timelineTargetSignal, setTimelineTargetSignal] = useState(0);
+  const [fitMapSignal, setFitMapSignal] = useState(0);
   const [focusedLocation, setFocusedLocation] = useState<{
     lat: number;
     lng: number;
@@ -176,6 +227,28 @@ function App() {
     };
   }, []);
 
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+
+    const query = window.matchMedia("(max-width: 900px)");
+    const applyLayoutDefaults = (isMobile: boolean) => {
+      setPanels({ timeline: !isMobile });
+      setActiveAnalysisPanel((current) => {
+        if (isMobile) return null;
+        return current ?? "general";
+      });
+    };
+
+    applyLayoutDefaults(query.matches);
+
+    const handleChange = (event: MediaQueryListEvent) => {
+      applyLayoutDefaults(event.matches);
+    };
+
+    query.addEventListener("change", handleChange);
+    return () => query.removeEventListener("change", handleChange);
+  }, []);
+
   const totalKm = useMemo(
     () =>
       stats.reduce((sum, item) => {
@@ -197,6 +270,8 @@ function App() {
     [freeTransportRides, locations, totalKm],
   );
 
+  const sleepStats = useMemo(() => calculateSleepStats(locations), [locations]);
+
   const orderedStats = useMemo(
     () =>
       [...stats].sort((a, b) => {
@@ -210,9 +285,31 @@ function App() {
       }),
     [stats],
   );
+  const selectedTransportCostGroup =
+    selectedChartPart?.id === "cost:free"
+      ? "free"
+      : selectedChartPart?.id === "cost:paid"
+        ? "paid"
+        : null;
+  const selectedSleepCostGroup =
+    selectedSleepChartPart?.id === "sleep-cost:free"
+      ? "free"
+      : selectedSleepChartPart?.id === "sleep-cost:paid"
+        ? "paid"
+        : null;
 
-  function togglePanel(panel: keyof PanelState) {
-    setPanels((current) => ({ ...current, [panel]: !current[panel] }));
+  function isMobileLayout() {
+    return (
+      typeof window !== "undefined" &&
+      window.matchMedia("(max-width: 900px)").matches
+    );
+  }
+
+  function selectAnalysisPanel(panel: AnalysisPanel) {
+    setActiveAnalysisPanel((current) => (current === panel ? null : panel));
+    if (isMobileLayout()) {
+      setPanels((current) => ({ ...current, timeline: false }));
+    }
   }
 
   function closeLocationDialog() {
@@ -307,7 +404,11 @@ function App() {
         locationForm={locationForm}
         locations={locations}
         focusedLocation={focusedLocation}
+        fitMapSignal={fitMapSignal}
         selectedTransport={selectedTransport}
+        selectedTransportCostGroup={selectedTransportCostGroup}
+        selectedSleepCategory={selectedSleepCategory}
+        selectedSleepCostGroup={selectedSleepCostGroup}
         onCancelPlacingLocation={() => setIsPlacingLocation(false)}
         onMapError={setError}
         onNewLocationForm={(form) => {
@@ -317,55 +418,128 @@ function App() {
         }}
         onSelectTimelineEntry={(id) => {
           setPanels((current) => ({ ...current, timeline: true }));
+          if (isMobileLayout()) setActiveAnalysisPanel(null);
           setTimelineTargetEntryId(id);
           setTimelineTargetSignal((current) => current + 1);
         }}
-        onStartPlacingLocation={() => {
-          setLocationForm(null);
-          setEditingLocationId(null);
-          setIsPlacingLocation(true);
-        }}
       />
 
+      <div className="map-button-row" aria-label="Map controls">
+        <button
+          type="button"
+          className="map-action-button"
+          onClick={() => {
+            setLocationForm(null);
+            setEditingLocationId(null);
+            setIsPlacingLocation(true);
+          }}
+          title="Add new point"
+        >
+          <MapPinPlus size={18} />
+        </button>
+        <button
+          type="button"
+          className="map-action-button"
+          onClick={() => setFitMapSignal((current) => current + 1)}
+          title="Fit routes"
+        >
+          <LocateFixed size={18} />
+        </button>
+      </div>
+
       <div className="floating-panels">
-        <div className="floating-column floating-column-left">
-          <FloatingPanel
-            className="transport-floating-panel"
-            icon={<ChartPie size={17} />}
-            isOpen={panels.transport}
-            onToggle={() => togglePanel("transport")}
-            title="Transport distance"
-          >
-            <TransportDistancePanel
-              orderedStats={orderedStats}
-              selectedChartPart={selectedChartPart}
-              selectedTransport={selectedTransport}
-              onSelectChartPart={setSelectedChartPart}
-              onSelectTransport={setSelectedTransport}
-            />
-          </FloatingPanel>
-        </div>
+        <section className="analysis-shell" aria-label="Analysis panels">
+          <nav className="analysis-action-bar" aria-label="Analysis actions">
+            <button
+              type="button"
+              className={activeAnalysisPanel === "general" ? "active" : ""}
+              onClick={() => selectAnalysisPanel("general")}
+              title="General statistics"
+            >
+              <ListChecks size={18} />
+              <span>Info</span>
+            </button>
+            <button
+              type="button"
+              className={activeAnalysisPanel === "transport" ? "active" : ""}
+              onClick={() => selectAnalysisPanel("transport")}
+              title="Transport distance"
+            >
+              <ChartPie size={18} />
+              <span>Transport</span>
+            </button>
+            <button
+              type="button"
+              className={activeAnalysisPanel === "sleep" ? "active" : ""}
+              onClick={() => selectAnalysisPanel("sleep")}
+              title="Sleep categories"
+            >
+              <Moon size={18} />
+              <span>Sleep</span>
+            </button>
+            <button
+              type="button"
+              className={panels.timeline ? "active mobile-only" : "mobile-only"}
+              onClick={() =>
+                setPanels((current) => {
+                  const nextTimeline = !current.timeline;
+                  if (nextTimeline) setActiveAnalysisPanel(null);
+                  return {
+                    ...current,
+                    timeline: nextTimeline,
+                  };
+                })
+              }
+              title="Journey timeline"
+            >
+              <Clock3 size={18} />
+              <span>Timeline</span>
+            </button>
+          </nav>
 
-        <div className="floating-column floating-column-right">
-          <FloatingPanel
-            className="general-floating-panel"
-            icon={<ListChecks size={17} />}
-            isOpen={panels.general}
-            onToggle={() => togglePanel("general")}
-            title="General statistics"
-          >
-            <GeneralStatsPanel
-              generalStats={generalStats}
-            />
-          </FloatingPanel>
+          {activeAnalysisPanel && (
+            <div className="analysis-panel">
+              {activeAnalysisPanel === "general" && (
+                <>
+                  <div className="panel-heading">
+                    <div>
+                      <h2>General statistics</h2>
+                    </div>
+                  </div>
+                  <GeneralStatsPanel generalStats={generalStats} />
+                </>
+              )}
 
-          <FloatingPanel
-            className="timeline-floating-panel"
-            icon={<Clock3 size={17} />}
-            isOpen={panels.timeline}
-            onToggle={() => togglePanel("timeline")}
-            title="Journey timeline"
-          >
+              {activeAnalysisPanel === "transport" && (
+                <TransportDistancePanel
+                  orderedStats={orderedStats}
+                  selectedChartPart={selectedChartPart}
+                  selectedTransport={selectedTransport}
+                  onSelectChartPart={setSelectedChartPart}
+                  onSelectTransport={setSelectedTransport}
+                />
+              )}
+
+              {activeAnalysisPanel === "sleep" && (
+                <SleepCategoryPanel
+                  selectedChartPart={selectedSleepChartPart}
+                  selectedSleepCategory={selectedSleepCategory}
+                  stats={sleepStats}
+                  onSelectChartPart={setSelectedSleepChartPart}
+                  onSelectSleepCategory={setSelectedSleepCategory}
+                />
+              )}
+            </div>
+          )}
+        </section>
+
+        {panels.timeline && (
+          <section className="timeline-shell">
+            <div className="panel-heading">
+              <div>
+                <h2>Journey timeline</h2>
+              </div>
+            </div>
             <TravelTimeline
               locations={locations}
               legs={legs}
@@ -382,8 +556,8 @@ function App() {
                 setLocationForm(form);
               }}
             />
-          </FloatingPanel>
-        </div>
+          </section>
+        )}
       </div>
 
       {locationForm && (

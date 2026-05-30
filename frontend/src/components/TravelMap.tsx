@@ -1,12 +1,19 @@
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import maplibregl, {
   GeoJSONSource,
   LngLatBounds,
   Map as MapLibreMap,
 } from "maplibre-gl";
 import "maplibre-gl/dist/maplibre-gl.css";
-import { LocateFixed, MapPinPlus, RefreshCw, Route, X } from "lucide-react";
-import { globeSky, MAP_STYLE_URL } from "../constants";
+import { MapPinPlus, Route, X } from "lucide-react";
+import {
+  freeTransportModes,
+  paidSleepCategories,
+  sleepCategoryOptions,
+  transportOptions,
+  globeSky,
+  MAP_STYLE_URL,
+} from "../constants";
 import type { FeatureCollection, LocationFormState } from "../types";
 import {
   addFeatureCoordinatesToBounds,
@@ -23,13 +30,29 @@ type TravelMapProps = {
   locationForm: LocationFormState | null;
   locations: FeatureCollection | null;
   focusedLocation: { lat: number; lng: number; signal: number } | null;
+  fitMapSignal: number;
   selectedTransport: string | null;
+  selectedTransportCostGroup: "free" | "paid" | null;
+  selectedSleepCategory: string | null;
+  selectedSleepCostGroup: "free" | "paid" | null;
   onCancelPlacingLocation: () => void;
   onMapError: (message: string) => void;
   onNewLocationForm: (form: LocationFormState) => void;
   onSelectTimelineEntry: (id: string) => void;
-  onStartPlacingLocation: () => void;
 };
+
+const freeTransportValues = transportOptions.filter((option) =>
+  freeTransportModes.has(option),
+);
+const paidTransportValues = transportOptions.filter(
+  (option) => !freeTransportModes.has(option),
+);
+const paidSleepValues = sleepCategoryOptions.filter((option) =>
+  paidSleepCategories.has(option),
+);
+const freeSleepValues = sleepCategoryOptions.filter(
+  (option) => !paidSleepCategories.has(option),
+);
 
 export function TravelMap({
   error,
@@ -39,17 +62,37 @@ export function TravelMap({
   locationForm,
   locations,
   focusedLocation,
+  fitMapSignal,
   selectedTransport,
+  selectedTransportCostGroup,
+  selectedSleepCategory,
+  selectedSleepCostGroup,
   onCancelPlacingLocation,
   onMapError,
   onNewLocationForm,
   onSelectTimelineEntry,
-  onStartPlacingLocation,
 }: TravelMapProps) {
   const mapContainerRef = useRef<HTMLDivElement | null>(null);
   const mapRef = useRef<MapLibreMap | null>(null);
   const isMapReadyRef = useRef(false);
   const [isMapReady, setIsMapReady] = useState(false);
+
+
+  const refitMap = useCallback(() => {
+    if (!legs || !mapRef.current) return;
+
+    const bounds = new LngLatBounds();
+    legs.features.forEach((feature) =>
+      addFeatureCoordinatesToBounds(feature.geometry, bounds),
+    );
+    if (!bounds.isEmpty()) {
+      mapRef.current.fitBounds(bounds, {
+        padding: 44,
+        duration: 800,
+        maxZoom: 3.2,
+      });
+    }
+  }, [legs]);
 
   useEffect(() => {
     if (!mapContainerRef.current || mapRef.current) return;
@@ -181,6 +224,11 @@ export function TravelMap({
   }, [focusedLocation, isMapReady]);
 
   useEffect(() => {
+    if (!fitMapSignal) return;
+    refitMap();
+  }, [fitMapSignal, refitMap]);
+
+  useEffect(() => {
     const map = mapRef.current;
     if (!map || !isMapReady || !isPlacingLocation) return;
 
@@ -219,6 +267,7 @@ export function TravelMap({
           id: "legs-shadow",
           type: "line",
           source: "legs",
+          filter: ["!=", ["get", "transport"], "plane"],
           paint: {
             "line-color": "#12202b",
             "line-opacity": 0.42,
@@ -230,6 +279,7 @@ export function TravelMap({
           id: "legs-main",
           type: "line",
           source: "legs",
+          filter: ["!=", ["get", "transport"], "plane"],
           paint: {
             "line-color": buildTransportColorExpression(),
             "line-opacity": 0.92,
@@ -243,6 +293,29 @@ export function TravelMap({
               4.8,
               10,
               6,
+            ],
+          },
+        });
+
+        map.addLayer({
+          id: "legs-flights",
+          type: "line",
+          source: "legs",
+          filter: ["==", ["get", "transport"], "plane"],
+          paint: {
+            "line-color": buildTransportColorExpression(),
+            "line-dasharray": [3.2, 2.4],
+            "line-opacity": 0.88,
+            "line-width": [
+              "interpolate",
+              ["linear"],
+              ["zoom"],
+              1,
+              2,
+              5,
+              2.4,
+              10,
+              3,
             ],
           },
         });
@@ -338,6 +411,11 @@ export function TravelMap({
     map.on("click", "legs-main", selectLeg);
     map.on("mouseenter", "legs-main", setPointer);
     map.on("mouseleave", "legs-main", clearPointer);
+    if (map.getLayer("legs-flights")) {
+      map.on("click", "legs-flights", selectLeg);
+      map.on("mouseenter", "legs-flights", setPointer);
+      map.on("mouseleave", "legs-flights", clearPointer);
+    }
 
     return () => {
       map.off("click", "locations-hit", selectLocation);
@@ -346,6 +424,11 @@ export function TravelMap({
       map.off("click", "legs-main", selectLeg);
       map.off("mouseenter", "legs-main", setPointer);
       map.off("mouseleave", "legs-main", clearPointer);
+      if (map.getLayer("legs-flights")) {
+        map.off("click", "legs-flights", selectLeg);
+        map.off("mouseenter", "legs-flights", setPointer);
+        map.off("mouseleave", "legs-flights", clearPointer);
+      }
     };
   }, [isMapReady, isPlacingLocation, locations, onSelectTimelineEntry]);
 
@@ -354,8 +437,14 @@ export function TravelMap({
     if (!map || !map.getLayer("legs-main")) return;
 
     const selected = selectedTransport ?? "";
+    const groupTransports =
+      selectedTransportCostGroup === "free"
+        ? freeTransportValues
+        : selectedTransportCostGroup === "paid"
+          ? paidTransportValues
+          : [];
 
-    if (!selectedTransport) {
+    if (!selectedTransport && !selectedTransportCostGroup) {
       map.setPaintProperty("legs-main", "line-opacity", 0.78);
       map.setPaintProperty("legs-main", "line-width", [
         "interpolate",
@@ -368,40 +457,86 @@ export function TravelMap({
         10,
         6,
       ]);
+      if (map.getLayer("legs-flights")) {
+        map.setPaintProperty("legs-flights", "line-opacity", 0.88);
+        map.setPaintProperty("legs-flights", "line-width", [
+          "interpolate",
+          ["linear"],
+          ["zoom"],
+          1,
+          2,
+          5,
+          2.4,
+          10,
+          3,
+        ]);
+      }
       map.setPaintProperty("legs-shadow", "line-opacity", 0.28);
       return;
     }
 
     map.setPaintProperty("legs-main", "line-opacity", [
       "case",
-      ["==", ["get", "transport"], selected],
+      selectedTransport
+        ? ["==", ["get", "transport"], selected]
+        : ["in", ["get", "transport"], ["literal", groupTransports]],
       0.98,
       0.09,
     ]);
     map.setPaintProperty("legs-main", "line-width", [
       "case",
-      ["==", ["get", "transport"], selected],
+      selectedTransport
+        ? ["==", ["get", "transport"], selected]
+        : ["in", ["get", "transport"], ["literal", groupTransports]],
       5.2,
       1.1,
     ]);
-    map.setPaintProperty("legs-shadow", "line-opacity", 0.08);
-  }, [selectedTransport]);
-
-  function refitMap() {
-    if (!legs || !mapRef.current) return;
-
-    const bounds = new LngLatBounds();
-    legs.features.forEach((feature) =>
-      addFeatureCoordinatesToBounds(feature.geometry, bounds),
-    );
-    if (!bounds.isEmpty()) {
-      mapRef.current.fitBounds(bounds, {
-        padding: 44,
-        duration: 800,
-        maxZoom: 3.2,
-      });
+    if (map.getLayer("legs-flights")) {
+      map.setPaintProperty("legs-flights", "line-opacity", [
+        "case",
+        selectedTransport
+          ? ["==", ["get", "transport"], selected]
+          : ["in", ["get", "transport"], ["literal", groupTransports]],
+        0.95,
+        0.08,
+      ]);
+      map.setPaintProperty("legs-flights", "line-width", [
+        "case",
+        selectedTransport
+          ? ["==", ["get", "transport"], selected]
+          : ["in", ["get", "transport"], ["literal", groupTransports]],
+        3,
+        1,
+      ]);
     }
-  }
+    map.setPaintProperty("legs-shadow", "line-opacity", 0.08);
+  }, [selectedTransport, selectedTransportCostGroup]);
+
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map || !map.getLayer("locations-main")) return;
+
+    const groupSleepCategories =
+      selectedSleepCostGroup === "free"
+        ? freeSleepValues
+        : selectedSleepCostGroup === "paid"
+          ? paidSleepValues
+          : [];
+
+    if (!selectedSleepCategory && !selectedSleepCostGroup) {
+      map.setPaintProperty("locations-main", "circle-opacity", 0.9);
+      return;
+    }
+
+    map.setPaintProperty("locations-main", "circle-opacity", [
+      "case",
+      selectedSleepCategory
+        ? ["==", ["get", "sleepcategory"], selectedSleepCategory]
+        : ["in", ["get", "sleepcategory"], ["literal", groupSleepCategories]],
+      0.96,
+      0.08,
+    ]);
+  }, [selectedSleepCategory, selectedSleepCostGroup]);
 
   return (
     <section className="map-wrap">
@@ -409,28 +544,6 @@ export function TravelMap({
       <div className="topbar">
         <div>
           <p className="eyebrow">Danventures</p>
-          <h1>Travel atlas</h1>
-        </div>
-        <div className="topbar-actions">
-          <button
-            type="button"
-            className="add-point-button"
-            onClick={onStartPlacingLocation}
-            title="Add new point"
-          >
-            <MapPinPlus size={18} />
-            <span>Add new point</span>
-          </button>
-          <button type="button" onClick={refitMap} title="Fit routes">
-            <LocateFixed size={18} />
-          </button>
-          <button
-            type="button"
-            onClick={() => window.location.reload()}
-            title="Reload data"
-          >
-            <RefreshCw size={18} />
-          </button>
         </div>
       </div>
       {isLoading && (

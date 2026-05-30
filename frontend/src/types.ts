@@ -10,6 +10,11 @@ export type TransportStat = {
   distance_km: number | string;
 };
 
+export type SleepStat = {
+  sleepcategory: string | null;
+  night_count: number;
+};
+
 export type LocationFormState = {
   lng: number;
   lat: number;

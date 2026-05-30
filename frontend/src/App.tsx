@@ -126,6 +126,11 @@ function App() {
     string | null
   >(null);
   const [timelineTargetSignal, setTimelineTargetSignal] = useState(0);
+  const [focusedLocation, setFocusedLocation] = useState<{
+    lat: number;
+    lng: number;
+    signal: number;
+  } | null>(null);
   const [locationForm, setLocationForm] = useState<LocationFormState | null>(
     null,
   );
@@ -301,6 +306,7 @@ function App() {
         legs={legs}
         locationForm={locationForm}
         locations={locations}
+        focusedLocation={focusedLocation}
         selectedTransport={selectedTransport}
         onCancelPlacingLocation={() => setIsPlacingLocation(false)}
         onMapError={setError}
@@ -365,6 +371,12 @@ function App() {
               legs={legs}
               targetEntryId={timelineTargetEntryId}
               targetEntrySignal={timelineTargetSignal}
+              onFocusLocation={(coordinates) =>
+                setFocusedLocation((current) => ({
+                  ...coordinates,
+                  signal: (current?.signal ?? 0) + 1,
+                }))
+              }
               onEditLocation={(id, form) => {
                 setEditingLocationId(id);
                 setLocationForm(form);

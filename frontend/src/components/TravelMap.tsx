@@ -22,6 +22,7 @@ type TravelMapProps = {
   legs: FeatureCollection | null;
   locationForm: LocationFormState | null;
   locations: FeatureCollection | null;
+  focusedLocation: { lat: number; lng: number; signal: number } | null;
   selectedTransport: string | null;
   onCancelPlacingLocation: () => void;
   onMapError: (message: string) => void;
@@ -37,6 +38,7 @@ export function TravelMap({
   legs,
   locationForm,
   locations,
+  focusedLocation,
   selectedTransport,
   onCancelPlacingLocation,
   onMapError,
@@ -165,6 +167,18 @@ export function TravelMap({
         : [],
     });
   }, [isMapReady, locationForm]);
+
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map || !isMapReady || !focusedLocation) return;
+
+    map.flyTo({
+      center: [focusedLocation.lng, focusedLocation.lat],
+      duration: 850,
+      essential: true,
+      zoom: Math.max(map.getZoom(), 6),
+    });
+  }, [focusedLocation, isMapReady]);
 
   useEffect(() => {
     const map = mapRef.current;

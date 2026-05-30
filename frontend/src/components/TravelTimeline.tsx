@@ -1,11 +1,29 @@
 import {
+  useCallback,
   useEffect,
   useMemo,
   useRef,
   useState,
   type CSSProperties,
+  type ReactNode,
 } from "react";
-import { BedDouble, ChevronDown, MapPin, Navigation, SquarePen } from "lucide-react";
+import {
+  BedDouble,
+  Bike,
+  Bus,
+  Car,
+  ChevronDown,
+  CircleDollarSign,
+  Footprints,
+  MapPin,
+  MessageSquareText,
+  Plane,
+  Ship,
+  SquarePen,
+  Train,
+  Truck,
+  Users,
+} from "lucide-react";
 import {
   initialTimelineEntryCount,
   timelineEntryBatchSize,
@@ -14,17 +32,14 @@ import {
 import type {
   FeatureCollection,
   LocationFormState,
-  TimelineEntry,
   TimelineLegEntry,
   TimelineLocationEntry,
 } from "../types";
 import {
   colorForTransport,
   coordinatesForFeature,
-  formatCoordinate,
   formatKm,
   formatTimelineDate,
-  formatTimelineDateTime,
   formFromFeature,
   featureRecordId,
   optionLabel,
@@ -41,6 +56,7 @@ type TravelTimelineProps = {
   targetEntryId: string | null;
   targetEntrySignal: number;
   onEditLocation: (id: number, form: LocationFormState) => void;
+  onFocusLocation: (coordinates: { lat: number; lng: number }) => void;
 };
 
 function buildTimelineEntries(
@@ -82,68 +98,122 @@ function buildTimelineEntries(
   });
 }
 
-function TimelineDetails({ entry }: { entry: TimelineEntry }) {
-  const properties = entry.feature.properties ?? {};
+function transportIconFor(value: string | null) {
+  const size = 14;
 
-  if (entry.kind === "leg") {
-    const distanceKm = propertyNumber(properties, "distance_m") / 1000;
-    const transport = propertyString(properties, "transport");
-    const rows = [
-      ["From", propertyString(properties, "from_name")],
-      ["To", propertyString(properties, "to_name")],
-      ["Transport", transport ? transportLabel(transport) : null],
-      ["Date", formatTimelineDateTime(entry.date)],
-      ["Distance", `${formatKm(distanceKm)} km`],
-      ["Travel cost", propertyString(properties, "travel_cost")],
-      ["Route source", propertyString(properties, "route_source")],
-      ["Route confidence", propertyString(properties, "route_confidence")],
-    ].filter(([, value]) => value);
-
-    return (
-      <dl className="timeline-details">
-        {rows.map(([label, value]) => (
-          <div key={label}>
-            <dt>{label}</dt>
-            <dd>{value}</dd>
-          </div>
-        ))}
-      </dl>
-    );
+  switch (value) {
+    case "bike":
+      return <Bike size={size} />;
+    case "bus":
+      return <Bus size={size} />;
+    case "boat":
+    case "ferry":
+      return <Ship size={size} />;
+    case "foot":
+      return <Footprints size={size} />;
+    case "plane":
+      return <Plane size={size} />;
+    case "train":
+      return <Train size={size} />;
+    case "truck":
+      return <Truck size={size} />;
+    case "friends":
+      return <Users size={size} />;
+    case "car":
+    case "rentalCar":
+    case "taxi":
+    default:
+      return <Car size={size} />;
   }
+}
 
-  const coordinates = coordinatesForFeature(entry.feature);
+type DetailItem = {
+  icon: ReactNode;
+  label: string;
+  value: string | null;
+};
+
+function LocationDetails({
+  entry,
+}: {
+  entry: TimelineLocationEntry;
+}) {
+  const properties = entry.feature.properties ?? {};
   const pointType = propertyString(properties, "pointtype") ?? "waypoint";
-  const rows = [
-    ["Name", propertyString(properties, "name")],
-    ["Type", optionLabel(pointType)],
-    ["Date", formatTimelineDateTime(entry.date)],
-    ["Transport", optionLabel(propertyString(properties, "transport") ?? "")],
-    ["Sleep category", propertyString(properties, "sleepcategory")],
-    ["Nights", propertyString(properties, "nonights")],
-    ["People", propertyString(properties, "people")],
-    ["Boat", propertyString(properties, "boat")],
-    ["Travel cost", propertyString(properties, "travelcost")],
-    ["Sleep cost", propertyString(properties, "sleepcost")],
-    ["Description", propertyString(properties, "description")],
-    [
-      "Coordinates",
-      coordinates
-        ? `${formatCoordinate(coordinates.lat)}, ${formatCoordinate(
-            coordinates.lng,
-          )}`
-        : null,
-    ],
-  ].filter(([, value]) => value);
+  const transport = propertyString(properties, "transport");
+  const people = propertyString(properties, "people");
+  const description = propertyString(properties, "description");
+  const metaItems: DetailItem[] = [
+    {
+      icon: transportIconFor(transport),
+      label: "Transport",
+      value: transport ? optionLabel(transport) : null,
+    },
+    {
+      icon: <BedDouble size={14} />,
+      label: "Sleep",
+      value:
+        pointType === "sleep"
+          ? [
+              propertyString(properties, "sleepcategory")
+                ? optionLabel(propertyString(properties, "sleepcategory") ?? "")
+                : null,
+              propertyString(properties, "nonights")
+                ? `${propertyString(properties, "nonights")} nights`
+                : null,
+            ]
+              .filter(Boolean)
+              .join(", ")
+          : null,
+    },
+    {
+      icon: <Ship size={14} />,
+      label: "Boat",
+      value: propertyString(properties, "boat"),
+    },
+    {
+      icon: <CircleDollarSign size={14} />,
+      label: "Costs",
+      value: [
+        propertyString(properties, "travelcost")
+          ? `travel ${propertyString(properties, "travelcost")}`
+          : null,
+        propertyString(properties, "sleepcost")
+          ? `sleep ${propertyString(properties, "sleepcost")}`
+          : null,
+      ]
+        .filter(Boolean)
+        .join(", "),
+    },
+  ].filter((item) => item.value);
 
   return (
-    <dl className="timeline-details">
-      {rows.map(([label, value]) => (
-        <div key={label}>
-          <dt>{label}</dt>
-          <dd>{value}</dd>
+    <div className="timeline-details">
+      {metaItems.length > 0 && (
+        <div className="timeline-detail-meta">
+          {metaItems.map((item) => (
+            <span className="timeline-meta-pill" key={item.label}>
+              {item.icon}
+              <span>{item.value}</span>
+            </span>
+          ))}
         </div>
-      ))}
-    </dl>
+      )}
+
+      {people && (
+        <div className="timeline-detail-primary">
+          <Users size={15} />
+          <span>{people}</span>
+        </div>
+      )}
+
+      {description && (
+        <div className="timeline-detail-note">
+          <MessageSquareText size={15} />
+          <p>{description}</p>
+        </div>
+      )}
+    </div>
   );
 }
 
@@ -158,10 +228,9 @@ export function TravelTimeline({
   targetEntryId,
   targetEntrySignal,
   onEditLocation,
+  onFocusLocation,
 }: TravelTimelineProps) {
   const listRef = useRef<HTMLDivElement | null>(null);
-  const topSentinelRef = useRef<HTMLDivElement | null>(null);
-  const bottomSentinelRef = useRef<HTMLDivElement | null>(null);
   const entryRefs = useRef(new Map<string, HTMLElement>());
   const [expandedEntryId, setExpandedEntryId] = useState<string | null>(null);
   const [visibleRange, setVisibleRange] = useState<TimelineRange>({
@@ -177,40 +246,42 @@ export function TravelTimeline({
   useEffect(() => {
     setVisibleRange({ end: initialTimelineEntryCount, start: 0 });
     setExpandedEntryId(null);
-  }, [entries.length, visibleRange.end, visibleRange.start]);
+  }, [entries.length]);
 
-  useEffect(() => {
+  const loadMoreNewer = useCallback(() => {
+    setVisibleRange((current) => ({
+      end: current.end,
+      start: Math.max(0, current.start - timelineEntryBatchSize),
+    }));
+  }, []);
+
+  const loadMoreOlder = useCallback(() => {
+    setVisibleRange((current) => ({
+      end: Math.min(current.end + timelineEntryBatchSize, entries.length),
+      start: current.start,
+    }));
+  }, [entries.length]);
+
+  const handleTimelineScroll = useCallback(() => {
     const list = listRef.current;
     if (!list) return;
 
-    const observer = new IntersectionObserver(
-      (intersections) => {
-        intersections.forEach((intersection) => {
-          if (!intersection.isIntersecting) return;
+    if (list.scrollTop < 90 && visibleRange.start > 0) {
+      loadMoreNewer();
+    }
 
-          if (intersection.target === bottomSentinelRef.current) {
-            setVisibleRange((current) => ({
-              end: Math.min(current.end + timelineEntryBatchSize, entries.length),
-              start: current.start,
-            }));
-          }
-
-          if (intersection.target === topSentinelRef.current) {
-            setVisibleRange((current) => ({
-              end: current.end,
-              start: Math.max(0, current.start - timelineEntryBatchSize),
-            }));
-          }
-        });
-      },
-      { root: list, rootMargin: "80px 0px", threshold: 0.01 },
-    );
-
-    if (topSentinelRef.current) observer.observe(topSentinelRef.current);
-    if (bottomSentinelRef.current) observer.observe(bottomSentinelRef.current);
-
-    return () => observer.disconnect();
-  }, [entries.length]);
+    const remainingScroll =
+      list.scrollHeight - list.scrollTop - list.clientHeight;
+    if (remainingScroll < 90 && visibleRange.end < entries.length) {
+      loadMoreOlder();
+    }
+  }, [
+    entries.length,
+    loadMoreNewer,
+    loadMoreOlder,
+    visibleRange.end,
+    visibleRange.start,
+  ]);
 
   useEffect(() => {
     if (!targetEntryId) return;
@@ -242,13 +313,14 @@ export function TravelTimeline({
         ref={listRef}
         className="timeline-list"
         aria-label="Chronological locations and legs"
+        onScroll={handleTimelineScroll}
       >
         {entries.length === 0 && (
           <div className="timeline-empty">No locations or legs yet.</div>
         )}
 
         {visibleRange.start > 0 && (
-          <div ref={topSentinelRef} className="timeline-sentinel">
+          <div className="timeline-sentinel">
             Loading newer timeline entries
           </div>
         )}
@@ -270,13 +342,13 @@ export function TravelTimeline({
             const transport = propertyString(properties, "transport");
             const color = colorForTransport(transport);
             const distanceKm = propertyNumber(properties, "distance_m") / 1000;
-            const fromName = propertyString(properties, "from_name") ?? "Unknown";
-            const toName = propertyString(properties, "to_name") ?? "Unknown";
 
             return (
               <article
                 ref={setEntryRef}
-                className={`timeline-entry leg ${isTargeted ? "targeted" : ""}`}
+                className={`timeline-entry leg compact ${
+                  isTargeted ? "targeted" : ""
+                }`}
                 data-entry-id={entry.id}
                 key={entry.id}
               >
@@ -290,29 +362,19 @@ export function TravelTimeline({
                   />
                 </div>
                 <div className="timeline-content">
-                  <button
-                    type="button"
-                    className="timeline-trigger"
-                    aria-expanded={isExpanded}
-                    onClick={() =>
-                      setExpandedEntryId(isExpanded ? null : entry.id)
-                    }
+                  <div
+                    className="timeline-leg-summary"
+                    title={transportLabel(transport)}
                   >
-                    <span className="timeline-icon leg-icon">
-                      <Navigation size={13} />
+                    <span
+                      className="timeline-icon leg-icon"
+                      style={{ color }}
+                      aria-hidden="true"
+                    >
+                      {transportIconFor(transport)}
                     </span>
-                    <span className="timeline-main">
-                      <strong>
-                        {fromName} to {toName}
-                      </strong>
-                      <span>
-                        {formatTimelineDate(entry.date)} -{" "}
-                        {transportLabel(transport)} - {formatKm(distanceKm)} km
-                      </span>
-                    </span>
-                    <ChevronDown size={16} />
-                  </button>
-                  {isExpanded && <TimelineDetails entry={entry} />}
+                    <strong>{formatKm(distanceKm)} km</strong>
+                  </div>
                 </div>
               </article>
             );
@@ -322,6 +384,12 @@ export function TravelTimeline({
           const isSleep = pointType === "sleep";
           const transport = propertyString(properties, "transport");
           const name = propertyString(properties, "name") ?? "Unnamed location";
+          const coordinates = coordinatesForFeature(entry.feature);
+
+          const toggleLocation = () => {
+            if (coordinates) onFocusLocation(coordinates);
+            setExpandedEntryId(isExpanded ? null : entry.id);
+          };
 
           return (
             <article
@@ -350,7 +418,7 @@ export function TravelTimeline({
                   type="button"
                   className="timeline-trigger"
                   aria-expanded={isExpanded}
-                  onClick={() => setExpandedEntryId(isExpanded ? null : entry.id)}
+                  onClick={toggleLocation}
                 >
                   <span className="timeline-main">
                     <strong>{name}</strong>
@@ -374,14 +442,14 @@ export function TravelTimeline({
                 >
                   <SquarePen size={15} />
                 </button>
-                {isExpanded && <TimelineDetails entry={entry} />}
+                {isExpanded && <LocationDetails entry={entry} />}
               </div>
             </article>
           );
         })}
 
         {visibleRange.end < entries.length && (
-          <div ref={bottomSentinelRef} className="timeline-sentinel">
+          <div className="timeline-sentinel">
             Loading older timeline entries
           </div>
         )}

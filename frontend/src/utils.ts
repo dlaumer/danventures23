@@ -263,6 +263,21 @@ export function propertyNumber(
   return numberFromValue(properties?.[key]);
 }
 
+export function featureRecordId(feature: GeoJSON.Feature) {
+  const value = feature.id ?? feature.properties?.id;
+  if (value === null || value === undefined || value === "") return null;
+  return String(value);
+}
+
+export function timelineEntryId(
+  kind: "leg" | "location",
+  feature: GeoJSON.Feature,
+  fallbackIndex?: number,
+) {
+  const recordId = featureRecordId(feature);
+  return `${kind}:${recordId ?? `fallback-${fallbackIndex ?? 0}`}`;
+}
+
 export function coordinatesForFeature(feature: GeoJSON.Feature) {
   if (feature.geometry?.type !== "Point") return null;
   const [lng, lat] = feature.geometry.coordinates;

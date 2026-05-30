@@ -103,3 +103,4 @@ export const transportDisplayOrder = [
 
 export const initialTimelineEntryCount = 80;
 export const timelineEntryBatchSize = 80;
+export const timelineTargetContextCount = 40;

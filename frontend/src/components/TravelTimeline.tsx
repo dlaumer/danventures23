@@ -1,11 +1,19 @@
-import { useMemo, useState, type CSSProperties } from "react";
-import { BedDouble, ChevronDown, MapPin, Navigation } from "lucide-react";
+import {
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  type CSSProperties,
+} from "react";
+import { BedDouble, ChevronDown, MapPin, Navigation, SquarePen } from "lucide-react";
 import {
   initialTimelineEntryCount,
   timelineEntryBatchSize,
+  timelineTargetContextCount,
 } from "../constants";
 import type {
   FeatureCollection,
+  LocationFormState,
   TimelineEntry,
   TimelineLegEntry,
   TimelineLocationEntry,
@@ -17,16 +25,22 @@ import {
   formatKm,
   formatTimelineDate,
   formatTimelineDateTime,
+  formFromFeature,
+  featureRecordId,
   optionLabel,
   parseTravelDate,
   propertyNumber,
   propertyString,
+  timelineEntryId,
   transportLabel,
 } from "../utils";
 
 type TravelTimelineProps = {
   legs: FeatureCollection | null;
   locations: FeatureCollection | null;
+  targetEntryId: string | null;
+  targetEntrySignal: number;
+  onEditLocation: (id: number, form: LocationFormState) => void;
 };
 
 function buildTimelineEntries(
@@ -37,7 +51,7 @@ function buildTimelineEntries(
     locations?.features.map((feature, index) => ({
       date: parseTravelDate(feature.properties?.travel_date),
       feature,
-      id: `location:${feature.id ?? index}`,
+      id: timelineEntryId("location", feature, index),
       kind: "location",
     })) ?? [];
 
@@ -53,7 +67,7 @@ function buildTimelineEntries(
         date: parseTravelDate(feature.properties?.travel_date),
         feature,
         gap,
-        id: `leg:${feature.id ?? index}`,
+        id: timelineEntryId("leg", feature, index),
         kind: "leg",
       };
     }) ?? [];
@@ -133,35 +147,124 @@ function TimelineDetails({ entry }: { entry: TimelineEntry }) {
   );
 }
 
-export function TravelTimeline({ legs, locations }: TravelTimelineProps) {
+type TimelineRange = {
+  end: number;
+  start: number;
+};
+
+export function TravelTimeline({
+  legs,
+  locations,
+  targetEntryId,
+  targetEntrySignal,
+  onEditLocation,
+}: TravelTimelineProps) {
+  const listRef = useRef<HTMLDivElement | null>(null);
+  const topSentinelRef = useRef<HTMLDivElement | null>(null);
+  const bottomSentinelRef = useRef<HTMLDivElement | null>(null);
+  const entryRefs = useRef(new Map<string, HTMLElement>());
   const [expandedEntryId, setExpandedEntryId] = useState<string | null>(null);
-  const [visibleEntryCount, setVisibleEntryCount] = useState(
-    initialTimelineEntryCount,
-  );
+  const [visibleRange, setVisibleRange] = useState<TimelineRange>({
+    end: initialTimelineEntryCount,
+    start: 0,
+  });
   const entries = useMemo(
     () => buildTimelineEntries(locations, legs),
     [locations, legs],
   );
-  const visibleEntries = entries.slice(0, visibleEntryCount);
-  const remainingEntryCount = Math.max(entries.length - visibleEntryCount, 0);
+  const visibleEntries = entries.slice(visibleRange.start, visibleRange.end);
+
+  useEffect(() => {
+    setVisibleRange({ end: initialTimelineEntryCount, start: 0 });
+    setExpandedEntryId(null);
+  }, [entries.length, visibleRange.end, visibleRange.start]);
+
+  useEffect(() => {
+    const list = listRef.current;
+    if (!list) return;
+
+    const observer = new IntersectionObserver(
+      (intersections) => {
+        intersections.forEach((intersection) => {
+          if (!intersection.isIntersecting) return;
+
+          if (intersection.target === bottomSentinelRef.current) {
+            setVisibleRange((current) => ({
+              end: Math.min(current.end + timelineEntryBatchSize, entries.length),
+              start: current.start,
+            }));
+          }
+
+          if (intersection.target === topSentinelRef.current) {
+            setVisibleRange((current) => ({
+              end: current.end,
+              start: Math.max(0, current.start - timelineEntryBatchSize),
+            }));
+          }
+        });
+      },
+      { root: list, rootMargin: "80px 0px", threshold: 0.01 },
+    );
+
+    if (topSentinelRef.current) observer.observe(topSentinelRef.current);
+    if (bottomSentinelRef.current) observer.observe(bottomSentinelRef.current);
+
+    return () => observer.disconnect();
+  }, [entries.length]);
+
+  useEffect(() => {
+    if (!targetEntryId) return;
+    const targetIndex = entries.findIndex((entry) => entry.id === targetEntryId);
+    if (targetIndex === -1) return;
+
+    setExpandedEntryId(targetEntryId);
+    setVisibleRange({
+      end: Math.min(entries.length, targetIndex + timelineTargetContextCount + 1),
+      start: Math.max(0, targetIndex - timelineTargetContextCount),
+    });
+  }, [entries, targetEntryId, targetEntrySignal]);
+
+  useEffect(() => {
+    if (!targetEntryId) return;
+
+    window.requestAnimationFrame(() => {
+      entryRefs.current.get(targetEntryId)?.scrollIntoView({
+        block: "center",
+        behavior: "smooth",
+      });
+    });
+  }, [targetEntryId, targetEntrySignal, visibleRange]);
 
   return (
     <div className="timeline-panel">
-      <div className="panel-heading">
-        <div>
-          <h2>Journey timeline</h2>
-          <p>Newest locations first, with every leg in between.</p>
-        </div>
-      </div>
 
-      <div className="timeline-list" aria-label="Chronological locations and legs">
+      <div
+        ref={listRef}
+        className="timeline-list"
+        aria-label="Chronological locations and legs"
+      >
         {entries.length === 0 && (
           <div className="timeline-empty">No locations or legs yet.</div>
+        )}
+
+        {visibleRange.start > 0 && (
+          <div ref={topSentinelRef} className="timeline-sentinel">
+            Loading newer timeline entries
+          </div>
         )}
 
         {visibleEntries.map((entry) => {
           const properties = entry.feature.properties ?? {};
           const isExpanded = expandedEntryId === entry.id;
+          const isTargeted = targetEntryId === entry.id;
+          const setEntryRef = (element: HTMLElement | null) => {
+            if (element) {
+              entryRefs.current.set(entry.id, element);
+              return;
+            }
+
+            entryRefs.current.delete(entry.id);
+          };
 
           if (entry.kind === "leg") {
             const transport = propertyString(properties, "transport");
@@ -171,7 +274,12 @@ export function TravelTimeline({ legs, locations }: TravelTimelineProps) {
             const toName = propertyString(properties, "to_name") ?? "Unknown";
 
             return (
-              <article className="timeline-entry leg" key={entry.id}>
+              <article
+                ref={setEntryRef}
+                className={`timeline-entry leg ${isTargeted ? "targeted" : ""}`}
+                data-entry-id={entry.id}
+                key={entry.id}
+              >
                 <div
                   className="timeline-rail"
                   style={{ "--line-color": color } as CSSProperties}
@@ -198,8 +306,8 @@ export function TravelTimeline({ legs, locations }: TravelTimelineProps) {
                         {fromName} to {toName}
                       </strong>
                       <span>
-                        {formatTimelineDate(entry.date)} ·{" "}
-                        {transportLabel(transport)} · {formatKm(distanceKm)} km
+                        {formatTimelineDate(entry.date)} -{" "}
+                        {transportLabel(transport)} - {formatKm(distanceKm)} km
                       </span>
                     </span>
                     <ChevronDown size={16} />
@@ -216,7 +324,14 @@ export function TravelTimeline({ legs, locations }: TravelTimelineProps) {
           const name = propertyString(properties, "name") ?? "Unnamed location";
 
           return (
-            <article className="timeline-entry location" key={entry.id}>
+            <article
+              ref={setEntryRef}
+              className={`timeline-entry location ${
+                isTargeted ? "targeted" : ""
+              }`}
+              data-entry-id={entry.id}
+              key={entry.id}
+            >
               <div
                 className="timeline-rail"
                 style={
@@ -240,11 +355,24 @@ export function TravelTimeline({ legs, locations }: TravelTimelineProps) {
                   <span className="timeline-main">
                     <strong>{name}</strong>
                     <span>
-                      {formatTimelineDate(entry.date)} ·{" "}
+                      {formatTimelineDate(entry.date)} -{" "}
                       {isSleep ? "sleep" : "waypoint"}
                     </span>
                   </span>
                   <ChevronDown size={16} />
+                </button>
+                <button
+                  type="button"
+                  className="timeline-edit-button"
+                    onClick={() =>
+                      onEditLocation(
+                        Number(featureRecordId(entry.feature)),
+                        formFromFeature(entry.feature),
+                      )
+                    }
+                  title="Edit location"
+                >
+                  <SquarePen size={15} />
                 </button>
                 {isExpanded && <TimelineDetails entry={entry} />}
               </div>
@@ -252,18 +380,10 @@ export function TravelTimeline({ legs, locations }: TravelTimelineProps) {
           );
         })}
 
-        {remainingEntryCount > 0 && (
-          <button
-            type="button"
-            className="timeline-load-more"
-            onClick={() =>
-              setVisibleEntryCount((current) =>
-                Math.min(current + timelineEntryBatchSize, entries.length),
-              )
-            }
-          >
-            Load {Math.min(timelineEntryBatchSize, remainingEntryCount)} more
-          </button>
+        {visibleRange.end < entries.length && (
+          <div ref={bottomSentinelRef} className="timeline-sentinel">
+            Loading older timeline entries
+          </div>
         )}
       </div>
     </div>

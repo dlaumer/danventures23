@@ -2,33 +2,16 @@ import type { GeneralStats } from "../types";
 import { formatCount, formatKm } from "../utils";
 
 type GeneralStatsPanelProps = {
-  freeTransportRides: number;
-  statsCount: number;
-  totalKm: number;
   generalStats: GeneralStats;
 };
 
-export function GeneralStatsPanel({
-  freeTransportRides,
-  generalStats,
-  statsCount,
-  totalKm,
-}: GeneralStatsPanelProps) {
+export function GeneralStatsPanel({ generalStats }: GeneralStatsPanelProps) {
   return (
     <div className="general-stats-content">
-      <div className="summary compact">
-        <p className="eyebrow">Distance</p>
-        <strong>{formatKm(totalKm)} km</strong>
-        <span>
-          {formatCount(freeTransportRides)} free transport rides across{" "}
-          {statsCount} transport types
-        </span>
-      </div>
-
       <dl className="general-stats-grid">
         <div>
           <dt>Total distance</dt>
-          <dd>{formatKm(totalKm)} km</dd>
+          <dd>{formatKm(generalStats.totalDistanceKm)} km</dd>
         </div>
         <div>
           <dt>Number of rides</dt>

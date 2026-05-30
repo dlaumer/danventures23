@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useState, type FormEvent } from "react";
+import { ChartPie, Clock3, ListChecks } from "lucide-react";
 import "./App.css";
 import { API_BASE_URL, paidSleepCategories, transportDisplayOrder } from "./constants";
 import { FloatingPanel } from "./components/FloatingPanel";
@@ -58,6 +59,7 @@ async function fetchTravelData() {
 function calculateGeneralStats(
   locations: FeatureCollection | null,
   freeTransportRides: number,
+  totalKm: number,
 ): GeneralStats {
   const locationDateKeys = new Set<string>();
   let earliestDate: Date | null = null;
@@ -97,6 +99,7 @@ function calculateGeneralStats(
   return {
     rideCount: freeTransportRides,
     sleepCostTotal,
+    totalDistanceKm: totalKm,
     totalDays,
     transportCostTotal,
     travelDayCount: locationDateKeys.size,
@@ -119,6 +122,10 @@ function App() {
     timeline: true,
     transport: true,
   });
+  const [timelineTargetEntryId, setTimelineTargetEntryId] = useState<
+    string | null
+  >(null);
+  const [timelineTargetSignal, setTimelineTargetSignal] = useState(0);
   const [locationForm, setLocationForm] = useState<LocationFormState | null>(
     null,
   );
@@ -181,8 +188,8 @@ function App() {
   );
 
   const generalStats = useMemo(
-    () => calculateGeneralStats(locations, freeTransportRides),
-    [freeTransportRides, locations],
+    () => calculateGeneralStats(locations, freeTransportRides, totalKm),
+    [freeTransportRides, locations, totalKm],
   );
 
   const orderedStats = useMemo(
@@ -296,15 +303,16 @@ function App() {
         locations={locations}
         selectedTransport={selectedTransport}
         onCancelPlacingLocation={() => setIsPlacingLocation(false)}
-        onEditLocation={(id, form) => {
-          setEditingLocationId(id);
-          setLocationForm(form);
-        }}
         onMapError={setError}
         onNewLocationForm={(form) => {
           setEditingLocationId(null);
           setLocationForm(form);
           setIsPlacingLocation(false);
+        }}
+        onSelectTimelineEntry={(id) => {
+          setPanels((current) => ({ ...current, timeline: true }));
+          setTimelineTargetEntryId(id);
+          setTimelineTargetSignal((current) => current + 1);
         }}
         onStartPlacingLocation={() => {
           setLocationForm(null);
@@ -317,6 +325,7 @@ function App() {
         <div className="floating-column floating-column-left">
           <FloatingPanel
             className="transport-floating-panel"
+            icon={<ChartPie size={17} />}
             isOpen={panels.transport}
             onToggle={() => togglePanel("transport")}
             title="Transport distance"
@@ -334,25 +343,33 @@ function App() {
         <div className="floating-column floating-column-right">
           <FloatingPanel
             className="general-floating-panel"
+            icon={<ListChecks size={17} />}
             isOpen={panels.general}
             onToggle={() => togglePanel("general")}
             title="General statistics"
           >
             <GeneralStatsPanel
-              freeTransportRides={freeTransportRides}
               generalStats={generalStats}
-              statsCount={stats.length}
-              totalKm={totalKm}
             />
           </FloatingPanel>
 
           <FloatingPanel
             className="timeline-floating-panel"
+            icon={<Clock3 size={17} />}
             isOpen={panels.timeline}
             onToggle={() => togglePanel("timeline")}
             title="Journey timeline"
           >
-            <TravelTimeline locations={locations} legs={legs} />
+            <TravelTimeline
+              locations={locations}
+              legs={legs}
+              targetEntryId={timelineTargetEntryId}
+              targetEntrySignal={timelineTargetSignal}
+              onEditLocation={(id, form) => {
+                setEditingLocationId(id);
+                setLocationForm(form);
+              }}
+            />
           </FloatingPanel>
         </div>
       </div>

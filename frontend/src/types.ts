@@ -53,6 +53,7 @@ export type SelectedChartPart = {
 export type GeneralStats = {
   rideCount: number;
   sleepCostTotal: number;
+  totalDistanceKm: number;
   totalDays: number;
   transportCostTotal: number;
   travelDayCount: number;

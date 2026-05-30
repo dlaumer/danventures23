@@ -12,7 +12,7 @@ import {
   addFeatureCoordinatesToBounds,
   buildEmptyLocationForm,
   buildTransportColorExpression,
-  formFromFeature,
+  timelineEntryId,
 } from "../utils";
 
 type TravelMapProps = {
@@ -24,9 +24,9 @@ type TravelMapProps = {
   locations: FeatureCollection | null;
   selectedTransport: string | null;
   onCancelPlacingLocation: () => void;
-  onEditLocation: (id: number, form: LocationFormState) => void;
   onMapError: (message: string) => void;
   onNewLocationForm: (form: LocationFormState) => void;
+  onSelectTimelineEntry: (id: string) => void;
   onStartPlacingLocation: () => void;
 };
 
@@ -39,9 +39,9 @@ export function TravelMap({
   locations,
   selectedTransport,
   onCancelPlacingLocation,
-  onEditLocation,
   onMapError,
   onNewLocationForm,
+  onSelectTimelineEntry,
   onStartPlacingLocation,
 }: TravelMapProps) {
   const mapContainerRef = useRef<HTMLDivElement | null>(null);
@@ -241,7 +241,11 @@ export function TravelMap({
           type: "geojson",
           data: locations,
         });
+      } else {
+        (map.getSource("locations") as GeoJSONSource).setData(locations);
+      }
 
+      if (!map.getLayer("locations-main")) {
         map.addLayer({
           id: "locations-main",
           type: "circle",
@@ -254,8 +258,20 @@ export function TravelMap({
             "circle-stroke-width": 0,
           },
         });
-      } else {
-        (map.getSource("locations") as GeoJSONSource).setData(locations);
+      }
+
+      if (!map.getLayer("locations-hit")) {
+        map.addLayer({
+          id: "locations-hit",
+          type: "circle",
+          source: "locations",
+          paint: {
+            "circle-radius": 12,
+            "circle-color": "#ffffff",
+            "circle-opacity": 0.01,
+            "circle-stroke-width": 0,
+          },
+        });
       }
 
       if (map.getLayer("draft-location")) {
@@ -277,16 +293,23 @@ export function TravelMap({
 
   useEffect(() => {
     const map = mapRef.current;
-    if (!map || !isMapReady || !map.getLayer("locations-main")) {
+    if (!map || !isMapReady || !map.getLayer("locations-hit")) {
       return;
     }
 
-    const openFeature = (event: maplibregl.MapLayerMouseEvent) => {
+    const selectLocation = (event: maplibregl.MapLayerMouseEvent) => {
       if (isPlacingLocation) return;
       const feature = event.features?.[0];
       if (!feature) return;
 
-      onEditLocation(Number(feature.id), formFromFeature(feature));
+      onSelectTimelineEntry(timelineEntryId("location", feature));
+    };
+    const selectLeg = (event: maplibregl.MapLayerMouseEvent) => {
+      if (isPlacingLocation) return;
+      const feature = event.features?.[0];
+      if (!feature) return;
+
+      onSelectTimelineEntry(timelineEntryId("leg", feature));
     };
     const setPointer = () => {
       map.getCanvas().style.cursor = "pointer";
@@ -295,16 +318,22 @@ export function TravelMap({
       map.getCanvas().style.cursor = "";
     };
 
-    map.on("click", "locations-main", openFeature);
-    map.on("mouseenter", "locations-main", setPointer);
-    map.on("mouseleave", "locations-main", clearPointer);
+    map.on("click", "locations-hit", selectLocation);
+    map.on("mouseenter", "locations-hit", setPointer);
+    map.on("mouseleave", "locations-hit", clearPointer);
+    map.on("click", "legs-main", selectLeg);
+    map.on("mouseenter", "legs-main", setPointer);
+    map.on("mouseleave", "legs-main", clearPointer);
 
     return () => {
-      map.off("click", "locations-main", openFeature);
-      map.off("mouseenter", "locations-main", setPointer);
-      map.off("mouseleave", "locations-main", clearPointer);
+      map.off("click", "locations-hit", selectLocation);
+      map.off("mouseenter", "locations-hit", setPointer);
+      map.off("mouseleave", "locations-hit", clearPointer);
+      map.off("click", "legs-main", selectLeg);
+      map.off("mouseenter", "legs-main", setPointer);
+      map.off("mouseleave", "legs-main", clearPointer);
     };
-  }, [isMapReady, isPlacingLocation, locations, onEditLocation]);
+  }, [isMapReady, isPlacingLocation, locations, onSelectTimelineEntry]);
 
   useEffect(() => {
     const map = mapRef.current;

@@ -12,6 +12,8 @@ import {
   sleepCategoryOptions,
   transportOptions,
   globeSky,
+  IMAGERY_MAP_STYLE,
+  type MapBasemap,
   MAP_STYLE_URL,
 } from "../constants";
 import type { FeatureCollection, LocationFormState } from "../types";
@@ -19,6 +21,8 @@ import {
   addFeatureCoordinatesToBounds,
   buildEmptyLocationForm,
   buildTransportColorExpression,
+  featureRecordId,
+  propertyString,
   timelineEntryId,
 } from "../utils";
 
@@ -35,10 +39,11 @@ type TravelMapProps = {
   selectedTransportCostGroup: "free" | "paid" | null;
   selectedSleepCategory: string | null;
   selectedSleepCostGroup: "free" | "paid" | null;
+  basemap: MapBasemap;
   onCancelPlacingLocation: () => void;
   onMapError: (message: string) => void;
   onNewLocationForm: (form: LocationFormState) => void;
-  onSelectTimelineEntry: (id: string) => void;
+  onSelectTimelineEntry: (id: string, expandEntryId?: string) => void;
 };
 
 const freeTransportValues = transportOptions.filter((option) =>
@@ -67,6 +72,7 @@ export function TravelMap({
   selectedTransportCostGroup,
   selectedSleepCategory,
   selectedSleepCostGroup,
+  basemap,
   onCancelPlacingLocation,
   onMapError,
   onNewLocationForm,
@@ -75,8 +81,32 @@ export function TravelMap({
   const mapContainerRef = useRef<HTMLDivElement | null>(null);
   const mapRef = useRef<MapLibreMap | null>(null);
   const isMapReadyRef = useRef(false);
+  const hasFitInitialDataRef = useRef(false);
+  const initialBasemapRef = useRef(basemap);
   const [isMapReady, setIsMapReady] = useState(false);
 
+  const loadBasemapStyle = useCallback(
+    async (nextBasemap: MapBasemap): Promise<maplibregl.StyleSpecification> => {
+      if (nextBasemap === "imagery") {
+        return {
+          ...IMAGERY_MAP_STYLE,
+          projection: { type: "globe" },
+          sky: globeSky,
+        };
+      }
+
+      const styleResponse = await fetch(MAP_STYLE_URL);
+      if (!styleResponse.ok) throw new Error("Map style request failed.");
+      const style = (await styleResponse.json()) as maplibregl.StyleSpecification;
+
+      return {
+        ...style,
+        projection: { type: "globe" },
+        sky: globeSky,
+      };
+    },
+    [],
+  );
 
   const refitMap = useCallback(() => {
     if (!legs || !mapRef.current) return;
@@ -101,19 +131,13 @@ export function TravelMap({
 
     async function initializeMap() {
       try {
-        const styleResponse = await fetch(MAP_STYLE_URL);
-        if (!styleResponse.ok) throw new Error("Map style request failed.");
-        const style = (await styleResponse.json()) as maplibregl.StyleSpecification;
+        const style = await loadBasemapStyle(initialBasemapRef.current);
 
         if (!isMounted || !mapContainerRef.current || mapRef.current) return;
 
         mapRef.current = new maplibregl.Map({
           container: mapContainerRef.current,
-          style: {
-            ...style,
-            projection: { type: "globe" },
-            sky: globeSky,
-          },
+          style,
           center: [-15, 20],
           zoom: 1.25,
           bearing: -18,
@@ -157,7 +181,49 @@ export function TravelMap({
         window.danventuresMap = undefined;
       }
     };
-  }, [onMapError]);
+  }, [loadBasemapStyle, onMapError]);
+
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map || !isMapReadyRef.current) return;
+
+    const activeMap = map;
+    let isMounted = true;
+    let handleStyleLoad: (() => void) | null = null;
+
+    async function switchBasemap() {
+      try {
+        const style = await loadBasemapStyle(basemap);
+        if (!isMounted) return;
+
+        isMapReadyRef.current = false;
+        setIsMapReady(false);
+        handleStyleLoad = () => {
+          if (!isMounted) return;
+          activeMap.resize();
+          isMapReadyRef.current = true;
+          setIsMapReady(true);
+        };
+        activeMap.once("style.load", handleStyleLoad);
+        activeMap.setStyle(style);
+      } catch (caught) {
+        if (isMounted) {
+          onMapError(
+            caught instanceof Error ? caught.message : "Could not switch basemap.",
+          );
+        }
+      }
+    }
+
+    switchBasemap();
+
+    return () => {
+      isMounted = false;
+      if (handleStyleLoad) {
+        activeMap.off("style.load", handleStyleLoad);
+      }
+    };
+  }, [basemap, loadBasemapStyle, onMapError]);
 
   useEffect(() => {
     const map = mapRef.current;
@@ -355,7 +421,7 @@ export function TravelMap({
           paint: {
             "circle-radius": 12,
             "circle-color": "#ffffff",
-            "circle-opacity": 0.01,
+            "circle-opacity": 0.001,
             "circle-stroke-width": 0,
           },
         });
@@ -370,7 +436,8 @@ export function TravelMap({
         addFeatureCoordinatesToBounds(feature.geometry, bounds),
       );
 
-      if (isInitialDataRender && !bounds.isEmpty()) {
+      if (isInitialDataRender && !hasFitInitialDataRef.current && !bounds.isEmpty()) {
+        hasFitInitialDataRef.current = true;
         map.fitBounds(bounds, { padding: 44, duration: 900, maxZoom: 3.2 });
       }
     };
@@ -380,23 +447,152 @@ export function TravelMap({
 
   useEffect(() => {
     const map = mapRef.current;
-    if (!map || !isMapReady || !map.getLayer("locations-hit")) {
+    if (
+      !map ||
+      !isMapReady ||
+      !locations ||
+      !legs ||
+      !map.getLayer("locations-hit")
+    ) {
       return;
     }
 
-    const selectLocation = (event: maplibregl.MapLayerMouseEvent) => {
-      if (isPlacingLocation) return;
-      const feature = event.features?.[0];
-      if (!feature) return;
+    const currentLocations = locations;
+    const currentLegs = legs;
+    const distanceToSegment = (
+      point: maplibregl.Point,
+      start: maplibregl.Point,
+      end: maplibregl.Point,
+    ) => {
+      const segmentX = end.x - start.x;
+      const segmentY = end.y - start.y;
+      const lengthSquared = segmentX * segmentX + segmentY * segmentY;
+      if (lengthSquared === 0) return Math.hypot(point.x - start.x, point.y - start.y);
 
-      onSelectTimelineEntry(timelineEntryId("location", feature));
+      const progress = Math.max(
+        0,
+        Math.min(
+          1,
+          ((point.x - start.x) * segmentX + (point.y - start.y) * segmentY) /
+            lengthSquared,
+        ),
+      );
+      const closestX = start.x + progress * segmentX;
+      const closestY = start.y + progress * segmentY;
+
+      return Math.hypot(point.x - closestX, point.y - closestY);
     };
-    const selectLeg = (event: maplibregl.MapLayerMouseEvent) => {
-      if (isPlacingLocation) return;
-      const feature = event.features?.[0];
-      if (!feature) return;
+    const nearestLegForPoint = (point: maplibregl.Point) => {
+      return currentLegs.features.reduce<{
+        distance: number;
+        feature: GeoJSON.Feature;
+      } | null>((nearest, feature) => {
+        const geometry = feature.geometry;
+        if (!geometry) return nearest;
 
-      onSelectTimelineEntry(timelineEntryId("leg", feature));
+        const lines =
+          geometry.type === "LineString"
+            ? [geometry.coordinates]
+            : geometry.type === "MultiLineString"
+              ? geometry.coordinates
+              : [];
+
+        const distance = lines.reduce((closestDistance, line) => {
+          for (let index = 1; index < line.length; index += 1) {
+            const [startLng, startLat] = line[index - 1];
+            const [endLng, endLat] = line[index];
+            const start = map.project([Number(startLng), Number(startLat)]);
+            const end = map.project([Number(endLng), Number(endLat)]);
+            closestDistance = Math.min(
+              closestDistance,
+              distanceToSegment(point, start, end),
+            );
+          }
+
+          return closestDistance;
+        }, Number.POSITIVE_INFINITY);
+
+        if (distance > 28 || (nearest && nearest.distance <= distance)) {
+          return nearest;
+        }
+
+        return { distance, feature };
+      }, null);
+    };
+    const selectLocationFeature = (feature: GeoJSON.Feature) => {
+      const locationEntryId = timelineEntryId("location", feature);
+      onSelectTimelineEntry(locationEntryId, locationEntryId);
+    };
+    const selectLegFeature = (feature: GeoJSON.Feature) => {
+      const destinationLocationId = propertyString(feature.properties, "to_key");
+      const destinationName = propertyString(feature.properties, "to_name");
+      const destinationLocation =
+        currentLocations.features.find(
+          (location) => featureRecordId(location) === destinationLocationId,
+        ) ??
+        currentLocations.features.find(
+          (location) =>
+            destinationName &&
+            propertyString(location.properties, "name") === destinationName,
+        );
+      const destinationEntryId =
+        (destinationLocation ? featureRecordId(destinationLocation) : null) ??
+        destinationLocationId;
+
+      onSelectTimelineEntry(
+        destinationEntryId
+          ? `location:${destinationEntryId}`
+          : timelineEntryId("leg", feature),
+        destinationEntryId ? `location:${destinationEntryId}` : undefined,
+      );
+    };
+    const selectMapFeature = (event: maplibregl.MapMouseEvent) => {
+      if (isPlacingLocation) return;
+
+      const nearestLocation = currentLocations.features.reduce<{
+        distance: number;
+        feature: GeoJSON.Feature;
+      } | null>((nearest, feature) => {
+        if (feature.geometry?.type !== "Point") return nearest;
+        const [lng, lat] = feature.geometry.coordinates;
+        const point = map.project([Number(lng), Number(lat)]);
+        const distance = Math.hypot(
+          point.x - event.point.x,
+          point.y - event.point.y,
+        );
+
+        if (distance > 14 || (nearest && nearest.distance <= distance)) {
+          return nearest;
+        }
+
+        return { distance, feature };
+      }, null);
+
+      if (nearestLocation) {
+        selectLocationFeature(nearestLocation.feature);
+        return;
+      }
+
+      const nearestLeg = nearestLegForPoint(event.point);
+      if (nearestLeg) {
+        selectLegFeature(nearestLeg.feature);
+        return;
+      }
+
+      const legLayers = ["legs-main", "legs-flights"].filter((layer) =>
+        map.getLayer(layer),
+      );
+      if (legLayers.length === 0) return;
+
+      const legFeature = map.queryRenderedFeatures(
+        [
+          [event.point.x - 18, event.point.y - 18],
+          [event.point.x + 18, event.point.y + 18],
+        ],
+        { layers: legLayers },
+      )[0];
+
+      if (legFeature) selectLegFeature(legFeature);
     };
     const setPointer = () => {
       map.getCanvas().style.cursor = "pointer";
@@ -405,32 +601,28 @@ export function TravelMap({
       map.getCanvas().style.cursor = "";
     };
 
-    map.on("click", "locations-hit", selectLocation);
+    map.on("click", selectMapFeature);
     map.on("mouseenter", "locations-hit", setPointer);
     map.on("mouseleave", "locations-hit", clearPointer);
-    map.on("click", "legs-main", selectLeg);
     map.on("mouseenter", "legs-main", setPointer);
     map.on("mouseleave", "legs-main", clearPointer);
     if (map.getLayer("legs-flights")) {
-      map.on("click", "legs-flights", selectLeg);
       map.on("mouseenter", "legs-flights", setPointer);
       map.on("mouseleave", "legs-flights", clearPointer);
     }
 
     return () => {
-      map.off("click", "locations-hit", selectLocation);
+      map.off("click", selectMapFeature);
       map.off("mouseenter", "locations-hit", setPointer);
       map.off("mouseleave", "locations-hit", clearPointer);
-      map.off("click", "legs-main", selectLeg);
       map.off("mouseenter", "legs-main", setPointer);
       map.off("mouseleave", "legs-main", clearPointer);
       if (map.getLayer("legs-flights")) {
-        map.off("click", "legs-flights", selectLeg);
         map.off("mouseenter", "legs-flights", setPointer);
         map.off("mouseleave", "legs-flights", clearPointer);
       }
     };
-  }, [isMapReady, isPlacingLocation, locations, onSelectTimelineEntry]);
+  }, [isMapReady, isPlacingLocation, locations, legs, onSelectTimelineEntry]);
 
   useEffect(() => {
     const map = mapRef.current;

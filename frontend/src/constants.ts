@@ -5,6 +5,30 @@ export const API_BASE_URL =
 
 export const MAP_STYLE_URL = "https://tiles.openfreemap.org/styles/liberty";
 
+export type MapBasemap = "standard" | "imagery";
+
+export const IMAGERY_MAP_STYLE: maplibregl.StyleSpecification = {
+  version: 8,
+  sources: {
+    "esri-world-imagery": {
+      type: "raster",
+      tiles: [
+        "https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}",
+      ],
+      tileSize: 256,
+      attribution:
+        "Tiles &copy; Esri, Maxar, Earthstar Geographics, and the GIS User Community",
+    },
+  },
+  layers: [
+    {
+      id: "esri-world-imagery",
+      type: "raster",
+      source: "esri-world-imagery",
+    },
+  ],
+};
+
 export const globeSky: maplibregl.SkySpecification = {
   "atmosphere-blend": [
     "interpolate",

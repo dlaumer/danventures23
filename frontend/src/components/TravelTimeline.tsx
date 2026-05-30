@@ -53,6 +53,7 @@ import {
 type TravelTimelineProps = {
   legs: FeatureCollection | null;
   locations: FeatureCollection | null;
+  expandEntryId: string | null;
   targetEntryId: string | null;
   targetEntrySignal: number;
   onEditLocation: (id: number, form: LocationFormState) => void;
@@ -225,6 +226,7 @@ type TimelineRange = {
 export function TravelTimeline({
   legs,
   locations,
+  expandEntryId,
   targetEntryId,
   targetEntrySignal,
   onEditLocation,
@@ -288,12 +290,12 @@ export function TravelTimeline({
     const targetIndex = entries.findIndex((entry) => entry.id === targetEntryId);
     if (targetIndex === -1) return;
 
-    setExpandedEntryId(targetEntryId);
+    setExpandedEntryId(expandEntryId ?? targetEntryId);
     setVisibleRange({
       end: Math.min(entries.length, targetIndex + timelineTargetContextCount + 1),
       start: Math.max(0, targetIndex - timelineTargetContextCount),
     });
-  }, [entries, targetEntryId, targetEntrySignal]);
+  }, [entries, expandEntryId, targetEntryId, targetEntrySignal]);
 
   useEffect(() => {
     if (!targetEntryId) return;

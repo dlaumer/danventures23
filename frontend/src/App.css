@@ -49,7 +49,8 @@
 }
 
 .map-action-button:hover,
-.map-action-button:focus-visible {
+.map-action-button:focus-visible,
+.map-action-button.active {
   border-color: rgba(70, 105, 201, 0.35);
   background: #ffffff;
   color: #273f92;
@@ -870,21 +871,22 @@
 
 .timeline-edit-button {
   display: inline-grid;
-  width: 34px;
-  height: 34px;
+  width: 30px;
+  height: 30px;
   flex: 0 0 auto;
   place-items: center;
-  border: 1px solid #cfd8d1;
-  border-radius: 8px;
-  background: #ffffff;
-  color: #26343e;
+  border: 1px solid transparent;
+  border-radius: 7px;
+  background: transparent;
+  color: #6e7b84;
   cursor: pointer;
 }
 
 .timeline-edit-button:hover,
 .timeline-edit-button:focus-visible {
-  border-color: #aebbb3;
-  background: #f4f7f4;
+  border-color: #d8dfda;
+  background: rgba(255, 255, 255, 0.44);
+  color: #26343e;
   outline: none;
 }
 

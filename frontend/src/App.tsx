@@ -6,9 +6,15 @@ import {
   MapPinPlus,
   Moon,
   ListChecks,
+  Satellite,
 } from "lucide-react";
 import "./App.css";
-import { API_BASE_URL, paidSleepCategories, transportDisplayOrder } from "./constants";
+import {
+  API_BASE_URL,
+  paidSleepCategories,
+  transportDisplayOrder,
+  type MapBasemap,
+} from "./constants";
 import { GeneralStatsPanel } from "./components/GeneralStatsPanel";
 import { LocationDialog } from "./components/LocationDialog";
 import { SleepCategoryPanel } from "./components/SleepCategoryPanel";
@@ -175,8 +181,12 @@ function App() {
   const [timelineTargetEntryId, setTimelineTargetEntryId] = useState<
     string | null
   >(null);
+  const [timelineExpandEntryId, setTimelineExpandEntryId] = useState<
+    string | null
+  >(null);
   const [timelineTargetSignal, setTimelineTargetSignal] = useState(0);
   const [fitMapSignal, setFitMapSignal] = useState(0);
+  const [basemap, setBasemap] = useState<MapBasemap>("standard");
   const [focusedLocation, setFocusedLocation] = useState<{
     lat: number;
     lng: number;
@@ -409,6 +419,7 @@ function App() {
         selectedTransportCostGroup={selectedTransportCostGroup}
         selectedSleepCategory={selectedSleepCategory}
         selectedSleepCostGroup={selectedSleepCostGroup}
+        basemap={basemap}
         onCancelPlacingLocation={() => setIsPlacingLocation(false)}
         onMapError={setError}
         onNewLocationForm={(form) => {
@@ -416,10 +427,11 @@ function App() {
           setLocationForm(form);
           setIsPlacingLocation(false);
         }}
-        onSelectTimelineEntry={(id) => {
+        onSelectTimelineEntry={(id, expandEntryId) => {
           setPanels((current) => ({ ...current, timeline: true }));
           if (isMobileLayout()) setActiveAnalysisPanel(null);
           setTimelineTargetEntryId(id);
+          setTimelineExpandEntryId(expandEntryId ?? id);
           setTimelineTargetSignal((current) => current + 1);
         }}
       />
@@ -436,6 +448,32 @@ function App() {
           title="Add new point"
         >
           <MapPinPlus size={18} />
+        </button>
+        <button
+          type="button"
+          className={
+            basemap === "imagery"
+              ? "map-action-button active"
+              : "map-action-button"
+          }
+          onClick={() =>
+            setBasemap((current) =>
+              current === "standard" ? "imagery" : "standard",
+            )
+          }
+          title={
+            basemap === "standard"
+              ? "Switch to imagery basemap"
+              : "Switch to standard basemap"
+          }
+          aria-pressed={basemap === "imagery"}
+          aria-label={
+            basemap === "standard"
+              ? "Switch to imagery basemap"
+              : "Switch to standard basemap"
+          }
+        >
+          <Satellite size={18} />
         </button>
         <button
           type="button"
@@ -543,6 +581,7 @@ function App() {
             <TravelTimeline
               locations={locations}
               legs={legs}
+              expandEntryId={timelineExpandEntryId}
               targetEntryId={timelineTargetEntryId}
               targetEntrySignal={timelineTargetSignal}
               onFocusLocation={(coordinates) =>

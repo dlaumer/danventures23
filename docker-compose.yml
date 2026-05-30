@@ -18,6 +18,9 @@ services:
     restart: unless-stopped
     environment:
       DATABASE_URL: ${DATABASE_URL:-postgresql+psycopg://dan:devpassword@db:5432/danventures}
+      OPENROUTESERVICE_API_KEY: ${OPENROUTESERVICE_API_KEY:-}
+      OPENROUTESERVICE_BASE_URL: ${OPENROUTESERVICE_BASE_URL:-https://api.openrouteservice.org}
+      OPENROUTESERVICE_TIMEOUT_SECONDS: ${OPENROUTESERVICE_TIMEOUT_SECONDS:-20}
       CORS_ORIGINS: ${CORS_ORIGINS:-http://localhost:5173,http://127.0.0.1:5173}
     depends_on:
       - db

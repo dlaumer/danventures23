@@ -63,3 +63,21 @@ export type GeneralStats = {
   transportCostTotal: number;
   travelDayCount: number;
 };
+
+export type TravelTimeRange = {
+  endMs: number;
+  startMs: number;
+};
+
+export type MonthlyTransportDistance = {
+  distance_km: number | string;
+  distance_m: number | string;
+  transport: string | null;
+};
+
+export type MonthlyTransportDistanceBucket = {
+  month_end: string;
+  month_start: string;
+  total_km: number | string;
+  transports: MonthlyTransportDistance[];
+};

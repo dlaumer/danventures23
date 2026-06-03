@@ -661,3 +661,60 @@ def transport_distance():
         rows = conn.execute(query).mappings().all()
 
     return [dict(row) for row in rows]
+
+
+@app.get("/stats/monthly-transport-distance")
+def monthly_transport_distance():
+    query = text("""
+        with bounds as (
+            select
+                date_trunc('month', min(travel_date::timestamptz)) as start_month,
+                date_trunc('month', max(travel_date::timestamptz)) as end_month
+            from public.legs
+            where travel_date is not null
+              and distance_m is not null
+        ),
+        months as (
+            select generate_series(start_month, end_month, interval '1 month') as month_start
+            from bounds
+            where start_month is not null
+              and end_month is not null
+        ),
+        transport_totals as (
+            select
+                date_trunc('month', travel_date::timestamptz) as month_start,
+                transport,
+                coalesce(sum(distance_m), 0) as distance_m,
+                coalesce(sum(distance_m), 0) / 1000 as distance_km
+            from public.legs
+            where travel_date is not null
+              and distance_m is not null
+            group by month_start, transport
+        )
+        select
+            months.month_start,
+            months.month_start + interval '1 month' - interval '1 millisecond' as month_end,
+            round((coalesce(sum(transport_totals.distance_m), 0) / 1000)::numeric, 2)
+                as total_km,
+            coalesce(
+                jsonb_agg(
+                    jsonb_build_object(
+                        'transport', transport_totals.transport,
+                        'distance_m', transport_totals.distance_m,
+                        'distance_km', round(transport_totals.distance_km::numeric, 2)
+                    )
+                    order by transport_totals.distance_m desc
+                ) filter (where transport_totals.transport is not null),
+                '[]'::jsonb
+            ) as transports
+        from months
+        left join transport_totals
+          on transport_totals.month_start = months.month_start
+        group by months.month_start
+        order by months.month_start
+    """)
+
+    with engine.connect() as conn:
+        rows = conn.execute(query).mappings().all()
+
+    return [dict(row) for row in rows]

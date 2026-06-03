@@ -109,19 +109,27 @@ function moveTravelLayersToTop(map: MapLibreMap) {
 }
 
 function getMapFitPadding(): maplibregl.PaddingOptions {
-  const defaultPadding = { top: 44, right: 44, bottom: 44, left: 44 };
+  const defaultPadding = { top: 44, right: 44, bottom: 180, left: 44 };
 
   if (typeof window === "undefined") return defaultPadding;
 
   if (window.matchMedia("(max-width: 560px)").matches) {
-    return { top: 132, right: 32, bottom: 122, left: 32 };
+    return { top: 132, right: 32, bottom: 206, left: 32 };
   }
 
   if (window.matchMedia("(max-width: 900px)").matches) {
-    return { top: 106, right: 32, bottom: 116, left: 32 };
+    return { top: 106, right: 32, bottom: 198, left: 32 };
   }
 
   return defaultPadding;
+}
+
+function getMapFocusOffset(): [number, number] {
+  if (typeof window === "undefined") return [0, -70];
+
+  if (window.matchMedia("(max-width: 560px)").matches) return [0, -92];
+  if (window.matchMedia("(max-width: 900px)").matches) return [0, -84];
+  return [0, -70];
 }
 
 export function TravelMap({
@@ -146,7 +154,6 @@ export function TravelMap({
   const mapContainerRef = useRef<HTMLDivElement | null>(null);
   const mapRef = useRef<MapLibreMap | null>(null);
   const isMapReadyRef = useRef(false);
-  const hasFitInitialDataRef = useRef(false);
   const initialBasemapRef = useRef(basemap);
   const [isMapReady, setIsMapReady] = useState(false);
 
@@ -203,8 +210,8 @@ export function TravelMap({
         mapRef.current = new maplibregl.Map({
           container: mapContainerRef.current,
           style,
-          center: [10, 50],
-          zoom: 1.25,
+          center: [-10, 40],
+          zoom: 2,
           bearing: -18,
           pitch: 12,
           maxPitch: 85,
@@ -362,6 +369,7 @@ export function TravelMap({
       center: [focusedLocation.lng, focusedLocation.lat],
       duration: 850,
       essential: true,
+      offset: getMapFocusOffset(),
       zoom: Math.max(map.getZoom(), 6),
     });
   }, [focusedLocation, isMapReady]);
@@ -398,8 +406,6 @@ export function TravelMap({
     if (!map || !isMapReady || !locations || !legs) return;
 
     const addTravelLayers = () => {
-      const isInitialDataRender = !map.getSource("legs");
-
       if (!map.getSource("legs")) {
         map.addSource("legs", {
           type: "geojson",
@@ -511,14 +517,6 @@ export function TravelMap({
         addFeatureCoordinatesToBounds(feature.geometry, bounds),
       );
 
-      if (isInitialDataRender && !hasFitInitialDataRef.current && !bounds.isEmpty()) {
-        hasFitInitialDataRef.current = true;
-        map.fitBounds(bounds, {
-          padding: getMapFitPadding(),
-          duration: 900,
-          maxZoom: 3.2,
-        });
-      }
     };
 
     addTravelLayers();

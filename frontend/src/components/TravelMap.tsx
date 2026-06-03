@@ -58,6 +58,71 @@ const paidSleepValues = sleepCategoryOptions.filter((option) =>
 const freeSleepValues = sleepCategoryOptions.filter(
   (option) => !paidSleepCategories.has(option),
 );
+const travelSourceIds = ["legs", "locations", "draft-location"] as const;
+const travelLayerIds = [
+  "legs-shadow",
+  "legs-main",
+  "legs-flights",
+  "locations-main",
+  "locations-hit",
+  "draft-location",
+] as const;
+
+function preserveTravelLayers(
+  previousStyle: maplibregl.StyleSpecification | undefined,
+  nextStyle: maplibregl.StyleSpecification,
+): maplibregl.StyleSpecification {
+  if (!previousStyle) return nextStyle;
+
+  const preservedSources = travelSourceIds.reduce<
+    maplibregl.StyleSpecification["sources"]
+  >(
+    (sources, sourceId) => {
+      const source = previousStyle.sources[sourceId];
+      return source ? { ...sources, [sourceId]: source } : sources;
+    },
+    { ...nextStyle.sources },
+  );
+  const preservedLayerIds = new Set<string>(travelLayerIds);
+  const preservedLayers = travelLayerIds
+    .map((layerId) => previousStyle.layers.find((layer) => layer.id === layerId))
+    .filter(
+      (layer): layer is maplibregl.LayerSpecification => Boolean(layer),
+    );
+
+  return {
+    ...nextStyle,
+    sources: preservedSources,
+    layers: [
+      ...nextStyle.layers.filter((layer) => !preservedLayerIds.has(layer.id)),
+      ...preservedLayers,
+    ],
+  };
+}
+
+function moveTravelLayersToTop(map: MapLibreMap) {
+  travelLayerIds.forEach((layerId) => {
+    if (map.getLayer(layerId)) {
+      map.moveLayer(layerId);
+    }
+  });
+}
+
+function getMapFitPadding(): maplibregl.PaddingOptions {
+  const defaultPadding = { top: 44, right: 44, bottom: 44, left: 44 };
+
+  if (typeof window === "undefined") return defaultPadding;
+
+  if (window.matchMedia("(max-width: 560px)").matches) {
+    return { top: 132, right: 32, bottom: 122, left: 32 };
+  }
+
+  if (window.matchMedia("(max-width: 900px)").matches) {
+    return { top: 106, right: 32, bottom: 116, left: 32 };
+  }
+
+  return defaultPadding;
+}
 
 export function TravelMap({
   error,
@@ -117,7 +182,7 @@ export function TravelMap({
     );
     if (!bounds.isEmpty()) {
       mapRef.current.fitBounds(bounds, {
-        padding: 44,
+        padding: getMapFitPadding(),
         duration: 800,
         maxZoom: 3.2,
       });
@@ -138,7 +203,7 @@ export function TravelMap({
         mapRef.current = new maplibregl.Map({
           container: mapContainerRef.current,
           style,
-          center: [-15, 20],
+          center: [10, 50],
           zoom: 1.25,
           bearing: -18,
           pitch: 12,
@@ -147,14 +212,7 @@ export function TravelMap({
         });
         window.danventuresMap = mapRef.current;
 
-        mapRef.current.addControl(
-          new maplibregl.NavigationControl({ visualizePitch: true }),
-          "bottom-right",
-        );
-        mapRef.current.addControl(
-          new maplibregl.AttributionControl({ compact: true }),
-          "bottom-left",
-        );
+        
         mapRef.current.once("load", () => {
           mapRef.current?.resize();
           isMapReadyRef.current = true;
@@ -184,6 +242,22 @@ export function TravelMap({
   }, [loadBasemapStyle, onMapError]);
 
   useEffect(() => {
+    const container = mapContainerRef.current;
+    const map = mapRef.current;
+    if (!container || !map) return;
+
+    const resizeMap = () => map.resize();
+    const resizeObserver = new ResizeObserver(resizeMap);
+    resizeObserver.observe(container);
+    window.addEventListener("orientationchange", resizeMap);
+
+    return () => {
+      resizeObserver.disconnect();
+      window.removeEventListener("orientationchange", resizeMap);
+    };
+  }, [isMapReady]);
+
+  useEffect(() => {
     const map = mapRef.current;
     if (!map || !isMapReadyRef.current) return;
 
@@ -201,11 +275,12 @@ export function TravelMap({
         handleStyleLoad = () => {
           if (!isMounted) return;
           activeMap.resize();
+          moveTravelLayersToTop(activeMap);
           isMapReadyRef.current = true;
           setIsMapReady(true);
         };
         activeMap.once("style.load", handleStyleLoad);
-        activeMap.setStyle(style);
+        activeMap.setStyle(style, { transformStyle: preserveTravelLayers });
       } catch (caught) {
         if (isMounted) {
           onMapError(
@@ -251,6 +326,8 @@ export function TravelMap({
         },
       });
     }
+
+    moveTravelLayersToTop(map);
   }, [isMapReady]);
 
   useEffect(() => {
@@ -427,9 +504,7 @@ export function TravelMap({
         });
       }
 
-      if (map.getLayer("draft-location")) {
-        map.moveLayer("draft-location");
-      }
+      moveTravelLayersToTop(map);
 
       const bounds = new LngLatBounds();
       legs.features.forEach((feature) =>
@@ -438,7 +513,11 @@ export function TravelMap({
 
       if (isInitialDataRender && !hasFitInitialDataRef.current && !bounds.isEmpty()) {
         hasFitInitialDataRef.current = true;
-        map.fitBounds(bounds, { padding: 44, duration: 900, maxZoom: 3.2 });
+        map.fitBounds(bounds, {
+          padding: getMapFitPadding(),
+          duration: 900,
+          maxZoom: 3.2,
+        });
       }
     };
 

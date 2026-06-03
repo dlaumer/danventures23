@@ -1,4 +1,12 @@
-import { useCallback, useEffect, useMemo, useState, type FormEvent } from "react";
+import {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  type FormEvent,
+  type PointerEvent,
+} from "react";
 import {
   ChartPie,
   Clock3,
@@ -7,6 +15,7 @@ import {
   Moon,
   ListChecks,
   Satellite,
+  X,
 } from "lucide-react";
 import "./App.css";
 import {
@@ -200,6 +209,12 @@ function App() {
   );
   const [isSavingLocation, setIsSavingLocation] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const panelSwipeRef = useRef<{
+    hasClosed: boolean;
+    startX: number;
+    startY: number;
+    startedAtTop: boolean;
+  } | null>(null);
 
   const loadTravelData = useCallback(async () => {
     const travelData = await fetchTravelData();
@@ -320,6 +335,47 @@ function App() {
     if (isMobileLayout()) {
       setPanels((current) => ({ ...current, timeline: false }));
     }
+  }
+
+  function closeAnalysisPanel() {
+    setActiveAnalysisPanel(null);
+  }
+
+  function closeTimelinePanel() {
+    setPanels((current) => ({ ...current, timeline: false }));
+  }
+
+  function panelSwipeCloseHandlers(onClose: () => void) {
+    return {
+      onPointerDown(event: PointerEvent<HTMLElement>) {
+        if (!isMobileLayout()) return;
+
+        const panelTop = event.currentTarget.getBoundingClientRect().top;
+        panelSwipeRef.current = {
+          hasClosed: false,
+          startX: event.clientX,
+          startY: event.clientY,
+          startedAtTop: event.clientY - panelTop <= 76,
+        };
+      },
+      onPointerMove(event: PointerEvent<HTMLElement>) {
+        const state = panelSwipeRef.current;
+        if (!state || !state.startedAtTop || state.hasClosed) return;
+
+        const deltaX = event.clientX - state.startX;
+        const deltaY = event.clientY - state.startY;
+        if (deltaY > 72 && deltaY > Math.abs(deltaX) * 1.25) {
+          state.hasClosed = true;
+          onClose();
+        }
+      },
+      onPointerUp() {
+        panelSwipeRef.current = null;
+      },
+      onPointerCancel() {
+        panelSwipeRef.current = null;
+      },
+    };
   }
 
   function closeLocationDialog() {
@@ -536,13 +592,25 @@ function App() {
           </nav>
 
           {activeAnalysisPanel && (
-            <div className="analysis-panel">
+            <div
+              className="analysis-panel"
+              {...panelSwipeCloseHandlers(closeAnalysisPanel)}
+            >
               {activeAnalysisPanel === "general" && (
                 <>
                   <div className="panel-heading">
                     <div>
                       <h2>General statistics</h2>
                     </div>
+                    <button
+                      type="button"
+                      className="panel-close-button"
+                      onClick={closeAnalysisPanel}
+                      title="Close panel"
+                      aria-label="Close panel"
+                    >
+                      <X size={18} />
+                    </button>
                   </div>
                   <GeneralStatsPanel generalStats={generalStats} />
                 </>
@@ -553,6 +621,7 @@ function App() {
                   orderedStats={orderedStats}
                   selectedChartPart={selectedChartPart}
                   selectedTransport={selectedTransport}
+                  onClose={closeAnalysisPanel}
                   onSelectChartPart={setSelectedChartPart}
                   onSelectTransport={setSelectedTransport}
                 />
@@ -563,6 +632,7 @@ function App() {
                   selectedChartPart={selectedSleepChartPart}
                   selectedSleepCategory={selectedSleepCategory}
                   stats={sleepStats}
+                  onClose={closeAnalysisPanel}
                   onSelectChartPart={setSelectedSleepChartPart}
                   onSelectSleepCategory={setSelectedSleepCategory}
                 />
@@ -572,11 +642,23 @@ function App() {
         </section>
 
         {panels.timeline && (
-          <section className="timeline-shell">
+          <section
+            className="timeline-shell"
+            {...panelSwipeCloseHandlers(closeTimelinePanel)}
+          >
             <div className="panel-heading">
               <div>
                 <h2>Journey timeline</h2>
               </div>
+              <button
+                type="button"
+                className="panel-close-button"
+                onClick={closeTimelinePanel}
+                title="Close panel"
+                aria-label="Close panel"
+              >
+                <X size={18} />
+              </button>
             </div>
             <TravelTimeline
               locations={locations}

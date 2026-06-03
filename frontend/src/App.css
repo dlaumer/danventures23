@@ -1,6 +1,8 @@
 .app-shell {
   position: relative;
-  min-height: 100vh;
+  height: 100vh;
+  height: 100dvh;
+  min-height: 0;
   background: #eef2ee;
   color: #18242d;
   overflow: hidden;
@@ -8,7 +10,8 @@
 
 .map-wrap {
   position: relative;
-  min-height: 100vh;
+  height: 100%;
+  min-height: 0;
   overflow: hidden;
 }
 
@@ -919,6 +922,26 @@
   font-size: 13px;
 }
 
+.panel-close-button {
+  display: none;
+  width: 34px;
+  height: 34px;
+  flex: 0 0 auto;
+  place-items: center;
+  border: 1px solid #d8dfda;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.78);
+  color: #52606a;
+  cursor: pointer;
+}
+
+.panel-close-button:hover,
+.panel-close-button:focus-visible {
+  background: #ffffff;
+  color: #18242d;
+  outline: none;
+}
+
 .clear-button {
   width: 34px;
   height: 34px;
@@ -1172,6 +1195,13 @@
     overflow: visible;
   }
 
+  .app-shell,
+  .map-wrap {
+    height: 100dvh;
+    max-height: 100dvh;
+    overflow: hidden;
+  }
+
   .analysis-shell {
     display: block;
     pointer-events: none;
@@ -1204,6 +1234,29 @@
     max-height: none;
     overflow-y: auto;
     pointer-events: auto;
+    overscroll-behavior: contain;
+    touch-action: pan-y;
+  }
+
+  .analysis-panel::before,
+  .timeline-shell::before {
+    content: "";
+    display: block;
+    width: 46px;
+    height: 4px;
+    flex: 0 0 auto;
+    margin: 0 auto 10px;
+    border-radius: 999px;
+    background: #c9d2cc;
+  }
+
+  .panel-heading {
+    align-items: center;
+    margin-bottom: 12px;
+  }
+
+  .panel-close-button {
+    display: inline-grid;
   }
 
   .timeline-panel {

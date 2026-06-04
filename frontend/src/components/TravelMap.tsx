@@ -69,12 +69,6 @@ const paidSleepValues = sleepCategoryOptions.filter((option) =>
 const freeSleepValues = sleepCategoryOptions.filter(
   (option) => !paidSleepCategories.has(option),
 );
-const locationCircleOpacityExpression: maplibregl.ExpressionSpecification = [
-  "case",
-  ["==", ["get", "pointtype"], "sleep"],
-  0.9,
-  0.82,
-];
 const travelSourceIds = [
   "legs",
   "flight-lines",
@@ -82,6 +76,7 @@ const travelSourceIds = [
   "draft-location",
 ] as const;
 const travelLayerIds = [
+  "locations-waypoints",
   "legs-shadow",
   "legs-main",
   "legs-flights",

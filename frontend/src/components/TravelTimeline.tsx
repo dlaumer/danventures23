@@ -1,6 +1,7 @@
 import {
   useCallback,
   useEffect,
+  useLayoutEffect,
   useMemo,
   useRef,
   useState,
@@ -15,6 +16,7 @@ import {
   ChevronDown,
   CircleDollarSign,
   Footprints,
+  LocateFixed,
   MapPin,
   MessageSquareText,
   Plane,
@@ -32,16 +34,19 @@ import {
 import type {
   FeatureCollection,
   LocationFormState,
+  TimelineMapPosition,
   TimelineLegEntry,
   TimelineLocationEntry,
 } from "../types";
 import {
   colorForTransport,
+  coordinateAlongLine,
   coordinatesForFeature,
   formatKm,
   formatTimelineDate,
   formFromFeature,
   featureRecordId,
+  normalizeLngLat,
   optionLabel,
   parseTravelDate,
   propertyNumber,
@@ -58,6 +63,7 @@ type TravelTimelineProps = {
   targetEntrySignal: number;
   onEditLocation: (id: number, form: LocationFormState) => void;
   onFocusLocation: (coordinates: { lat: number; lng: number }) => void;
+  onTimelinePositionChange: (position: TimelineMapPosition | null) => void;
 };
 
 function buildTimelineEntries(
@@ -136,8 +142,10 @@ type DetailItem = {
 
 function LocationDetails({
   entry,
+  onZoomToLocation,
 }: {
   entry: TimelineLocationEntry;
+  onZoomToLocation: () => void;
 }) {
   const properties = entry.feature.properties ?? {};
   const pointType = propertyString(properties, "pointtype") ?? "waypoint";
@@ -190,16 +198,23 @@ function LocationDetails({
 
   return (
     <div className="timeline-details">
-      {metaItems.length > 0 && (
-        <div className="timeline-detail-meta">
-          {metaItems.map((item) => (
-            <span className="timeline-meta-pill" key={item.label}>
-              {item.icon}
-              <span>{item.value}</span>
-            </span>
-          ))}
-        </div>
-      )}
+      <div className="timeline-detail-meta">
+        {metaItems.map((item) => (
+          <span className="timeline-meta-pill" key={item.label}>
+            {item.icon}
+            <span>{item.value}</span>
+          </span>
+        ))}
+        <button
+          type="button"
+          className="timeline-zoom-button"
+          onClick={onZoomToLocation}
+          title="Zoom to location"
+          aria-label="Zoom to location"
+        >
+          <LocateFixed size={15} />
+        </button>
+      </div>
 
       {people && (
         <div className="timeline-detail-primary">
@@ -218,6 +233,20 @@ function LocationDetails({
   );
 }
 
+function coordinateForTimelineEntry(
+  entry: TimelineLegEntry | TimelineLocationEntry,
+  routeProgress: number,
+) {
+  if (entry.kind === "location") {
+    const coordinates = coordinatesForFeature(entry.feature);
+    return coordinates
+      ? normalizeLngLat([coordinates.lng, coordinates.lat])
+      : null;
+  }
+
+  return coordinateAlongLine(entry.feature.geometry, routeProgress);
+}
+
 type TimelineRange = {
   end: number;
   start: number;
@@ -231,9 +260,12 @@ export function TravelTimeline({
   targetEntrySignal,
   onEditLocation,
   onFocusLocation,
+  onTimelinePositionChange,
 }: TravelTimelineProps) {
   const listRef = useRef<HTMLDivElement | null>(null);
   const entryRefs = useRef(new Map<string, HTMLElement>());
+  const lastTimelinePositionRef = useRef<TimelineMapPosition | null>(null);
+  const scrollFrameRef = useRef<number | null>(null);
   const [expandedEntryId, setExpandedEntryId] = useState<string | null>(null);
   const [visibleRange, setVisibleRange] = useState<TimelineRange>({
     end: initialTimelineEntryCount,
@@ -243,7 +275,82 @@ export function TravelTimeline({
     () => buildTimelineEntries(locations, legs),
     [locations, legs],
   );
-  const visibleEntries = entries.slice(visibleRange.start, visibleRange.end);
+  const visibleEntries = useMemo(
+    () => entries.slice(visibleRange.start, visibleRange.end),
+    [entries, visibleRange.end, visibleRange.start],
+  );
+
+  const reportTimelinePosition = useCallback(() => {
+    const list = listRef.current;
+    if (!list || entries.length === 0) {
+      onTimelinePositionChange(null);
+      return;
+    }
+
+    const listTop = list.getBoundingClientRect().top;
+    let topEntry: {
+      progress: number;
+      entry: TimelineLegEntry | TimelineLocationEntry;
+      top: number;
+    } | null = null;
+
+    for (const entry of visibleEntries) {
+      const element = entryRefs.current.get(entry.id);
+      if (!element) continue;
+
+      const rect = element.getBoundingClientRect();
+      if (rect.bottom <= listTop) continue;
+
+      const localProgress =
+        rect.height > 0
+          ? Math.max(0, Math.min(1, (listTop - rect.top) / rect.height))
+          : 0;
+
+      if (!topEntry || rect.top < topEntry.top) {
+        topEntry = {
+          entry,
+          progress: entry.kind === "leg" ? 1 - localProgress : 0,
+          top: rect.top,
+        };
+      }
+    }
+
+    const nextPosition = topEntry
+      ? {
+          coordinates: coordinateForTimelineEntry(
+            topEntry.entry,
+            topEntry.progress,
+          ),
+          entryId: topEntry.entry.id,
+          kind: topEntry.entry.kind,
+          routeProgress: topEntry.progress,
+        }
+      : null;
+    const previousPosition = lastTimelinePositionRef.current;
+    const hasChanged =
+      previousPosition?.entryId !== nextPosition?.entryId ||
+      previousPosition?.kind !== nextPosition?.kind ||
+      previousPosition?.coordinates?.[0] !== nextPosition?.coordinates?.[0] ||
+      previousPosition?.coordinates?.[1] !== nextPosition?.coordinates?.[1] ||
+      Math.abs(
+        (previousPosition?.routeProgress ?? -1) -
+          (nextPosition?.routeProgress ?? -1),
+      ) > 0.01;
+
+    if (hasChanged) {
+      lastTimelinePositionRef.current = nextPosition;
+      onTimelinePositionChange(nextPosition);
+    }
+  }, [entries.length, onTimelinePositionChange, visibleEntries]);
+
+  const scheduleTimelinePositionReport = useCallback(() => {
+    if (scrollFrameRef.current !== null) return;
+
+    scrollFrameRef.current = window.requestAnimationFrame(() => {
+      scrollFrameRef.current = null;
+      reportTimelinePosition();
+    });
+  }, [reportTimelinePosition]);
 
   useEffect(() => {
     setVisibleRange({ end: initialTimelineEntryCount, start: 0 });
@@ -277,13 +384,36 @@ export function TravelTimeline({
     if (remainingScroll < 90 && visibleRange.end < entries.length) {
       loadMoreOlder();
     }
+
+    scheduleTimelinePositionReport();
   }, [
     entries.length,
     loadMoreNewer,
     loadMoreOlder,
+    scheduleTimelinePositionReport,
     visibleRange.end,
     visibleRange.start,
   ]);
+
+  useEffect(() => {
+    const list = listRef.current;
+    if (!list) return;
+
+    list.addEventListener("scroll", handleTimelineScroll, { passive: true });
+    return () => list.removeEventListener("scroll", handleTimelineScroll);
+  }, [handleTimelineScroll]);
+
+  useLayoutEffect(() => {
+    reportTimelinePosition();
+  }, [reportTimelinePosition]);
+
+  useEffect(() => {
+    return () => {
+      if (scrollFrameRef.current !== null) {
+        window.cancelAnimationFrame(scrollFrameRef.current);
+      }
+    };
+  }, []);
 
   useEffect(() => {
     if (!targetEntryId) return;
@@ -302,7 +432,7 @@ export function TravelTimeline({
 
     window.requestAnimationFrame(() => {
       entryRefs.current.get(targetEntryId)?.scrollIntoView({
-        block: "center",
+        block: "start",
         behavior: "smooth",
       });
     });
@@ -389,8 +519,13 @@ export function TravelTimeline({
           const coordinates = coordinatesForFeature(entry.feature);
 
           const toggleLocation = () => {
-            if (coordinates) onFocusLocation(coordinates);
             setExpandedEntryId(isExpanded ? null : entry.id);
+            window.requestAnimationFrame(() => {
+              entryRefs.current.get(entry.id)?.scrollIntoView({
+                block: "start",
+                behavior: "smooth",
+              });
+            });
           };
 
           return (
@@ -444,7 +579,14 @@ export function TravelTimeline({
                 >
                   <SquarePen size={15} />
                 </button>
-                {isExpanded && <LocationDetails entry={entry} />}
+                {isExpanded && (
+                  <LocationDetails
+                    entry={entry}
+                    onZoomToLocation={() => {
+                      if (coordinates) onFocusLocation(coordinates);
+                    }}
+                  />
+                )}
               </div>
             </article>
           );

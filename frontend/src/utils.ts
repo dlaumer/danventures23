@@ -299,6 +299,99 @@ export function coordinatesForFeature(feature: GeoJSON.Feature) {
   return { lat: Number(lat), lng: Number(lng) };
 }
 
+export function normalizeLngLat(coordinates: GeoJSON.Position | null) {
+  if (!coordinates || coordinates.length < 2) return null;
+
+  const lng = Number(coordinates[0]);
+  const lat = Number(coordinates[1]);
+  if (!Number.isFinite(lng) || !Number.isFinite(lat)) return null;
+  if (lat < -90 || lat > 90 || lng < -180 || lng > 180) return null;
+
+  return [lng, lat] as [number, number];
+}
+
+export function positionDistanceKm(a: GeoJSON.Position, b: GeoJSON.Position) {
+  const [aLng, aLat] = a.map(Number);
+  const [bLng, bLat] = b.map(Number);
+  const earthRadiusKm = 6371;
+  const latDistance = ((bLat - aLat) * Math.PI) / 180;
+  const lngDistance = ((bLng - aLng) * Math.PI) / 180;
+  const startLat = (aLat * Math.PI) / 180;
+  const endLat = (bLat * Math.PI) / 180;
+  const haversine =
+    Math.sin(latDistance / 2) ** 2 +
+    Math.cos(startLat) *
+      Math.cos(endLat) *
+      Math.sin(lngDistance / 2) ** 2;
+
+  return (
+    earthRadiusKm * 2 * Math.atan2(Math.sqrt(haversine), Math.sqrt(1 - haversine))
+  );
+}
+
+function interpolatePosition(
+  start: GeoJSON.Position,
+  end: GeoJSON.Position,
+  progress: number,
+): GeoJSON.Position {
+  const [startLng, startLat] = start.map(Number);
+  const [endLng, endLat] = end.map(Number);
+
+  return [
+    startLng + (endLng - startLng) * progress,
+    startLat + (endLat - startLat) * progress,
+  ];
+}
+
+export function coordinateAlongLine(
+  geometry: GeoJSON.Geometry | null,
+  progress: number,
+) {
+  const lines =
+    geometry?.type === "LineString"
+      ? [geometry.coordinates]
+      : geometry?.type === "MultiLineString"
+        ? geometry.coordinates
+        : [];
+  const coordinates = lines.flat().filter((position) => position.length >= 2);
+
+  if (coordinates.length === 0) return null;
+  if (coordinates.length === 1) return normalizeLngLat(coordinates[0]);
+
+  const segments = coordinates.slice(1).map((position, index) => ({
+    distanceKm: positionDistanceKm(coordinates[index], position),
+    end: position,
+    start: coordinates[index],
+  }));
+  const totalDistanceKm = segments.reduce(
+    (sum, segment) => sum + segment.distanceKm,
+    0,
+  );
+  if (totalDistanceKm <= 0) return normalizeLngLat(coordinates[0]);
+
+  const targetDistanceKm =
+    Math.max(0, Math.min(1, progress)) * totalDistanceKm;
+  let traversedDistanceKm = 0;
+
+  for (const segment of segments) {
+    const nextDistanceKm = traversedDistanceKm + segment.distanceKm;
+
+    if (targetDistanceKm <= nextDistanceKm) {
+      const segmentProgress =
+        segment.distanceKm > 0
+          ? (targetDistanceKm - traversedDistanceKm) / segment.distanceKm
+          : 0;
+      return normalizeLngLat(
+        interpolatePosition(segment.start, segment.end, segmentProgress),
+      );
+    }
+
+    traversedDistanceKm = nextDistanceKm;
+  }
+
+  return normalizeLngLat(coordinates[coordinates.length - 1]);
+}
+
 export function formatCoordinate(value: number) {
   return new Intl.NumberFormat("en", {
     maximumFractionDigits: 5,

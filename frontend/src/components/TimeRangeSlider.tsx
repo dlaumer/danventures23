@@ -116,7 +116,7 @@ function paleColor(color: string) {
   const green = parseInt(hex.slice(2, 4), 16);
   const blue = parseInt(hex.slice(4, 6), 16);
 
-  return `rgba(${red}, ${green}, ${blue}, 0.38)`;
+  return `rgba(${red}, ${green}, ${blue}, 0.48)`;
 }
 
 function buildMonthBuckets(
@@ -174,10 +174,6 @@ export function TimeRangeSlider({
   const buckets = useMemo(
     () => buildMonthBuckets(monthlyStats),
     [monthlyStats],
-  );
-  const maxLogKm = Math.max(
-    1,
-    ...buckets.map((bucket) => Math.log1p(bucket.totalKm)),
   );
   const minDateMs = buckets[0]?.startMs ?? 0;
   const maxDateMs = buckets[buckets.length - 1]?.endMs ?? 0;
@@ -435,10 +431,6 @@ export function TimeRangeSlider({
       >
         <div className="time-slider-bars" aria-hidden="true">
           {buckets.map((bucket, index) => {
-            const height = Math.max(
-              bucket.totalKm > 0 ? 7 : 3,
-              (Math.log1p(bucket.totalKm) / maxLogKm) * 52,
-            );
             const isDimmed = index < startIndex || index > endIndex;
 
             return (
@@ -448,7 +440,6 @@ export function TimeRangeSlider({
                 }
                 key={bucket.startMs}
                 title={`${bucket.label}: ${formatKm(bucket.totalKm)} km`}
-                style={{ height: `${height}px` }}
               >
                 {bucket.transports.map((transport) => (
                   <span

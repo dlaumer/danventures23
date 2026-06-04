@@ -48,6 +48,13 @@ export type TimelineLegEntry = {
 
 export type TimelineEntry = TimelineLocationEntry | TimelineLegEntry;
 
+export type TimelineMapPosition = {
+  coordinates: [number, number] | null;
+  entryId: string;
+  kind: "leg" | "location";
+  routeProgress: number;
+};
+
 export type SelectedChartPart = {
   color: string;
   id: string;

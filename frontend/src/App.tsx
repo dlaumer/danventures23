@@ -39,6 +39,7 @@ import type {
   SelectedChartPart,
   SleepStat,
   TransportStat,
+  TimelineMapPosition,
   TravelTimeRange,
   MonthlyTransportDistanceBucket,
 } from "./types";
@@ -255,6 +256,8 @@ function App() {
     string | null
   >(null);
   const [timelineTargetSignal, setTimelineTargetSignal] = useState(0);
+  const [timelineMapPosition, setTimelineMapPosition] =
+    useState<TimelineMapPosition | null>(null);
   const [fitMapSignal, setFitMapSignal] = useState(0);
   const [basemap, setBasemap] = useState<MapBasemap>("standard");
   const [selectedTimeRange, setSelectedTimeRange] =
@@ -684,6 +687,7 @@ function App() {
         locationForm={locationForm}
         locations={filteredLocations}
         focusedLocation={focusedLocation}
+        timelinePosition={timelineMapPosition}
         fitMapSignal={fitMapSignal}
         selectedTransport={selectedTransport}
         selectedTransportCostGroup={selectedTransportCostGroup}
@@ -916,6 +920,7 @@ function App() {
                   signal: (current?.signal ?? 0) + 1,
                 }))
               }
+              onTimelinePositionChange={setTimelineMapPosition}
               onEditLocation={(id, form) => {
                 setEditingLocationId(id);
                 setLocationForm(form);

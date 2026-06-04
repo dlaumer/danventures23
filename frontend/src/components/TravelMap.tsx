@@ -5,7 +5,7 @@ import maplibregl, {
   Map as MapLibreMap,
 } from "maplibre-gl";
 import "maplibre-gl/dist/maplibre-gl.css";
-import { MapPinPlus, X } from "lucide-react";
+import { CalendarDays, MapPin, MapPinPlus, Route, X } from "lucide-react";
 import {
   freeTransportModes,
   paidSleepCategories,
@@ -16,14 +16,24 @@ import {
   type MapBasemap,
   MAP_STYLE_URL,
 } from "../constants";
-import type { FeatureCollection, LocationFormState } from "../types";
+import type {
+  FeatureCollection,
+  LocationFormState,
+  TimelineMapPosition,
+} from "../types";
 import {
   addFeatureCoordinatesToBounds,
   buildEmptyLocationForm,
   buildTransportColorExpression,
+  coordinateAlongLine,
   featureRecordId,
+  formatTimelineDateTime,
+  normalizeLngLat,
+  parseTravelDate,
+  positionDistanceKm,
   propertyString,
   timelineEntryId,
+  transportLabel,
 } from "../utils";
 
 type TravelMapProps = {
@@ -34,6 +44,7 @@ type TravelMapProps = {
   locationForm: LocationFormState | null;
   locations: FeatureCollection | null;
   focusedLocation: { lat: number; lng: number; signal: number } | null;
+  timelinePosition: TimelineMapPosition | null;
   fitMapSignal: number;
   selectedTransport: string | null;
   selectedTransportCostGroup: "free" | "paid" | null;
@@ -58,15 +69,42 @@ const paidSleepValues = sleepCategoryOptions.filter((option) =>
 const freeSleepValues = sleepCategoryOptions.filter(
   (option) => !paidSleepCategories.has(option),
 );
-const travelSourceIds = ["legs", "locations", "draft-location"] as const;
+const locationCircleOpacityExpression: maplibregl.ExpressionSpecification = [
+  "case",
+  ["==", ["get", "pointtype"], "sleep"],
+  0.9,
+  0.82,
+];
+const travelSourceIds = [
+  "legs",
+  "flight-lines",
+  "locations",
+  "draft-location",
+] as const;
 const travelLayerIds = [
   "legs-shadow",
   "legs-main",
   "legs-flights",
+  "legs-flights-hit",
   "locations-main",
   "locations-hit",
   "draft-location",
 ] as const;
+
+type MapFeatureCandidate = {
+  date: Date | null;
+  expandEntryId?: string;
+  key: string;
+  kind: "leg" | "location";
+  label: string;
+  targetEntryId: string;
+};
+
+type FeatureChoiceDialog = {
+  candidates: MapFeatureCandidate[];
+  x: number;
+  y: number;
+};
 
 function preserveTravelLayers(
   previousStyle: maplibregl.StyleSpecification | undefined,
@@ -108,6 +146,133 @@ function moveTravelLayersToTop(map: MapLibreMap) {
   });
 }
 
+const overlappingFlightEndpointToleranceKm = 75;
+
+type FlightEndpoints = {
+  from: GeoJSON.Position;
+  to: GeoJSON.Position;
+};
+
+function legEndpoints(feature: GeoJSON.Feature): FlightEndpoints | null {
+  const geometry = feature.geometry;
+  const lines =
+    geometry?.type === "LineString"
+      ? [geometry.coordinates]
+      : geometry?.type === "MultiLineString"
+        ? geometry.coordinates
+        : [];
+  const coordinates = lines.flat().filter((position) => position.length >= 2);
+  const first = coordinates[0];
+  const last = coordinates[coordinates.length - 1];
+
+  if (!first || !last) return null;
+
+  return { from: first, to: last };
+}
+
+function findTimelineFeature(
+  collection: FeatureCollection | null,
+  kind: "leg" | "location",
+  entryId: string,
+) {
+  return (
+    collection?.features.find((feature, index) => {
+      return timelineEntryId(kind, feature, index) === entryId;
+    }) ?? null
+  );
+}
+
+function coordinateForTimelinePosition(
+  position: TimelineMapPosition | null,
+  locations: FeatureCollection | null,
+  legs: FeatureCollection | null,
+): GeoJSON.Position | null {
+  if (!position) return null;
+  if (position.coordinates) return position.coordinates;
+
+  if (position.kind === "location") {
+    const feature = findTimelineFeature(locations, "location", position.entryId);
+    return feature?.geometry?.type === "Point"
+      ? feature.geometry.coordinates
+      : null;
+  }
+
+  const feature = findTimelineFeature(legs, "leg", position.entryId);
+  return coordinateAlongLine(feature?.geometry ?? null, position.routeProgress);
+}
+
+function createTimelineMarkerElement() {
+  const element = document.createElement("div");
+  element.className = "timeline-map-marker";
+  element.setAttribute("aria-hidden", "true");
+
+  const core = document.createElement("span");
+  element.append(core);
+
+  return element;
+}
+
+function areOverlappingFlightEndpoints(
+  a: FlightEndpoints,
+  b: FlightEndpoints,
+) {
+  const sameDirection =
+    positionDistanceKm(a.from, b.from) <= overlappingFlightEndpointToleranceKm &&
+    positionDistanceKm(a.to, b.to) <= overlappingFlightEndpointToleranceKm;
+  const oppositeDirection =
+    positionDistanceKm(a.from, b.to) <= overlappingFlightEndpointToleranceKm &&
+    positionDistanceKm(a.to, b.from) <= overlappingFlightEndpointToleranceKm;
+
+  return sameDirection || oppositeDirection;
+}
+
+function buildVisibleFlightCollection(legs: FeatureCollection): FeatureCollection {
+  const flightEntries: {
+    endpoints: FlightEndpoints;
+    feature: FeatureCollection["features"][number];
+  }[] = [];
+
+  legs.features.forEach((feature) => {
+    if (feature.properties?.transport !== "plane") return;
+
+    const endpoints = legEndpoints(feature);
+    if (endpoints) {
+      flightEntries.push({ endpoints, feature });
+    }
+  });
+  const flightGroups: {
+    endpoints: FlightEndpoints;
+    features: FeatureCollection["features"];
+  }[] = [];
+
+  flightEntries.forEach(({ endpoints, feature }) => {
+    const existingGroup = flightGroups.find((group) =>
+      areOverlappingFlightEndpoints(group.endpoints, endpoints),
+    );
+
+    if (existingGroup) {
+      existingGroup.features.push(feature);
+      return;
+    }
+
+    flightGroups.push({ endpoints, features: [feature] });
+  });
+
+  return {
+    type: "FeatureCollection",
+    features: flightGroups.map((group) => {
+      const [representative] = group.features;
+      return {
+        ...representative,
+        properties: {
+          ...representative.properties,
+          duplicate_leg_count: group.features.length,
+        },
+      };
+    }),
+  };
+}
+
 function getMapFitPadding(): maplibregl.PaddingOptions {
   const defaultPadding = { top: 44, right: 44, bottom: 180, left: 44 };
 
@@ -140,6 +305,7 @@ export function TravelMap({
   locationForm,
   locations,
   focusedLocation,
+  timelinePosition,
   fitMapSignal,
   selectedTransport,
   selectedTransportCostGroup,
@@ -153,9 +319,12 @@ export function TravelMap({
 }: TravelMapProps) {
   const mapContainerRef = useRef<HTMLDivElement | null>(null);
   const mapRef = useRef<MapLibreMap | null>(null);
+  const timelineMarkerRef = useRef<maplibregl.Marker | null>(null);
   const isMapReadyRef = useRef(false);
   const initialBasemapRef = useRef(basemap);
   const [isMapReady, setIsMapReady] = useState(false);
+  const [featureChoiceDialog, setFeatureChoiceDialog] =
+    useState<FeatureChoiceDialog | null>(null);
   const isMapLoading = !error && (isLoading || !isMapReady);
 
   const loadBasemapStyle = useCallback(
@@ -242,6 +411,8 @@ export function TravelMap({
       isMapReadyRef.current = false;
       setIsMapReady(false);
       if (mapRef.current) {
+        timelineMarkerRef.current?.remove();
+        timelineMarkerRef.current = null;
         mapRef.current.remove();
         mapRef.current = null;
         window.danventuresMap = undefined;
@@ -254,7 +425,9 @@ export function TravelMap({
     const map = mapRef.current;
     if (!container || !map) return;
 
-    const resizeMap = () => map.resize();
+    const resizeMap = () => {
+      if (mapRef.current === map) map.resize();
+    };
     const resizeObserver = new ResizeObserver(resizeMap);
     resizeObserver.observe(container);
     window.addEventListener("orientationchange", resizeMap);
@@ -342,6 +515,29 @@ export function TravelMap({
     const map = mapRef.current;
     if (!map || !isMapReady) return;
 
+    const coordinates = normalizeLngLat(
+      coordinateForTimelinePosition(timelinePosition, locations, legs),
+    );
+
+    if (!coordinates) {
+      timelineMarkerRef.current?.remove();
+      timelineMarkerRef.current = null;
+    } else {
+      if (!timelineMarkerRef.current) {
+        timelineMarkerRef.current = new maplibregl.Marker({
+          element: createTimelineMarkerElement(),
+          offset: [0, 0],
+        });
+      }
+
+      timelineMarkerRef.current.setLngLat(coordinates).addTo(map);
+    }
+  }, [isMapReady, legs, locations, timelinePosition]);
+
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map || !isMapReady) return;
+
     const source = map.getSource("draft-location") as GeoJSONSource | undefined;
     if (!source) return;
 
@@ -371,7 +567,7 @@ export function TravelMap({
       duration: 850,
       essential: true,
       offset: getMapFocusOffset(),
-      zoom: Math.max(map.getZoom(), 6),
+      zoom: Math.max(map.getZoom(), 9),
     });
   }, [focusedLocation, isMapReady]);
 
@@ -383,6 +579,8 @@ export function TravelMap({
   useEffect(() => {
     const map = mapRef.current;
     if (!map || !isMapReady || !isPlacingLocation) return;
+
+    setFeatureChoiceDialog(null);
 
     const canvas = map.getCanvas();
     const previousCursor = canvas.style.cursor;
@@ -405,12 +603,18 @@ export function TravelMap({
   useEffect(() => {
     const map = mapRef.current;
     if (!map || !isMapReady || !locations || !legs) return;
+    const visibleFlights = buildVisibleFlightCollection(legs);
 
     const addTravelLayers = () => {
       if (!map.getSource("legs")) {
         map.addSource("legs", {
           type: "geojson",
           data: legs,
+        });
+
+        map.addSource("flight-lines", {
+          type: "geojson",
+          data: visibleFlights,
         });
 
         map.addLayer({
@@ -450,8 +654,7 @@ export function TravelMap({
         map.addLayer({
           id: "legs-flights",
           type: "line",
-          source: "legs",
-          filter: ["==", ["get", "transport"], "plane"],
+          source: "flight-lines",
           paint: {
             "line-color": buildTransportColorExpression(),
             "line-dasharray": [3.2, 2.4],
@@ -469,8 +672,30 @@ export function TravelMap({
             ],
           },
         });
+
+        map.addLayer({
+          id: "legs-flights-hit",
+          type: "line",
+          source: "legs",
+          filter: ["==", ["get", "transport"], "plane"],
+          paint: {
+            "line-color": "#000000",
+            "line-opacity": 0.001,
+            "line-width": 18,
+          },
+        });
       } else {
         (map.getSource("legs") as GeoJSONSource).setData(legs);
+        if (!map.getSource("flight-lines")) {
+          map.addSource("flight-lines", {
+            type: "geojson",
+            data: visibleFlights,
+          });
+        } else {
+          (map.getSource("flight-lines") as GeoJSONSource).setData(
+            visibleFlights,
+          );
+        }
       }
 
       if (!map.getSource("locations")) {
@@ -487,11 +712,42 @@ export function TravelMap({
           id: "locations-main",
           type: "circle",
           source: "locations",
-          filter: ["==", ["get", "pointtype"], "sleep"],
           paint: {
-            "circle-radius": 4.2,
-            "circle-color": "#ffd84a",
-            "circle-opacity": 0.9,
+            "circle-radius": [
+              "interpolate",
+              ["linear"],
+              ["zoom"],
+              1,
+              [
+                "case",
+                ["==", ["get", "pointtype"], "sleep"],
+                4.2,
+                2.4,
+              ],
+              5,
+              [
+                "case",
+                ["==", ["get", "pointtype"], "sleep"],
+                4.2,
+                2.7,
+              ],
+              10,
+              [
+                "case",
+                ["==", ["get", "pointtype"], "sleep"],
+                4.2,
+                3.4,
+              ],
+            ],
+            "circle-color": [
+              "case",
+              ["==", ["get", "pointtype"], "sleep"],
+              "#ffd84a",
+              buildTransportColorExpression(),
+            ],
+            "circle-opacity": [
+              ...locationCircleOpacityExpression,
+            ],
             "circle-stroke-width": 0,
           },
         });
@@ -537,6 +793,63 @@ export function TravelMap({
 
     const currentLocations = locations;
     const currentLegs = legs;
+    const locationEntryIdForFeature = (feature: GeoJSON.Feature) => {
+      const index = currentLocations.features.findIndex(
+        (location) => location === feature,
+      );
+      return timelineEntryId(
+        "location",
+        feature,
+        index === -1 ? undefined : index,
+      );
+    };
+    const legEntryIdForFeature = (feature: GeoJSON.Feature) => {
+      const index = currentLegs.features.findIndex((leg) => leg === feature);
+      return timelineEntryId("leg", feature, index === -1 ? undefined : index);
+    };
+    const destinationLocationForLeg = (feature: GeoJSON.Feature) => {
+      const endpoints = legEndpoints(feature);
+      const destination = endpoints ? normalizeLngLat(endpoints.to) : null;
+      if (!destination) return null;
+
+      const legTime = parseTravelDate(feature.properties?.travel_date)?.getTime();
+      const candidates: {
+        distanceKm: number;
+        feature: FeatureCollection["features"][number];
+        isSameTime: boolean;
+      }[] = [];
+
+      currentLocations.features.forEach((location) => {
+          if (location.geometry?.type !== "Point") return null;
+
+          const coordinates = normalizeLngLat(location.geometry.coordinates);
+          if (!coordinates) return;
+
+          const distanceKm = positionDistanceKm(destination, coordinates);
+          if (distanceKm > 0.1) return;
+
+          const locationTime = parseTravelDate(
+            location.properties?.travel_date,
+          )?.getTime();
+
+          candidates.push({
+            distanceKm,
+            feature: location,
+            isSameTime: Boolean(
+              legTime !== undefined &&
+                locationTime !== undefined &&
+                legTime === locationTime,
+            ),
+          });
+        });
+
+      candidates.sort((a, b) => {
+          if (a.isSameTime !== b.isSameTime) return a.isSameTime ? -1 : 1;
+          return a.distanceKm - b.distanceKm;
+        });
+
+      return candidates[0]?.feature ?? null;
+    };
     const distanceToSegment = (
       point: maplibregl.Point,
       start: maplibregl.Point,
@@ -597,41 +910,93 @@ export function TravelMap({
         return { distance, feature };
       }, null);
     };
-    const selectLocationFeature = (feature: GeoJSON.Feature) => {
-      const locationEntryId = timelineEntryId("location", feature);
-      onSelectTimelineEntry(locationEntryId, locationEntryId);
-    };
-    const selectLegFeature = (feature: GeoJSON.Feature) => {
-      const destinationLocationId = propertyString(feature.properties, "to_key");
-      const destinationName = propertyString(feature.properties, "to_name");
-      const destinationLocation =
-        currentLocations.features.find(
-          (location) => featureRecordId(location) === destinationLocationId,
-        ) ??
-        currentLocations.features.find(
-          (location) =>
-            destinationName &&
-            propertyString(location.properties, "name") === destinationName,
-        );
-      const destinationEntryId =
-        (destinationLocation ? featureRecordId(destinationLocation) : null) ??
-        destinationLocationId;
+    const buildLocationCandidate = (
+      feature: GeoJSON.Feature,
+    ): MapFeatureCandidate => {
+      const locationEntryId = locationEntryIdForFeature(feature);
+      const properties = feature.properties ?? {};
 
-      onSelectTimelineEntry(
-        destinationEntryId
-          ? `location:${destinationEntryId}`
-          : timelineEntryId("leg", feature),
-        destinationEntryId ? `location:${destinationEntryId}` : undefined,
+      return {
+        date: parseTravelDate(properties.travel_date),
+        key: locationEntryId,
+        kind: "location",
+        label: propertyString(properties, "name") ?? "Unnamed location",
+        targetEntryId: locationEntryId,
+        expandEntryId: locationEntryId,
+      };
+    };
+
+    const canonicalLegFeature = (feature: GeoJSON.Feature) => {
+      const recordId = featureRecordId(feature);
+      const fromKey = propertyString(feature.properties, "from_key");
+      const toKey = propertyString(feature.properties, "to_key");
+      const travelDate = propertyString(feature.properties, "travel_date");
+
+      return (
+        currentLegs.features.find(
+          (leg) => recordId && featureRecordId(leg) === recordId,
+        ) ??
+        currentLegs.features.find(
+          (leg) =>
+            fromKey &&
+            toKey &&
+            travelDate &&
+            propertyString(leg.properties, "from_key") === fromKey &&
+            propertyString(leg.properties, "to_key") === toKey &&
+            propertyString(leg.properties, "travel_date") === travelDate,
+        ) ??
+        feature
       );
     };
+
+    const buildLegCandidate = (feature: GeoJSON.Feature): MapFeatureCandidate => {
+      const legFeature = canonicalLegFeature(feature);
+      const destinationLocation = destinationLocationForLeg(legFeature);
+      const destinationName = propertyString(legFeature.properties, "to_name");
+      const targetEntryId = destinationLocation
+        ? locationEntryIdForFeature(destinationLocation)
+        : legEntryIdForFeature(legFeature);
+      const transport = propertyString(legFeature.properties, "transport");
+
+      return {
+        date: parseTravelDate(legFeature.properties?.travel_date),
+        key: targetEntryId,
+        kind: "leg",
+        label: [
+          transportLabel(transport),
+          destinationName ? `to ${destinationName}` : null,
+        ]
+          .filter(Boolean)
+          .join(" "),
+        targetEntryId,
+        expandEntryId: destinationLocation ? targetEntryId : undefined,
+      };
+    };
+
+    const selectCandidate = (candidate: MapFeatureCandidate) => {
+      setFeatureChoiceDialog(null);
+      onSelectTimelineEntry(candidate.targetEntryId, candidate.expandEntryId);
+    };
+
+    const dedupeCandidates = (candidates: MapFeatureCandidate[]) => {
+      const seen = new Set<string>();
+      return candidates.filter((candidate) => {
+        if (seen.has(candidate.key)) return false;
+        seen.add(candidate.key);
+        return true;
+      });
+    };
+
     const selectMapFeature = (event: maplibregl.MapMouseEvent) => {
       if (isPlacingLocation) return;
 
-      const nearestLocation = currentLocations.features.reduce<{
-        distance: number;
-        feature: GeoJSON.Feature;
-      } | null>((nearest, feature) => {
-        if (feature.geometry?.type !== "Point") return nearest;
+      const nearbyLocations = currentLocations.features.reduce<
+        {
+          distance: number;
+          feature: GeoJSON.Feature;
+        }[]
+      >((matches, feature) => {
+        if (feature.geometry?.type !== "Point") return matches;
         const [lng, lat] = feature.geometry.coordinates;
         const point = map.project([Number(lng), Number(lat)]);
         const distance = Math.hypot(
@@ -639,38 +1004,55 @@ export function TravelMap({
           point.y - event.point.y,
         );
 
-        if (distance > 14 || (nearest && nearest.distance <= distance)) {
-          return nearest;
-        }
-
-        return { distance, feature };
-      }, null);
-
-      if (nearestLocation) {
-        selectLocationFeature(nearestLocation.feature);
-        return;
-      }
+        if (distance <= 14) matches.push({ distance, feature });
+        return matches;
+      }, []);
 
       const nearestLeg = nearestLegForPoint(event.point);
-      if (nearestLeg) {
-        selectLegFeature(nearestLeg.feature);
+      const legLayers = ["legs-main", "legs-flights-hit"].filter((layer) =>
+        map.getLayer(layer),
+      );
+      const renderedLegFeatures =
+        legLayers.length > 0
+          ? map.queryRenderedFeatures(
+              [
+                [event.point.x - 18, event.point.y - 18],
+                [event.point.x + 18, event.point.y + 18],
+              ],
+              { layers: legLayers },
+            )
+          : [];
+      const candidates = dedupeCandidates([
+        ...nearbyLocations
+          .sort((a, b) => a.distance - b.distance)
+          .map(({ feature }) => buildLocationCandidate(feature)),
+        ...(nearestLeg ? [buildLegCandidate(nearestLeg.feature)] : []),
+        ...renderedLegFeatures.map((feature) => buildLegCandidate(feature)),
+      ]).sort((a, b) => {
+        const aTime = a.date?.getTime() ?? 0;
+        const bTime = b.date?.getTime() ?? 0;
+        if (aTime !== bTime) return bTime - aTime;
+        return a.label.localeCompare(b.label);
+      });
+
+      if (candidates.length === 0) {
+        setFeatureChoiceDialog(null);
         return;
       }
 
-      const legLayers = ["legs-main", "legs-flights"].filter((layer) =>
-        map.getLayer(layer),
-      );
-      if (legLayers.length === 0) return;
+      if (candidates.length === 1) {
+        selectCandidate(candidates[0]);
+        return;
+      }
 
-      const legFeature = map.queryRenderedFeatures(
-        [
-          [event.point.x - 18, event.point.y - 18],
-          [event.point.x + 18, event.point.y + 18],
-        ],
-        { layers: legLayers },
-      )[0];
-
-      if (legFeature) selectLegFeature(legFeature);
+      const container = map.getContainer();
+      const maxDialogLeft = Math.max(14, container.clientWidth - 294);
+      const maxDialogTop = Math.max(14, container.clientHeight - 244);
+      setFeatureChoiceDialog({
+        candidates,
+        x: Math.min(Math.max(event.point.x, 14), maxDialogLeft),
+        y: Math.min(Math.max(event.point.y, 14), maxDialogTop),
+      });
     };
     const setPointer = () => {
       map.getCanvas().style.cursor = "pointer";
@@ -684,9 +1066,10 @@ export function TravelMap({
     map.on("mouseleave", "locations-hit", clearPointer);
     map.on("mouseenter", "legs-main", setPointer);
     map.on("mouseleave", "legs-main", clearPointer);
-    if (map.getLayer("legs-flights")) {
-      map.on("mouseenter", "legs-flights", setPointer);
-      map.on("mouseleave", "legs-flights", clearPointer);
+    const hasFlightHitLayer = Boolean(map.getLayer("legs-flights-hit"));
+    if (hasFlightHitLayer) {
+      map.on("mouseenter", "legs-flights-hit", setPointer);
+      map.on("mouseleave", "legs-flights-hit", clearPointer);
     }
 
     return () => {
@@ -695,12 +1078,16 @@ export function TravelMap({
       map.off("mouseleave", "locations-hit", clearPointer);
       map.off("mouseenter", "legs-main", setPointer);
       map.off("mouseleave", "legs-main", clearPointer);
-      if (map.getLayer("legs-flights")) {
-        map.off("mouseenter", "legs-flights", setPointer);
-        map.off("mouseleave", "legs-flights", clearPointer);
+      if (hasFlightHitLayer) {
+        map.off("mouseenter", "legs-flights-hit", setPointer);
+        map.off("mouseleave", "legs-flights-hit", clearPointer);
       }
     };
   }, [isMapReady, isPlacingLocation, locations, legs, onSelectTimelineEntry]);
+
+  useEffect(() => {
+    setFeatureChoiceDialog(null);
+  }, [locations, legs, basemap]);
 
   useEffect(() => {
     const map = mapRef.current;
@@ -794,7 +1181,11 @@ export function TravelMap({
           : [];
 
     if (!selectedSleepCategory && !selectedSleepCostGroup) {
-      map.setPaintProperty("locations-main", "circle-opacity", 0.9);
+      map.setPaintProperty(
+        "locations-main",
+        "circle-opacity",
+        locationCircleOpacityExpression,
+      );
       return;
     }
 
@@ -837,6 +1228,57 @@ export function TravelMap({
           <button type="button" onClick={onCancelPlacingLocation}>
             <X size={15} />
           </button>
+        </div>
+      )}
+      {featureChoiceDialog && (
+        <div
+          className="feature-choice-dialog"
+          role="dialog"
+          aria-label="Choose timeline feature"
+          style={{
+            left: featureChoiceDialog.x,
+            top: featureChoiceDialog.y,
+          }}
+        >
+          <div className="feature-choice-heading">
+            <span>Choose date</span>
+            <button
+              type="button"
+              aria-label="Close feature choices"
+              onClick={() => setFeatureChoiceDialog(null)}
+            >
+              <X size={14} />
+            </button>
+          </div>
+          <div className="feature-choice-list">
+            {featureChoiceDialog.candidates.map((candidate) => (
+              <button
+                type="button"
+                className="feature-choice-option"
+                key={candidate.key}
+                onClick={() => {
+                  setFeatureChoiceDialog(null);
+                  onSelectTimelineEntry(
+                    candidate.targetEntryId,
+                    candidate.expandEntryId,
+                  );
+                }}
+              >
+                <span className={`feature-choice-icon ${candidate.kind}`}>
+                  {candidate.kind === "location" ? (
+                    <MapPin size={14} />
+                  ) : (
+                    <Route size={14} />
+                  )}
+                </span>
+                <span className="feature-choice-text">
+                  <strong>{formatTimelineDateTime(candidate.date)}</strong>
+                  <span>{candidate.label}</span>
+                </span>
+                <CalendarDays size={14} />
+              </button>
+            ))}
+          </div>
         </div>
       )}
     </section>

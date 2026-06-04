@@ -5,7 +5,7 @@ import maplibregl, {
   Map as MapLibreMap,
 } from "maplibre-gl";
 import "maplibre-gl/dist/maplibre-gl.css";
-import { MapPinPlus, Route, X } from "lucide-react";
+import { MapPinPlus, X } from "lucide-react";
 import {
   freeTransportModes,
   paidSleepCategories,
@@ -156,6 +156,7 @@ export function TravelMap({
   const isMapReadyRef = useRef(false);
   const initialBasemapRef = useRef(basemap);
   const [isMapReady, setIsMapReady] = useState(false);
+  const isMapLoading = !error && (isLoading || !isMapReady);
 
   const loadBasemapStyle = useCallback(
     async (nextBasemap: MapBasemap): Promise<maplibregl.StyleSpecification> => {
@@ -809,16 +810,19 @@ export function TravelMap({
 
   return (
     <section className="map-wrap">
-      <div ref={mapContainerRef} className="map" />
+      <div
+        ref={mapContainerRef}
+        className={isMapLoading ? "map map-loading" : "map"}
+      />
       <div className="topbar">
         <div>
           <p className="eyebrow">Danventures</p>
         </div>
       </div>
-      {isLoading && (
-        <div className="status-panel">
-          <Route size={18} />
-          <span>Loading routes and stops</span>
+      {isMapLoading && (
+        <div className="map-loading-overlay" role="status" aria-live="polite">
+          <span className="map-loading-spinner" aria-hidden="true" />
+          <span className="map-loading-label">Loading data</span>
         </div>
       )}
       {error && (

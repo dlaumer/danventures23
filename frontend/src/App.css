@@ -209,6 +209,61 @@
   width: 100%;
   height: 100%;
   background: #07111f;
+  transition: filter 180ms ease;
+}
+
+.map-wrap>.map.map-loading {
+  filter: blur(5px);
+}
+
+.map-loading-overlay {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-direction: column;
+  gap: 16px;
+  pointer-events: none;
+}
+
+.map-loading-overlay::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: rgba(8, 18, 28, 0.16);
+}
+
+.map-loading-overlay>span {
+  position: relative;
+}
+
+.map-loading-spinner {
+  display: block;
+  width: 72px;
+  height: 72px;
+  border: 5px solid rgba(255, 255, 255, 0.5);
+  border-top-color: #ffffff;
+  border-radius: 50%;
+  box-shadow: 0 10px 28px rgba(8, 18, 28, 0.24);
+  animation: map-spinner 760ms linear infinite;
+}
+
+.map-loading-label {
+  padding: 8px 12px;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.88);
+  color: #172631;
+  font-size: 14px;
+  font-weight: 760;
+  box-shadow: 0 10px 28px rgba(8, 18, 28, 0.18);
+}
+
+@keyframes map-spinner {
+  to {
+    transform: rotate(360deg);
+  }
 }
 
 .topbar {
@@ -340,12 +395,14 @@
   right: 18px;
   z-index: 5;
   width: min(420px, calc(100% - 36px));
-  max-height: calc(100vh - 98px);
+  max-height: calc(var(--app-height, 100svh) - 98px);
   overflow: auto;
+  overscroll-behavior: contain;
   border: 1px solid rgba(21, 31, 39, 0.16);
   border-radius: 8px;
   background: #fbfaf5;
   box-shadow: 0 18px 46px rgba(31, 43, 51, 0.22);
+  -webkit-overflow-scrolling: touch;
 }
 
 .location-dialog form {
@@ -1616,7 +1673,20 @@
 
   .location-dialog {
     top: 142px;
-    max-height: calc(100vh - 154px);
+    max-height: calc(var(--app-height, 100svh) - 154px);
+  }
+
+  .location-dialog:focus-within {
+    position: fixed;
+    top: max(12px, env(safe-area-inset-top, 0px));
+    bottom: max(12px, env(safe-area-inset-bottom, 0px));
+    max-height: none;
+  }
+
+  .location-dialog input,
+  .location-dialog select,
+  .location-dialog textarea {
+    font-size: 16px;
   }
 
   .form-grid {

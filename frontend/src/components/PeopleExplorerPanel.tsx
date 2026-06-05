@@ -22,6 +22,8 @@ type PeopleExplorerPanelProps = {
   onFocusStory: (story: PeopleStory) => void;
 };
 
+const peopleWheelItemHeight = 32;
+
 function normalizeSearchText(value: string) {
   return value.trim().toLowerCase();
 }
@@ -65,7 +67,6 @@ export function PeopleExplorerPanel({
   const wheelRef = useRef<HTMLDivElement | null>(null);
   const selectedIndexRef = useRef(0);
   const scrollFrameRef = useRef<number | null>(null);
-  const itemHeight = 40;
 
   const filteredStories = useMemo(() => {
     const searchText = normalizeSearchText(query);
@@ -86,9 +87,9 @@ export function PeopleExplorerPanel({
     setSelectedIndex(nextIndex);
 
     window.requestAnimationFrame(() => {
-      wheelRef.current?.scrollTo({ top: nextIndex * itemHeight });
+      wheelRef.current?.scrollTo({ top: nextIndex * peopleWheelItemHeight });
     });
-  }, [filteredStories.length, itemHeight]);
+  }, [filteredStories.length]);
 
   useEffect(() => {
     if (selectedIndex >= filteredStories.length) {
@@ -118,7 +119,7 @@ export function PeopleExplorerPanel({
         0,
         Math.min(
           filteredStories.length - 1,
-          Math.round(wheel.scrollTop / itemHeight),
+          Math.round(wheel.scrollTop / peopleWheelItemHeight),
         ),
       );
 

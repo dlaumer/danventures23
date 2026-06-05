@@ -10,6 +10,8 @@ import {
 import {
   ChartPie,
   Clock3,
+  PanelLeftClose,
+  PanelLeftOpen,
   LocateFixed,
   MapPinPlus,
   Moon,
@@ -258,6 +260,7 @@ function App() {
   const [timelineTargetSignal, setTimelineTargetSignal] = useState(0);
   const [timelineMapPosition, setTimelineMapPosition] =
     useState<TimelineMapPosition | null>(null);
+  const [isTimelineCollapsed, setIsTimelineCollapsed] = useState(false);
   const [fitMapSignal, setFitMapSignal] = useState(0);
   const [basemap, setBasemap] = useState<MapBasemap>("standard");
   const [selectedTimeRange, setSelectedTimeRange] =
@@ -891,26 +894,53 @@ function App() {
 
         {panels.timeline && (
           <section
-            className="timeline-shell"
+            className={`timeline-shell ${
+              isTimelineCollapsed ? "collapsed" : ""
+            }`}
             {...panelSwipeCloseHandlers(closeTimelinePanel)}
           >
             <div className="panel-heading">
-              <div>
-                <h2>Journey timeline</h2>
+              <div className="panel-title-row">
+                <button
+                  type="button"
+                  className="panel-icon-button"
+                  onClick={() => setIsTimelineCollapsed((current) => !current)}
+                  title={
+                    isTimelineCollapsed
+                      ? "Expand timeline"
+                      : "Collapse timeline"
+                  }
+                  aria-label={
+                    isTimelineCollapsed
+                      ? "Expand timeline"
+                      : "Collapse timeline"
+                  }
+                  aria-pressed={isTimelineCollapsed}
+                >
+                  {isTimelineCollapsed ? (
+                    <PanelLeftOpen size={18} />
+                  ) : (
+                    <PanelLeftClose size={18} />
+                  )}
+                </button>
+                {!isTimelineCollapsed && <h2>Journey timeline</h2>}
               </div>
-              <button
-                type="button"
-                className="panel-close-button"
-                onClick={closeTimelinePanel}
-                title="Close panel"
-                aria-label="Close panel"
-              >
-                <X size={18} />
-              </button>
+              {!isTimelineCollapsed && (
+                <button
+                  type="button"
+                  className="panel-close-button"
+                  onClick={closeTimelinePanel}
+                  title="Close panel"
+                  aria-label="Close panel"
+                >
+                  <X size={18} />
+                </button>
+              )}
             </div>
             <TravelTimeline
               locations={filteredLocations}
               legs={filteredLegs}
+              collapsed={isTimelineCollapsed}
               expandEntryId={timelineExpandEntryId}
               targetEntryId={timelineTargetEntryId}
               targetEntrySignal={timelineTargetSignal}

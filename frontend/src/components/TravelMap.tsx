@@ -73,19 +73,23 @@ const travelSourceIds = [
   "legs",
   "flight-lines",
   "locations",
+  "timeline-position",
   "draft-location",
 ] as const;
 const travelLayerIds = [
   "locations-waypoints",
-  "legs-shadow",
-  "legs-main",
+  "legs-paid-shadow",
+  "legs-paid-main",
   "legs-flights",
+  "legs-free-shadow",
+  "legs-free-main",
   "legs-flights-hit",
   "locations-main",
   "locations-hit",
+  "timeline-position-pulse",
+  "timeline-position",
   "draft-location",
 ] as const;
-
 type MapFeatureCandidate = {
   date: Date | null;
   expandEntryId?: string;
@@ -196,17 +200,6 @@ function coordinateForTimelinePosition(
   return coordinateAlongLine(feature?.geometry ?? null, position.routeProgress);
 }
 
-function createTimelineMarkerElement() {
-  const element = document.createElement("div");
-  element.className = "timeline-map-marker";
-  element.setAttribute("aria-hidden", "true");
-
-  const core = document.createElement("span");
-  element.append(core);
-
-  return element;
-}
-
 function areOverlappingFlightEndpoints(
   a: FlightEndpoints,
   b: FlightEndpoints,
@@ -314,7 +307,6 @@ export function TravelMap({
 }: TravelMapProps) {
   const mapContainerRef = useRef<HTMLDivElement | null>(null);
   const mapRef = useRef<MapLibreMap | null>(null);
-  const timelineMarkerRef = useRef<maplibregl.Marker | null>(null);
   const isMapReadyRef = useRef(false);
   const initialBasemapRef = useRef(basemap);
   const [isMapReady, setIsMapReady] = useState(false);
@@ -406,8 +398,6 @@ export function TravelMap({
       isMapReadyRef.current = false;
       setIsMapReady(false);
       if (mapRef.current) {
-        timelineMarkerRef.current?.remove();
-        timelineMarkerRef.current = null;
         mapRef.current.remove();
         mapRef.current = null;
         window.danventuresMap = undefined;
@@ -480,6 +470,63 @@ export function TravelMap({
     const map = mapRef.current;
     if (!map || !isMapReady) return;
 
+    if (!map.getSource("timeline-position")) {
+      map.addSource("timeline-position", {
+        type: "geojson",
+        data: {
+          type: "FeatureCollection",
+          features: [],
+        },
+      });
+
+      map.addLayer({
+        id: "timeline-position-pulse",
+        type: "circle",
+        source: "timeline-position",
+        paint: {
+          "circle-radius": [
+            "interpolate",
+            ["linear"],
+            ["zoom"],
+            1,
+            8,
+            6,
+            13,
+            10,
+            18,
+          ],
+          "circle-color": "#ff4d2d",
+          "circle-opacity": 0.24,
+          "circle-stroke-color": "#ffffff",
+          "circle-stroke-opacity": 0.72,
+          "circle-stroke-width": 2,
+        },
+      });
+
+      map.addLayer({
+        id: "timeline-position",
+        type: "circle",
+        source: "timeline-position",
+        paint: {
+          "circle-radius": [
+            "interpolate",
+            ["linear"],
+            ["zoom"],
+            1,
+            5,
+            6,
+            7,
+            10,
+            10,
+          ],
+          "circle-color": "#ff4d2d",
+          "circle-opacity": 0.98,
+          "circle-stroke-color": "#ffffff",
+          "circle-stroke-width": 2,
+        },
+      });
+    }
+
     if (!map.getSource("draft-location")) {
       map.addSource("draft-location", {
         type: "geojson",
@@ -513,20 +560,24 @@ export function TravelMap({
     const coordinates = normalizeLngLat(
       coordinateForTimelinePosition(timelinePosition, locations, legs),
     );
+    const source = map.getSource("timeline-position") as GeoJSONSource | undefined;
+    if (!source) return;
 
-    if (!coordinates) {
-      timelineMarkerRef.current?.remove();
-      timelineMarkerRef.current = null;
-    } else {
-      if (!timelineMarkerRef.current) {
-        timelineMarkerRef.current = new maplibregl.Marker({
-          element: createTimelineMarkerElement(),
-          offset: [0, 0],
-        });
-      }
-
-      timelineMarkerRef.current.setLngLat(coordinates).addTo(map);
-    }
+    source.setData({
+      type: "FeatureCollection",
+      features: coordinates
+        ? [
+            {
+              type: "Feature",
+              properties: {},
+              geometry: {
+                type: "Point",
+                coordinates,
+              },
+            },
+          ]
+        : [],
+    });
   }, [isMapReady, legs, locations, timelinePosition]);
 
   useEffect(() => {
@@ -601,6 +652,15 @@ export function TravelMap({
     const visibleFlights = buildVisibleFlightCollection(legs);
 
     const addTravelLayers = () => {
+      if (!map.getSource("locations")) {
+        map.addSource("locations", {
+          type: "geojson",
+          data: locations,
+        });
+      } else {
+        (map.getSource("locations") as GeoJSONSource).setData(locations);
+      }
+
       if (!map.getSource("legs")) {
         map.addSource("legs", {
           type: "geojson",
@@ -613,10 +673,37 @@ export function TravelMap({
         });
 
         map.addLayer({
-          id: "legs-shadow",
+          id: "locations-waypoints",
+          type: "circle",
+          source: "locations",
+          filter: ["==", ["get", "pointtype"], "waypoint"],
+          paint: {
+            "circle-radius": [
+              "interpolate",
+              ["linear"],
+              ["zoom"],
+              1,
+              4,
+              5,
+              4.8,
+              10,
+              6,
+            ],
+            "circle-color": buildTransportColorExpression(),
+            "circle-opacity": 0.82,
+            "circle-stroke-width": 0,
+          },
+        });
+
+        map.addLayer({
+          id: "legs-paid-shadow",
           type: "line",
           source: "legs",
-          filter: ["!=", ["get", "transport"], "plane"],
+          filter: [
+            "all",
+            ["!=", ["get", "transport"], "plane"],
+            ["in", ["get", "transport"], ["literal", paidTransportValues]],
+          ],
           paint: {
             "line-color": "#12202b",
             "line-opacity": 0.42,
@@ -625,10 +712,14 @@ export function TravelMap({
         });
 
         map.addLayer({
-          id: "legs-main",
+          id: "legs-paid-main",
           type: "line",
           source: "legs",
-          filter: ["!=", ["get", "transport"], "plane"],
+          filter: [
+            "all",
+            ["!=", ["get", "transport"], "plane"],
+            ["in", ["get", "transport"], ["literal", paidTransportValues]],
+          ],
           paint: {
             "line-color": buildTransportColorExpression(),
             "line-opacity": 0.92,
@@ -669,6 +760,48 @@ export function TravelMap({
         });
 
         map.addLayer({
+          id: "legs-free-shadow",
+          type: "line",
+          source: "legs",
+          filter: [
+            "all",
+            ["!=", ["get", "transport"], "plane"],
+            ["in", ["get", "transport"], ["literal", freeTransportValues]],
+          ],
+          paint: {
+            "line-color": "#12202b",
+            "line-opacity": 0.42,
+            "line-width": 5.2,
+          },
+        });
+
+        map.addLayer({
+          id: "legs-free-main",
+          type: "line",
+          source: "legs",
+          filter: [
+            "all",
+            ["!=", ["get", "transport"], "plane"],
+            ["in", ["get", "transport"], ["literal", freeTransportValues]],
+          ],
+          paint: {
+            "line-color": buildTransportColorExpression(),
+            "line-opacity": 0.92,
+            "line-width": [
+              "interpolate",
+              ["linear"],
+              ["zoom"],
+              1,
+              4,
+              5,
+              4.8,
+              10,
+              6,
+            ],
+          },
+        });
+
+        map.addLayer({
           id: "legs-flights-hit",
           type: "line",
           source: "legs",
@@ -693,13 +826,32 @@ export function TravelMap({
         }
       }
 
-      if (!map.getSource("locations")) {
-        map.addSource("locations", {
-          type: "geojson",
-          data: locations,
-        });
-      } else {
-        (map.getSource("locations") as GeoJSONSource).setData(locations);
+      if (!map.getLayer("locations-waypoints")) {
+        map.addLayer(
+          {
+            id: "locations-waypoints",
+            type: "circle",
+            source: "locations",
+            filter: ["==", ["get", "pointtype"], "waypoint"],
+            paint: {
+              "circle-radius": [
+                "interpolate",
+                ["linear"],
+                ["zoom"],
+                1,
+                4,
+                5,
+                4.8,
+                10,
+                6,
+              ],
+              "circle-color": buildTransportColorExpression(),
+              "circle-opacity": 0.82,
+              "circle-stroke-width": 0,
+            },
+          },
+          map.getLayer("legs-paid-shadow") ? "legs-paid-shadow" : undefined,
+        );
       }
 
       if (!map.getLayer("locations-main")) {
@@ -707,42 +859,11 @@ export function TravelMap({
           id: "locations-main",
           type: "circle",
           source: "locations",
+          filter: ["==", ["get", "pointtype"], "sleep"],
           paint: {
-            "circle-radius": [
-              "interpolate",
-              ["linear"],
-              ["zoom"],
-              1,
-              [
-                "case",
-                ["==", ["get", "pointtype"], "sleep"],
-                4.2,
-                2.4,
-              ],
-              5,
-              [
-                "case",
-                ["==", ["get", "pointtype"], "sleep"],
-                4.2,
-                2.7,
-              ],
-              10,
-              [
-                "case",
-                ["==", ["get", "pointtype"], "sleep"],
-                4.2,
-                3.4,
-              ],
-            ],
-            "circle-color": [
-              "case",
-              ["==", ["get", "pointtype"], "sleep"],
-              "#ffd84a",
-              buildTransportColorExpression(),
-            ],
-            "circle-opacity": [
-              ...locationCircleOpacityExpression,
-            ],
+            "circle-radius": 4.2,
+            "circle-color": "#ffd84a",
+            "circle-opacity": 0.9,
             "circle-stroke-width": 0,
           },
         });
@@ -1176,11 +1297,7 @@ export function TravelMap({
           : [];
 
     if (!selectedSleepCategory && !selectedSleepCostGroup) {
-      map.setPaintProperty(
-        "locations-main",
-        "circle-opacity",
-        locationCircleOpacityExpression,
-      );
+      map.setPaintProperty("locations-main", "circle-opacity", 0.9);
       return;
     }
 

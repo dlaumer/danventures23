@@ -56,6 +56,7 @@ import {
 } from "../utils";
 
 type TravelTimelineProps = {
+  collapsed: boolean;
   legs: FeatureCollection | null;
   locations: FeatureCollection | null;
   expandEntryId: string | null;
@@ -253,6 +254,7 @@ type TimelineRange = {
 };
 
 export function TravelTimeline({
+  collapsed,
   legs,
   locations,
   expandEntryId,
@@ -439,7 +441,7 @@ export function TravelTimeline({
   }, [targetEntryId, targetEntrySignal, visibleRange]);
 
   return (
-    <div className="timeline-panel">
+    <div className={`timeline-panel ${collapsed ? "collapsed" : ""}`}>
 
       <div
         ref={listRef}
@@ -493,21 +495,23 @@ export function TravelTimeline({
                     style={{ minHeight: `${entry.gap}px` }}
                   />
                 </div>
-                <div className="timeline-content">
-                  <div
-                    className="timeline-leg-summary"
-                    title={transportLabel(transport)}
-                  >
-                    <span
-                      className="timeline-icon leg-icon"
-                      style={{ color }}
-                      aria-hidden="true"
+                {!collapsed && (
+                  <div className="timeline-content">
+                    <div
+                      className="timeline-leg-summary"
+                      title={transportLabel(transport)}
                     >
-                      {transportIconFor(transport)}
-                    </span>
-                    <strong>{formatKm(distanceKm)} km</strong>
+                      <span
+                        className="timeline-icon leg-icon"
+                        style={{ color }}
+                        aria-hidden="true"
+                      >
+                        {transportIconFor(transport)}
+                      </span>
+                      <strong>{formatKm(distanceKm)} km</strong>
+                    </div>
                   </div>
-                </div>
+                )}
               </article>
             );
           }
@@ -550,44 +554,46 @@ export function TravelTimeline({
                   {isSleep ? <BedDouble size={14} /> : <MapPin size={14} />}
                 </span>
               </div>
-              <div className="timeline-content">
-                <button
-                  type="button"
-                  className="timeline-trigger"
-                  aria-expanded={isExpanded}
-                  onClick={toggleLocation}
-                >
-                  <span className="timeline-main">
-                    <strong>{name}</strong>
-                    <span>
-                      {formatTimelineDate(entry.date)} -{" "}
-                      {isSleep ? "sleep" : "waypoint"}
+              {!collapsed && (
+                <div className="timeline-content">
+                  <button
+                    type="button"
+                    className="timeline-trigger"
+                    aria-expanded={isExpanded}
+                    onClick={toggleLocation}
+                  >
+                    <span className="timeline-main">
+                      <strong>{name}</strong>
+                      <span>
+                        {formatTimelineDate(entry.date)} -{" "}
+                        {isSleep ? "sleep" : "waypoint"}
+                      </span>
                     </span>
-                  </span>
-                  <ChevronDown size={16} />
-                </button>
-                <button
-                  type="button"
-                  className="timeline-edit-button"
-                    onClick={() =>
-                      onEditLocation(
-                        Number(featureRecordId(entry.feature)),
-                        formFromFeature(entry.feature),
-                      )
-                    }
-                  title="Edit location"
-                >
-                  <SquarePen size={15} />
-                </button>
-                {isExpanded && (
-                  <LocationDetails
-                    entry={entry}
-                    onZoomToLocation={() => {
-                      if (coordinates) onFocusLocation(coordinates);
-                    }}
-                  />
-                )}
-              </div>
+                    <ChevronDown size={16} />
+                  </button>
+                  <button
+                    type="button"
+                    className="timeline-edit-button"
+                      onClick={() =>
+                        onEditLocation(
+                          Number(featureRecordId(entry.feature)),
+                          formFromFeature(entry.feature),
+                        )
+                      }
+                    title="Edit location"
+                  >
+                    <SquarePen size={15} />
+                  </button>
+                  {isExpanded && (
+                    <LocationDetails
+                      entry={entry}
+                      onZoomToLocation={() => {
+                        if (coordinates) onFocusLocation(coordinates);
+                      }}
+                    />
+                  )}
+                </div>
+              )}
             </article>
           );
         })}

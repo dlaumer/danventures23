@@ -18,6 +18,7 @@ import {
   ListChecks,
   Satellite,
   SlidersHorizontal,
+  UsersRound,
   X,
 } from "lucide-react";
 import "./App.css";
@@ -29,6 +30,7 @@ import {
 } from "./constants";
 import { GeneralStatsPanel } from "./components/GeneralStatsPanel";
 import { LocationDialog } from "./components/LocationDialog";
+import { PeopleExplorerPanel } from "./components/PeopleExplorerPanel";
 import { SleepCategoryPanel } from "./components/SleepCategoryPanel";
 import { TransportDistancePanel } from "./components/TransportDistancePanel";
 import { TimeRangeSlider } from "./components/TimeRangeSlider";
@@ -44,8 +46,11 @@ import type {
   TimelineMapPosition,
   TravelTimeRange,
   MonthlyTransportDistanceBucket,
+  PeopleStory,
 } from "./types";
 import {
+  coordinatesForFeature,
+  featureRecordId,
   formToPayload,
   formatLocalDate,
   isDisplayedFreeRide,
@@ -54,6 +59,8 @@ import {
   numberFromKm,
   numberFromValue,
   parseTravelDate,
+  propertyString,
+  timelineEntryId,
 } from "./utils";
 
 type PanelState = {
@@ -61,7 +68,7 @@ type PanelState = {
   timeline: boolean;
 };
 
-type AnalysisPanel = "general" | "sleep" | "transport";
+type AnalysisPanel = "general" | "people" | "sleep" | "transport";
 
 async function fetchTravelData() {
   const [
@@ -213,6 +220,17 @@ function calculateTransportStats(legs: FeatureCollection | null): TransportStat[
     ...item,
     distance_km: Number((item.distance_m / 1000).toFixed(2)),
   }));
+}
+
+function randomOrderForStory(value: string) {
+  let hash = 2166136261;
+
+  for (let index = 0; index < value.length; index += 1) {
+    hash ^= value.charCodeAt(index);
+    hash = Math.imul(hash, 16777619);
+  }
+
+  return (hash >>> 0) / 4294967295;
 }
 
 function App() {
@@ -430,6 +448,46 @@ function App() {
     [filteredLocations],
   );
 
+  const peopleStories = useMemo<PeopleStory[]>(() => {
+    if (!filteredLocations) return [];
+
+    return filteredLocations.features
+      .map((feature, index) => {
+        const properties = feature.properties ?? {};
+        const transport = propertyString(properties, "transport");
+        const people = propertyString(properties, "people");
+        const description = propertyString(properties, "description") ?? "";
+
+        if (!people || !isDisplayedFreeRide(transport)) return null;
+
+        const recordId = featureRecordId(feature) ?? String(index);
+
+        return {
+          coordinates: coordinatesForFeature(feature),
+          date: parseTravelDate(properties.travel_date),
+          description,
+          id: `people:${recordId}`,
+          locationName: propertyString(properties, "name") ?? "Unknown place",
+          people,
+          randomOrder: randomOrderForStory(
+            `${recordId}:${people}:${description}:${properties.travel_date ?? ""}`,
+          ),
+          timelineEntryId: timelineEntryId("location", feature, index),
+          transport,
+        };
+      })
+      .filter((story): story is PeopleStory => Boolean(story))
+      .sort((a, b) => {
+        const aHasDescription = a.description.trim().length > 0 ? 0 : 1;
+        const bHasDescription = b.description.trim().length > 0 ? 0 : 1;
+        if (aHasDescription !== bHasDescription) {
+          return aHasDescription - bHasDescription;
+        }
+
+        return a.randomOrder - b.randomOrder;
+      });
+  }, [filteredLocations]);
+
   const orderedStats = useMemo(
     () =>
       [...activeTransportStats].sort((a, b) => {
@@ -563,6 +621,29 @@ function App() {
 
   function closeTimelinePanel() {
     setPanels((current) => ({ ...current, timeline: false }));
+  }
+
+  function focusPeopleStory(story: PeopleStory) {
+    if (story.coordinates) {
+      const coordinates = story.coordinates;
+      setFocusedLocation((current) => ({
+        lat: coordinates.lat,
+        lng: coordinates.lng,
+        signal: (current?.signal ?? 0) + 1,
+      }));
+    }
+
+    setPanels((current) => ({
+      ...current,
+      timeRange: isMobileLayout() ? false : current.timeRange,
+      timeline: true,
+    }));
+    setIsTimelineCollapsed(false);
+    setTimelineTargetEntryId(story.timelineEntryId);
+    setTimelineExpandEntryId(story.timelineEntryId);
+    setTimelineTargetSignal((current) => current + 1);
+
+    if (isMobileLayout()) setActiveAnalysisPanel(null);
   }
 
   function panelSwipeCloseHandlers(onClose: () => void) {
@@ -799,6 +880,15 @@ function App() {
             </button>
             <button
               type="button"
+              className={activeAnalysisPanel === "people" ? "active" : ""}
+              onClick={() => selectAnalysisPanel("people")}
+              title="People explorer"
+            >
+              <UsersRound size={18} />
+              <span>People</span>
+            </button>
+            <button
+              type="button"
               className={panels.timeline ? "active mobile-only" : "mobile-only"}
               onClick={() =>
                 setPanels((current) => {
@@ -875,6 +965,14 @@ function App() {
                   onClose={closeAnalysisPanel}
                   onSelectChartPart={setSelectedChartPart}
                   onSelectTransport={setSelectedTransport}
+                />
+              )}
+
+              {activeAnalysisPanel === "people" && (
+                <PeopleExplorerPanel
+                  stories={peopleStories}
+                  onClose={closeAnalysisPanel}
+                  onFocusStory={focusPeopleStory}
                 />
               )}
 

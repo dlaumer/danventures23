@@ -1473,6 +1473,247 @@
   margin-top: 2px;
 }
 
+.people-explorer {
+  display: flex;
+  flex: 1;
+  min-height: 0;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.people-search {
+  display: grid;
+  grid-template-columns: 18px minmax(0, 1fr);
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  height: 40px;
+  padding: 0 11px;
+  border: 1px solid #cfd8d1;
+  border-radius: 8px;
+  background: #ffffff;
+  color: #64707a;
+}
+
+.people-search input {
+  width: 100%;
+  min-width: 0;
+  border: 0;
+  background: transparent;
+  color: #18242d;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 620;
+  outline: none;
+}
+
+.people-wheel {
+  position: relative;
+  height: 200px;
+  min-height: 200px;
+  overflow-y: auto;
+  padding: 0 6px;
+  border: 1px solid #cfd8d1;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.52);
+  box-shadow:
+    inset 0 0 0 1px rgba(255, 255, 255, 0.62),
+    0 8px 20px rgba(31, 43, 51, 0.06);
+  mask-image: linear-gradient(
+    transparent,
+    #000 18%,
+    #000 82%,
+    transparent
+  );
+  scrollbar-width: thin;
+  scrollbar-color: #aab5ae transparent;
+}
+
+.people-wheel-spacer {
+  height: 80px;
+}
+
+.people-wheel-item {
+  display: grid;
+  width: 100%;
+  height: 40px;
+  min-width: 0;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 8px;
+  padding: 0 7px;
+  border: 1px solid transparent;
+  border-radius: 8px;
+  background: transparent;
+  color: #26343e;
+  text-align: left;
+  transition:
+    opacity 140ms ease,
+    transform 140ms ease,
+    background 140ms ease,
+    border-color 140ms ease;
+}
+
+.people-wheel-item span,
+.people-wheel-item small {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.people-wheel-item span {
+  color: #18242d;
+  font-size: 13px;
+  font-weight: 760;
+}
+
+.people-wheel-item small {
+  color: #64707a;
+  font-size: 10px;
+  font-weight: 700;
+}
+
+.people-wheel-item.focused {
+  border-color: #9eb0d9;
+  background: #ffffff;
+  box-shadow: 0 8px 22px rgba(31, 43, 51, 0.08);
+  transform: scale(1);
+  opacity: 1;
+}
+
+.people-wheel-item.near {
+  transform: scale(0.94);
+  opacity: 0.58;
+}
+
+.people-wheel-item.far {
+  transform: scale(0.88);
+  opacity: 0.28;
+}
+
+.people-wheel-item.hidden {
+  opacity: 0.13;
+}
+
+.people-story-detail {
+  display: flex;
+  min-height: 0;
+  flex: 1;
+  flex-direction: column;
+  gap: 10px;
+  overflow: auto;
+  padding-right: 2px;
+}
+
+.people-story-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+}
+
+.people-story-meta span {
+  display: inline-flex;
+  max-width: 100%;
+  min-height: 23px;
+  align-items: center;
+  padding: 0 7px;
+  border-radius: 999px;
+  background: #eef2ee;
+  color: #52606a;
+  font-size: 11px;
+  font-weight: 720;
+  text-transform: capitalize;
+}
+
+.people-story-meta .transport-icon-meta {
+  width: 28px;
+  justify-content: center;
+  padding: 0;
+  color: #26343e;
+}
+
+.people-story-detail p {
+  min-height: 0;
+  margin: 0;
+  overflow-wrap: anywhere;
+  color: #26343e;
+  font-size: 13px;
+  line-height: 1.42;
+}
+
+.people-story-stats {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+  margin-top: auto;
+}
+
+.people-story-stats div {
+  min-width: 0;
+  padding: 9px 10px;
+  border: 1px solid #e2e7e3;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.72);
+}
+
+.people-story-stats span {
+  display: block;
+  color: #64707a;
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.people-story-stats strong {
+  display: block;
+  min-width: 0;
+  overflow: hidden;
+  margin-top: 2px;
+  color: #18242d;
+  font-size: 14px;
+  font-weight: 760;
+  text-overflow: ellipsis;
+  text-transform: capitalize;
+  white-space: nowrap;
+}
+
+.people-zoom-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 36px;
+  width: 100%;
+  gap: 7px;
+  border: 1px solid #d8dfda;
+  border-radius: 8px;
+  background: #ffffff;
+  color: #26343e;
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 760;
+}
+
+.people-zoom-button:hover,
+.people-zoom-button:focus-visible {
+  border-color: rgba(35, 137, 255, 0.38);
+  color: #145caa;
+  outline: none;
+}
+
+.people-zoom-button:disabled {
+  cursor: not-allowed;
+  opacity: 0.48;
+}
+
+.people-empty {
+  display: grid;
+  flex: 1;
+  min-height: 180px;
+  place-items: center;
+  color: #64707a;
+  font-size: 13px;
+  text-align: center;
+}
+
 .time-slider-shell {
   position: absolute;
   right: clamp(296px, 31vw, 410px);

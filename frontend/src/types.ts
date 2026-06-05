@@ -15,6 +15,18 @@ export type SleepStat = {
   night_count: number;
 };
 
+export type PeopleStory = {
+  coordinates: { lat: number; lng: number } | null;
+  date: Date | null;
+  description: string;
+  id: string;
+  locationName: string;
+  people: string;
+  randomOrder: number;
+  timelineEntryId: string;
+  transport: string | null;
+};
+
 export type LocationFormState = {
   lng: number;
   lat: number;

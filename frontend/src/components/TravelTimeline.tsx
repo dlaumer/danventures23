@@ -58,6 +58,7 @@ import {
 
 type TravelTimelineProps = {
   collapsed: boolean;
+  isAdmin: boolean;
   legs: FeatureCollection | null;
   locations: FeatureCollection | null;
   expandEntryId: string | null;
@@ -256,6 +257,7 @@ type TimelineRange = {
 
 export function TravelTimeline({
   collapsed,
+  isAdmin,
   legs,
   locations,
   expandEntryId,
@@ -579,19 +581,21 @@ export function TravelTimeline({
                     </span>
                     <ChevronDown size={16} />
                   </button>
-                  <button
-                    type="button"
-                    className="timeline-edit-button"
+                  {isAdmin && (
+                    <button
+                      type="button"
+                      className="timeline-edit-button"
                       onClick={() =>
                         onEditLocation(
                           Number(featureRecordId(entry.feature)),
                           formFromFeature(entry.feature),
                         )
                       }
-                    title="Edit location"
-                  >
-                    <SquarePen size={15} />
-                  </button>
+                      title="Edit location"
+                    >
+                      <SquarePen size={15} />
+                    </button>
+                  )}
                   {isExpanded && (
                     <LocationDetails
                       entry={entry}

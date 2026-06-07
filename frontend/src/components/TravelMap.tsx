@@ -1,7 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import maplibregl, {
   GeoJSONSource,
-  LngLatBounds,
   Map as MapLibreMap,
 } from "maplibre-gl";
 import "maplibre-gl/dist/maplibre-gl.css";
@@ -22,7 +21,6 @@ import type {
   TimelineMapPosition,
 } from "../types";
 import {
-  addFeatureCoordinatesToBounds,
   buildEmptyLocationForm,
   buildTransportColorExpression,
   coordinateAlongLine,
@@ -45,7 +43,7 @@ type TravelMapProps = {
   locations: FeatureCollection | null;
   focusedLocation: { lat: number; lng: number; signal: number } | null;
   timelinePosition: TimelineMapPosition | null;
-  fitMapSignal: number;
+  initialViewSignal: number;
   selectedTransport: string | null;
   selectedTransportCostGroup: "free" | "paid" | null;
   isTransportLayerVisible: boolean;
@@ -78,6 +76,13 @@ const travelSourceIds = [
   "timeline-position",
   "draft-location",
 ] as const;
+
+const INITIAL_MAP_VIEW = {
+  center: [-10, 40] as [number, number],
+  zoom: 2,
+  bearing: -18,
+  pitch: 12,
+};
 const travelLayerIds = [
   "locations-waypoints",
   "legs-paid-shadow",
@@ -281,22 +286,6 @@ function buildVisibleFlightCollection(legs: FeatureCollection): FeatureCollectio
   };
 }
 
-function getMapFitPadding(): maplibregl.PaddingOptions {
-  const defaultPadding = { top: 44, right: 44, bottom: 180, left: 44 };
-
-  if (typeof window === "undefined") return defaultPadding;
-
-  if (window.matchMedia("(max-width: 560px)").matches) {
-    return { top: 132, right: 32, bottom: 206, left: 32 };
-  }
-
-  if (window.matchMedia("(max-width: 900px)").matches) {
-    return { top: 106, right: 32, bottom: 198, left: 32 };
-  }
-
-  return defaultPadding;
-}
-
 function getMapFocusOffset(): [number, number] {
   if (typeof window === "undefined") return [0, -70];
 
@@ -314,7 +303,7 @@ export function TravelMap({
   locations,
   focusedLocation,
   timelinePosition,
-  fitMapSignal,
+  initialViewSignal,
   selectedTransport,
   selectedTransportCostGroup,
   isTransportLayerVisible,
@@ -359,22 +348,6 @@ export function TravelMap({
     [],
   );
 
-  const refitMap = useCallback(() => {
-    if (!legs || !mapRef.current) return;
-
-    const bounds = new LngLatBounds();
-    legs.features.forEach((feature) =>
-      addFeatureCoordinatesToBounds(feature.geometry, bounds),
-    );
-    if (!bounds.isEmpty()) {
-      mapRef.current.fitBounds(bounds, {
-        padding: getMapFitPadding(),
-        duration: 800,
-        maxZoom: 3.2,
-      });
-    }
-  }, [legs]);
-
   useEffect(() => {
     if (!mapContainerRef.current || mapRef.current) return;
 
@@ -389,10 +362,10 @@ export function TravelMap({
         mapRef.current = new maplibregl.Map({
           container: mapContainerRef.current,
           style,
-          center: [-10, 40],
-          zoom: 2,
-          bearing: -18,
-          pitch: 12,
+          center: INITIAL_MAP_VIEW.center,
+          zoom: INITIAL_MAP_VIEW.zoom,
+          bearing: INITIAL_MAP_VIEW.bearing,
+          pitch: INITIAL_MAP_VIEW.pitch,
           maxPitch: 85,
           renderWorldCopies: false,
         });
@@ -640,9 +613,13 @@ export function TravelMap({
   }, [focusedLocation, isMapReady]);
 
   useEffect(() => {
-    if (!fitMapSignal) return;
-    refitMap();
-  }, [fitMapSignal, refitMap]);
+    if (!initialViewSignal || !mapRef.current) return;
+
+    mapRef.current.easeTo({
+      ...INITIAL_MAP_VIEW,
+      duration: 800,
+    });
+  }, [initialViewSignal]);
 
   useEffect(() => {
     const map = mapRef.current;
@@ -906,11 +883,6 @@ export function TravelMap({
       }
 
       moveTravelLayersToTop(map);
-
-      const bounds = new LngLatBounds();
-      legs.features.forEach((feature) =>
-        addFeatureCoordinatesToBounds(feature.geometry, bounds),
-      );
 
     };
 

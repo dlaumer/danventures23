@@ -10,9 +10,9 @@ import {
 import {
   ChartPie,
   Clock3,
+  Globe2,
   PanelLeftClose,
   PanelLeftOpen,
-  LocateFixed,
   MapPinPlus,
   Moon,
   ListChecks,
@@ -284,7 +284,7 @@ function App() {
   const [timelineMapPosition, setTimelineMapPosition] =
     useState<TimelineMapPosition | null>(null);
   const [isTimelineCollapsed, setIsTimelineCollapsed] = useState(false);
-  const [fitMapSignal, setFitMapSignal] = useState(0);
+  const [initialViewSignal, setInitialViewSignal] = useState(0);
   const [basemap, setBasemap] = useState<MapBasemap>("standard");
   const [selectedTimeRange, setSelectedTimeRange] =
     useState<TravelTimeRange | null>(null);
@@ -301,6 +301,9 @@ function App() {
   );
   const [isSavingLocation, setIsSavingLocation] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const isAdmin =
+    typeof window !== "undefined" &&
+    new URLSearchParams(window.location.search).get("admin") === "true";
   const panelSwipeRef = useRef<{
     hasClosed: boolean;
     startX: number;
@@ -779,7 +782,7 @@ function App() {
         locations={filteredLocations}
         focusedLocation={focusedLocation}
         timelinePosition={timelineMapPosition}
-        fitMapSignal={fitMapSignal}
+        initialViewSignal={initialViewSignal}
         selectedTransport={selectedTransport}
         selectedTransportCostGroup={selectedTransportCostGroup}
         isTransportLayerVisible={isTransportLayerVisible}
@@ -809,18 +812,20 @@ function App() {
       />
 
       <div className="map-button-row" aria-label="Map controls">
-        <button
-          type="button"
-          className="map-action-button"
-          onClick={() => {
-            setLocationForm(null);
-            setEditingLocationId(null);
-            setIsPlacingLocation(true);
-          }}
-          title="Add new point"
-        >
-          <MapPinPlus size={18} />
-        </button>
+        {isAdmin && (
+          <button
+            type="button"
+            className="map-action-button"
+            onClick={() => {
+              setLocationForm(null);
+              setEditingLocationId(null);
+              setIsPlacingLocation(true);
+            }}
+            title="Add new point"
+          >
+            <MapPinPlus size={18} />
+          </button>
+        )}
         <button
           type="button"
           className={
@@ -850,10 +855,11 @@ function App() {
         <button
           type="button"
           className="map-action-button"
-          onClick={() => setFitMapSignal((current) => current + 1)}
-          title="Fit routes"
+          onClick={() => setInitialViewSignal((current) => current + 1)}
+          title="Zoom to globe view"
+          aria-label="Zoom to globe view"
         >
-          <LocateFixed size={18} />
+          <Globe2 size={18} />
         </button>
       </div>
 
@@ -1063,6 +1069,7 @@ function App() {
               locations={filteredLocations}
               legs={filteredLegs}
               collapsed={isTimelineCollapsed}
+              isAdmin={isAdmin}
               expandEntryId={timelineExpandEntryId}
               targetEntryId={timelineTargetEntryId}
               targetEntrySignal={timelineTargetSignal}
@@ -1074,6 +1081,7 @@ function App() {
               }
               onTimelinePositionChange={setTimelineMapPosition}
               onEditLocation={(id, form) => {
+                if (!isAdmin) return;
                 setEditingLocationId(id);
                 setLocationForm(form);
               }}

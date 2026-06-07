@@ -7,7 +7,7 @@ import {
   Sparkles,
 } from "lucide-react";
 import type { GeneralStats } from "../types";
-import { formatCount, formatKm } from "../utils";
+import { formatCount, formatKm, formatMoney } from "../utils";
 
 type GeneralStatsPanelProps = {
   generalStats: GeneralStats;
@@ -32,12 +32,12 @@ export function GeneralStatsPanel({ generalStats }: GeneralStatsPanelProps) {
     {
       icon: <CircleDollarSign size={15} />,
       label: "Transport costs",
-      value: formatCount(generalStats.transportCostTotal),
+      value: formatMoney(generalStats.transportCostTotal),
     },
     {
       icon: <BedDouble size={15} />,
       label: "Sleeping costs",
-      value: formatCount(generalStats.sleepCostTotal),
+      value: formatMoney(generalStats.sleepCostTotal),
     },
   ];
 

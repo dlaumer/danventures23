@@ -45,6 +45,11 @@ export function formatCount(value: number) {
   return new Intl.NumberFormat("en").format(value);
 }
 
+export function formatMoney(value: number | string) {
+  const numberValue = typeof value === "string" ? Number(value) : value;
+  return `€${new Intl.NumberFormat("en").format(numberValue)}`;
+}
+
 export function numberFromKm(value: number | string) {
   return typeof value === "string" ? Number(value) : value;
 }

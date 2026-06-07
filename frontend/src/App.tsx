@@ -245,11 +245,16 @@ function App() {
   );
   const [selectedChartPart, setSelectedChartPart] =
     useState<SelectedChartPart | null>(null);
+  const [isTransportLayerVisible, setIsTransportLayerVisible] = useState(true);
   const [selectedSleepCategory, setSelectedSleepCategory] = useState<
     string | null
   >(null);
   const [selectedSleepChartPart, setSelectedSleepChartPart] =
     useState<SelectedChartPart | null>(null);
+  const [isSleepLayerVisible, setIsSleepLayerVisible] = useState(true);
+  const [peopleExplorerQuery, setPeopleExplorerQuery] = useState("");
+  const [peopleExplorerSelectedIndex, setPeopleExplorerSelectedIndex] =
+    useState(-1);
   const [isLoading, setIsLoading] = useState(true);
   const [isPlacingLocation, setIsPlacingLocation] = useState(false);
   const [panels, setPanels] = useState<PanelState>({
@@ -458,7 +463,9 @@ function App() {
         const people = propertyString(properties, "people");
         const description = propertyString(properties, "description") ?? "";
 
-        if (!people || !isDisplayedFreeRide(transport)) return null;
+        if (!people || !isFreeTransport(transport) || transport === "foot") {
+          return null;
+        }
 
         const recordId = featureRecordId(feature) ?? String(index);
 
@@ -775,8 +782,10 @@ function App() {
         fitMapSignal={fitMapSignal}
         selectedTransport={selectedTransport}
         selectedTransportCostGroup={selectedTransportCostGroup}
+        isTransportLayerVisible={isTransportLayerVisible}
         selectedSleepCategory={selectedSleepCategory}
         selectedSleepCostGroup={selectedSleepCostGroup}
+        isSleepLayerVisible={isSleepLayerVisible}
         basemap={basemap}
         onCancelPlacingLocation={() => setIsPlacingLocation(false)}
         onMapError={setError}
@@ -962,17 +971,28 @@ function App() {
                   orderedStats={orderedStats}
                   selectedChartPart={selectedChartPart}
                   selectedTransport={selectedTransport}
+                  isTransportLayerVisible={isTransportLayerVisible}
                   onClose={closeAnalysisPanel}
                   onSelectChartPart={setSelectedChartPart}
                   onSelectTransport={setSelectedTransport}
+                  onToggleTransportLayer={() =>
+                    setIsTransportLayerVisible((current) => !current)
+                  }
                 />
               )}
 
               {activeAnalysisPanel === "people" && (
                 <PeopleExplorerPanel
+                  query={peopleExplorerQuery}
+                  selectedIndex={peopleExplorerSelectedIndex}
                   stories={peopleStories}
                   onClose={closeAnalysisPanel}
                   onFocusStory={focusPeopleStory}
+                  onQueryChange={(nextQuery) => {
+                    setPeopleExplorerQuery(nextQuery);
+                    setPeopleExplorerSelectedIndex(-1);
+                  }}
+                  onSelectedIndexChange={setPeopleExplorerSelectedIndex}
                 />
               )}
 
@@ -980,10 +1000,14 @@ function App() {
                 <SleepCategoryPanel
                   selectedChartPart={selectedSleepChartPart}
                   selectedSleepCategory={selectedSleepCategory}
+                  isSleepLayerVisible={isSleepLayerVisible}
                   stats={sleepStats}
                   onClose={closeAnalysisPanel}
                   onSelectChartPart={setSelectedSleepChartPart}
                   onSelectSleepCategory={setSelectedSleepCategory}
+                  onToggleSleepLayer={() =>
+                    setIsSleepLayerVisible((current) => !current)
+                  }
                 />
               )}
             </div>

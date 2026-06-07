@@ -12,17 +12,21 @@ import {
   Users,
   X,
 } from "lucide-react";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef } from "react";
 import type { PeopleStory } from "../types";
-import { formatCount, formatTimelineDate, transportLabel } from "../utils";
+import { formatTimelineDate, transportLabel } from "../utils";
 
 type PeopleExplorerPanelProps = {
+  query: string;
+  selectedIndex: number;
   stories: PeopleStory[];
   onClose: () => void;
   onFocusStory: (story: PeopleStory) => void;
+  onQueryChange: (query: string) => void;
+  onSelectedIndexChange: (index: number) => void;
 };
 
-const peopleWheelItemHeight = 32;
+const peopleWheelItemHeight = 26;
 
 function normalizeSearchText(value: string) {
   return value.trim().toLowerCase();
@@ -58,15 +62,17 @@ function transportIconFor(value: string | null) {
 }
 
 export function PeopleExplorerPanel({
+  query,
+  selectedIndex,
   stories,
   onClose,
   onFocusStory,
+  onQueryChange,
+  onSelectedIndexChange,
 }: PeopleExplorerPanelProps) {
-  const [query, setQuery] = useState("");
-  const [selectedIndex, setSelectedIndex] = useState(0);
   const wheelRef = useRef<HTMLDivElement | null>(null);
-  const selectedIndexRef = useRef(0);
-  const scrollFrameRef = useRef<number | null>(null);
+  const shouldRestoreScrollRef = useRef(true);
+  const selectedIndexRef = useRef(selectedIndex);
 
   const filteredStories = useMemo(() => {
     const searchText = normalizeSearchText(query);
@@ -80,54 +86,60 @@ export function PeopleExplorerPanel({
   }, [query, stories]);
 
   const selectedStory = filteredStories[selectedIndex] ?? null;
+  const visibleStart = Math.max(0, selectedIndex - 18);
+  const visibleEnd = Math.min(filteredStories.length, selectedIndex + 19);
+  const visibleStories = filteredStories.slice(visibleStart, visibleEnd);
 
   useEffect(() => {
+    selectedIndexRef.current = selectedIndex;
+  }, [selectedIndex]);
+
+  useEffect(() => {
+    if (selectedIndex >= 0) return;
+    if (filteredStories.length === 0) return;
+
     const nextIndex = Math.max(0, Math.floor(filteredStories.length / 2));
     selectedIndexRef.current = nextIndex;
-    setSelectedIndex(nextIndex);
+    onSelectedIndexChange(nextIndex);
 
     window.requestAnimationFrame(() => {
       wheelRef.current?.scrollTo({ top: nextIndex * peopleWheelItemHeight });
     });
-  }, [filteredStories.length]);
+  }, [filteredStories.length, onSelectedIndexChange, selectedIndex]);
 
   useEffect(() => {
+    if (selectedIndex < 0) return;
     if (selectedIndex >= filteredStories.length) {
       const nextIndex = Math.max(0, filteredStories.length - 1);
       selectedIndexRef.current = nextIndex;
-      setSelectedIndex(nextIndex);
+      onSelectedIndexChange(nextIndex);
     }
-  }, [filteredStories.length, selectedIndex]);
+  }, [filteredStories.length, onSelectedIndexChange, selectedIndex]);
 
   useEffect(() => {
-    return () => {
-      if (scrollFrameRef.current !== null) {
-        window.cancelAnimationFrame(scrollFrameRef.current);
-      }
-    };
-  }, []);
+    if (!shouldRestoreScrollRef.current) return;
+    if (selectedIndex < 0) return;
+
+    shouldRestoreScrollRef.current = false;
+    wheelRef.current?.scrollTo({ top: selectedIndex * peopleWheelItemHeight });
+  }, [selectedIndex]);
 
   function handleWheelScroll() {
     const wheel = wheelRef.current;
     if (!wheel) return;
 
-    if (scrollFrameRef.current !== null) return;
+    const nextIndex = Math.max(
+      0,
+      Math.min(
+        filteredStories.length - 1,
+        Math.round(wheel.scrollTop / peopleWheelItemHeight),
+      ),
+    );
 
-    scrollFrameRef.current = window.requestAnimationFrame(() => {
-      scrollFrameRef.current = null;
-      const nextIndex = Math.max(
-        0,
-        Math.min(
-          filteredStories.length - 1,
-          Math.round(wheel.scrollTop / peopleWheelItemHeight),
-        ),
-      );
-
-      if (nextIndex !== selectedIndexRef.current) {
-        selectedIndexRef.current = nextIndex;
-        setSelectedIndex(nextIndex);
-      }
-    });
+    if (nextIndex !== selectedIndexRef.current) {
+      selectedIndexRef.current = nextIndex;
+      onSelectedIndexChange(nextIndex);
+    }
   }
 
   return (
@@ -136,15 +148,29 @@ export function PeopleExplorerPanel({
         <div>
           <h2>People explorer</h2>
         </div>
-        <button
-          type="button"
-          className="panel-close-button"
-          onClick={onClose}
-          title="Close panel"
-          aria-label="Close panel"
-        >
-          <X size={18} />
-        </button>
+        <div className="people-heading-actions">
+          {selectedStory && (
+            <button
+              type="button"
+              className="panel-icon-button people-heading-zoom"
+              onClick={() => onFocusStory(selectedStory)}
+              disabled={!selectedStory.coordinates}
+              title="Zoom to spot"
+              aria-label="Zoom to spot"
+            >
+              <LocateFixed size={16} />
+            </button>
+          )}
+          <button
+            type="button"
+            className="panel-close-button"
+            onClick={onClose}
+            title="Close panel"
+            aria-label="Close panel"
+          >
+            <X size={18} />
+          </button>
+        </div>
       </div>
 
       <div className="people-explorer">
@@ -153,7 +179,7 @@ export function PeopleExplorerPanel({
           <input
             type="search"
             value={query}
-            onChange={(event) => setQuery(event.target.value)}
+            onChange={(event) => onQueryChange(event.target.value)}
             placeholder="Search people or stories"
             aria-label="Search people or stories"
           />
@@ -169,8 +195,15 @@ export function PeopleExplorerPanel({
               aria-activedescendant={selectedStory?.id}
               onScroll={handleWheelScroll}
             >
-              <div className="people-wheel-spacer" aria-hidden="true" />
-              {filteredStories.map((story, index) => {
+              <div
+                className="people-wheel-spacer"
+                style={{
+                  height: 52 + visibleStart * peopleWheelItemHeight,
+                }}
+                aria-hidden="true"
+              />
+              {visibleStories.map((story, visibleIndex) => {
+                const index = visibleStart + visibleIndex;
                 const distance = Math.abs(index - selectedIndex);
                 const focusClass =
                   distance === 0
@@ -194,7 +227,16 @@ export function PeopleExplorerPanel({
                   </div>
                 );
               })}
-              <div className="people-wheel-spacer" aria-hidden="true" />
+              <div
+                className="people-wheel-spacer"
+                style={{
+                  height:
+                    52 +
+                    (filteredStories.length - visibleEnd) *
+                      peopleWheelItemHeight,
+                }}
+                aria-hidden="true"
+              />
             </div>
 
             {selectedStory && (
@@ -211,30 +253,6 @@ export function PeopleExplorerPanel({
                   <span>{formatTimelineDate(selectedStory.date)}</span>
                 </div>
                 <p>{selectedStory.description || "No story saved yet."}</p>
-                <div className="people-story-stats">
-                  <div>
-                    <span>Story</span>
-                    <strong>
-                      {selectedStory.description.trim() ? "saved" : "empty"}
-                    </strong>
-                  </div>
-                  <div>
-                    <span>Entry</span>
-                    <strong>
-                      {formatCount(selectedIndex + 1)} /{" "}
-                      {formatCount(filteredStories.length)}
-                    </strong>
-                  </div>
-                </div>
-                <button
-                  type="button"
-                  className="people-zoom-button"
-                  onClick={() => onFocusStory(selectedStory)}
-                  disabled={!selectedStory.coordinates}
-                >
-                  <LocateFixed size={16} />
-                  <span>Zoom to spot</span>
-                </button>
               </section>
             )}
           </>

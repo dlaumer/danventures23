@@ -43,6 +43,7 @@ import {
   coordinateAlongLine,
   coordinatesForFeature,
   formatKm,
+  formatMoney,
   formatTimelineDate,
   formFromFeature,
   featureRecordId,
@@ -186,10 +187,10 @@ function LocationDetails({
       label: "Costs",
       value: [
         propertyString(properties, "travelcost")
-          ? `travel ${propertyString(properties, "travelcost")}`
+          ? `travel ${formatMoney(propertyString(properties, "travelcost") ?? 0)}`
           : null,
         propertyString(properties, "sleepcost")
-          ? `sleep ${propertyString(properties, "sleepcost")}`
+          ? `sleep ${formatMoney(propertyString(properties, "sleepcost") ?? 0)}`
           : null,
       ]
         .filter(Boolean)
@@ -267,6 +268,7 @@ export function TravelTimeline({
   const listRef = useRef<HTMLDivElement | null>(null);
   const entryRefs = useRef(new Map<string, HTMLElement>());
   const lastTimelinePositionRef = useRef<TimelineMapPosition | null>(null);
+  const pendingTargetScrollSignalRef = useRef<number | null>(null);
   const scrollFrameRef = useRef<number | null>(null);
   const [expandedEntryId, setExpandedEntryId] = useState<string | null>(null);
   const [visibleRange, setVisibleRange] = useState<TimelineRange>({
@@ -423,22 +425,28 @@ export function TravelTimeline({
     if (targetIndex === -1) return;
 
     setExpandedEntryId(expandEntryId ?? targetEntryId);
+    pendingTargetScrollSignalRef.current = targetEntrySignal;
     setVisibleRange({
       end: Math.min(entries.length, targetIndex + timelineTargetContextCount + 1),
       start: Math.max(0, targetIndex - timelineTargetContextCount),
     });
   }, [entries, expandEntryId, targetEntryId, targetEntrySignal]);
 
-  useEffect(() => {
-    if (!targetEntryId) return;
+  useLayoutEffect(() => {
+    const list = listRef.current;
+    if (!list || !targetEntryId) return;
+    if (pendingTargetScrollSignalRef.current !== targetEntrySignal) return;
 
-    window.requestAnimationFrame(() => {
-      entryRefs.current.get(targetEntryId)?.scrollIntoView({
-        block: "start",
-        behavior: "smooth",
-      });
-    });
-  }, [targetEntryId, targetEntrySignal, visibleRange]);
+    const target = entryRefs.current.get(targetEntryId);
+    if (!target) return;
+
+    const listRect = list.getBoundingClientRect();
+    const targetRect = target.getBoundingClientRect();
+
+    list.scrollTop += targetRect.top - listRect.top;
+    pendingTargetScrollSignalRef.current = null;
+    reportTimelinePosition();
+  }, [reportTimelinePosition, targetEntryId, targetEntrySignal, visibleRange]);
 
   return (
     <div className={`timeline-panel ${collapsed ? "collapsed" : ""}`}>

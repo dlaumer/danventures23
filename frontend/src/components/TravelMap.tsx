@@ -48,8 +48,10 @@ type TravelMapProps = {
   fitMapSignal: number;
   selectedTransport: string | null;
   selectedTransportCostGroup: "free" | "paid" | null;
+  isTransportLayerVisible: boolean;
   selectedSleepCategory: string | null;
   selectedSleepCostGroup: "free" | "paid" | null;
+  isSleepLayerVisible: boolean;
   basemap: MapBasemap;
   onCancelPlacingLocation: () => void;
   onMapError: (message: string) => void;
@@ -90,6 +92,18 @@ const travelLayerIds = [
   "timeline-position",
   "draft-location",
 ] as const;
+const legMainLayerIds = ["legs-paid-main", "legs-free-main"] as const;
+const legShadowLayerIds = ["legs-paid-shadow", "legs-free-shadow"] as const;
+const legRouteLayerIds = [
+  ...legShadowLayerIds,
+  ...legMainLayerIds,
+  "legs-flights",
+  "legs-flights-hit",
+] as const;
+const visibleLegHitLayerIds = [
+  ...legMainLayerIds,
+  "legs-flights-hit",
+] as const;
 type MapFeatureCandidate = {
   date: Date | null;
   expandEntryId?: string;
@@ -101,9 +115,15 @@ type MapFeatureCandidate = {
 
 type FeatureChoiceDialog = {
   candidates: MapFeatureCandidate[];
+  maxHeight: number;
+  width: number;
   x: number;
   y: number;
 };
+
+const featureChoiceMargin = 12;
+const featureChoicePreferredWidth = 280;
+const featureChoicePreferredMaxHeight = 320;
 
 function preserveTravelLayers(
   previousStyle: maplibregl.StyleSpecification | undefined,
@@ -297,8 +317,10 @@ export function TravelMap({
   fitMapSignal,
   selectedTransport,
   selectedTransportCostGroup,
+  isTransportLayerVisible,
   selectedSleepCategory,
   selectedSleepCostGroup,
+  isSleepLayerVisible,
   basemap,
   onCancelPlacingLocation,
   onMapError,
@@ -989,6 +1011,35 @@ export function TravelMap({
 
       return Math.hypot(point.x - closestX, point.y - closestY);
     };
+    const isVisibleTransport = (transport: string | null) => {
+      if (!isTransportLayerVisible) return false;
+      if (selectedTransport) return transport === selectedTransport;
+      if (selectedTransportCostGroup === "free") {
+        return Boolean(transport && freeTransportModes.has(transport));
+      }
+      if (selectedTransportCostGroup === "paid") {
+        return Boolean(transport && !freeTransportModes.has(transport));
+      }
+      return true;
+    };
+    const isVisibleLocation = (feature: GeoJSON.Feature) => {
+      const pointType = propertyString(feature.properties, "pointtype");
+      if (pointType === "waypoint") {
+        const transport = propertyString(feature.properties, "transport");
+        return isVisibleTransport(transport);
+      }
+      if (pointType !== "sleep") return false;
+      if (!isSleepLayerVisible) return false;
+      const sleepCategory = propertyString(feature.properties, "sleepcategory");
+      if (selectedSleepCategory) return sleepCategory === selectedSleepCategory;
+      if (selectedSleepCostGroup === "free") {
+        return Boolean(sleepCategory && !paidSleepCategories.has(sleepCategory));
+      }
+      if (selectedSleepCostGroup === "paid") {
+        return Boolean(sleepCategory && paidSleepCategories.has(sleepCategory));
+      }
+      return true;
+    };
     const nearestLegForPoint = (point: maplibregl.Point) => {
       return currentLegs.features.reduce<{
         distance: number;
@@ -996,6 +1047,8 @@ export function TravelMap({
       } | null>((nearest, feature) => {
         const geometry = feature.geometry;
         if (!geometry) return nearest;
+        const transport = propertyString(feature.properties, "transport");
+        if (!isVisibleTransport(transport)) return nearest;
 
         const lines =
           geometry.type === "LineString"
@@ -1113,6 +1166,7 @@ export function TravelMap({
         }[]
       >((matches, feature) => {
         if (feature.geometry?.type !== "Point") return matches;
+        if (!isVisibleLocation(feature)) return matches;
         const [lng, lat] = feature.geometry.coordinates;
         const point = map.project([Number(lng), Number(lat)]);
         const distance = Math.hypot(
@@ -1125,7 +1179,7 @@ export function TravelMap({
       }, []);
 
       const nearestLeg = nearestLegForPoint(event.point);
-      const legLayers = ["legs-main", "legs-flights-hit"].filter((layer) =>
+      const legLayers = visibleLegHitLayerIds.filter((layer) =>
         map.getLayer(layer),
       );
       const renderedLegFeatures =
@@ -1162,12 +1216,67 @@ export function TravelMap({
       }
 
       const container = map.getContainer();
-      const maxDialogLeft = Math.max(14, container.clientWidth - 294);
-      const maxDialogTop = Math.max(14, container.clientHeight - 244);
+      const containerRect = container.getBoundingClientRect();
+      const visibleViewport = window.visualViewport;
+      const visibleLeft = visibleViewport?.offsetLeft ?? 0;
+      const visibleTop = visibleViewport?.offsetTop ?? 0;
+      const visibleRight =
+        visibleLeft +
+        (visibleViewport?.width ?? document.documentElement.clientWidth);
+      const visibleBottom =
+        visibleTop +
+        (visibleViewport?.height ?? document.documentElement.clientHeight);
+      const visibleLeftInContainer = Math.max(
+        0,
+        visibleLeft - containerRect.left,
+      );
+      const visibleTopInContainer = Math.max(0, visibleTop - containerRect.top);
+      const visibleRightInContainer = Math.min(
+        containerRect.width,
+        visibleRight - containerRect.left,
+      );
+      const visibleBottomInContainer = Math.min(
+        containerRect.height,
+        visibleBottom - containerRect.top,
+      );
+      const availableWidth = Math.max(
+        0,
+        visibleRightInContainer - visibleLeftInContainer,
+      );
+      const availableHeight = Math.max(
+        0,
+        visibleBottomInContainer - visibleTopInContainer,
+      );
+      const dialogWidth = Math.max(
+        120,
+        Math.min(
+          featureChoicePreferredWidth,
+          availableWidth - featureChoiceMargin * 2,
+        ),
+      );
+      const dialogMaxHeight = Math.max(
+        96,
+        Math.min(
+          featureChoicePreferredMaxHeight,
+          availableHeight - featureChoiceMargin * 2,
+        ),
+      );
+      const minDialogLeft = visibleLeftInContainer + featureChoiceMargin;
+      const minDialogTop = visibleTopInContainer + featureChoiceMargin;
+      const maxDialogLeft = Math.max(
+        minDialogLeft,
+        visibleRightInContainer - dialogWidth - featureChoiceMargin,
+      );
+      const maxDialogTop = Math.max(
+        minDialogTop,
+        visibleBottomInContainer - dialogMaxHeight - featureChoiceMargin,
+      );
       setFeatureChoiceDialog({
         candidates,
-        x: Math.min(Math.max(event.point.x, 14), maxDialogLeft),
-        y: Math.min(Math.max(event.point.y, 14), maxDialogTop),
+        maxHeight: dialogMaxHeight,
+        width: dialogWidth,
+        x: Math.min(Math.max(event.point.x, minDialogLeft), maxDialogLeft),
+        y: Math.min(Math.max(event.point.y, minDialogTop), maxDialogTop),
       });
     };
     const setPointer = () => {
@@ -1180,26 +1289,36 @@ export function TravelMap({
     map.on("click", selectMapFeature);
     map.on("mouseenter", "locations-hit", setPointer);
     map.on("mouseleave", "locations-hit", clearPointer);
-    map.on("mouseenter", "legs-main", setPointer);
-    map.on("mouseleave", "legs-main", clearPointer);
-    const hasFlightHitLayer = Boolean(map.getLayer("legs-flights-hit"));
-    if (hasFlightHitLayer) {
-      map.on("mouseenter", "legs-flights-hit", setPointer);
-      map.on("mouseleave", "legs-flights-hit", clearPointer);
-    }
+    const pointerLegLayers = visibleLegHitLayerIds.filter((layer) =>
+      map.getLayer(layer),
+    );
+    pointerLegLayers.forEach((layer) => {
+      map.on("mouseenter", layer, setPointer);
+      map.on("mouseleave", layer, clearPointer);
+    });
 
     return () => {
       map.off("click", selectMapFeature);
       map.off("mouseenter", "locations-hit", setPointer);
       map.off("mouseleave", "locations-hit", clearPointer);
-      map.off("mouseenter", "legs-main", setPointer);
-      map.off("mouseleave", "legs-main", clearPointer);
-      if (hasFlightHitLayer) {
-        map.off("mouseenter", "legs-flights-hit", setPointer);
-        map.off("mouseleave", "legs-flights-hit", clearPointer);
-      }
+      pointerLegLayers.forEach((layer) => {
+        map.off("mouseenter", layer, setPointer);
+        map.off("mouseleave", layer, clearPointer);
+      });
     };
-  }, [isMapReady, isPlacingLocation, locations, legs, onSelectTimelineEntry]);
+  }, [
+    isMapReady,
+    isPlacingLocation,
+    isSleepLayerVisible,
+    isTransportLayerVisible,
+    locations,
+    legs,
+    onSelectTimelineEntry,
+    selectedSleepCategory,
+    selectedSleepCostGroup,
+    selectedTransport,
+    selectedTransportCostGroup,
+  ]);
 
   useEffect(() => {
     setFeatureChoiceDialog(null);
@@ -1207,109 +1326,174 @@ export function TravelMap({
 
   useEffect(() => {
     const map = mapRef.current;
-    if (!map || !map.getLayer("legs-main")) return;
+    if (!map) return;
 
     const selected = selectedTransport ?? "";
-    const groupTransports =
+    const visibility = isTransportLayerVisible ? "visible" : "none";
+    const paidFilterClauses: maplibregl.ExpressionSpecification[] = [
+      ["!=", ["get", "transport"], "plane"],
+      ["in", ["get", "transport"], ["literal", paidTransportValues]],
+    ];
+    const freeFilterClauses: maplibregl.ExpressionSpecification[] = [
+      ["!=", ["get", "transport"], "plane"],
+      ["in", ["get", "transport"], ["literal", freeTransportValues]],
+    ];
+    const flightFilterClauses: maplibregl.ExpressionSpecification[] = [[
+      "==",
+      ["get", "transport"],
+      "plane",
+    ]];
+
+    const transportFilter = selectedTransport
+      ? ([
+          "==",
+          ["get", "transport"],
+          selected,
+        ] as maplibregl.ExpressionSpecification)
+      : null;
+    const groupFilter =
       selectedTransportCostGroup === "free"
-        ? freeTransportValues
+        ? ([
+            "in",
+            ["get", "transport"],
+            ["literal", freeTransportValues],
+          ] as maplibregl.ExpressionSpecification)
         : selectedTransportCostGroup === "paid"
-          ? paidTransportValues
-          : [];
-
-    if (!selectedTransport && !selectedTransportCostGroup) {
-      map.setPaintProperty("legs-main", "line-opacity", 0.78);
-      map.setPaintProperty("legs-main", "line-width", [
-        "interpolate",
-        ["linear"],
-        ["zoom"],
-        1,
-        4,
-        5,
-        4.8,
-        10,
-        6,
-      ]);
-      if (map.getLayer("legs-flights")) {
-        map.setPaintProperty("legs-flights", "line-opacity", 0.88);
-        map.setPaintProperty("legs-flights", "line-width", [
-          "interpolate",
-          ["linear"],
-          ["zoom"],
-          1,
-          2,
-          5,
-          2.4,
-          10,
-          3,
-        ]);
-      }
-      map.setPaintProperty("legs-shadow", "line-opacity", 0.28);
-      return;
-    }
-
-    map.setPaintProperty("legs-main", "line-opacity", [
-      "case",
-      selectedTransport
-        ? ["==", ["get", "transport"], selected]
-        : ["in", ["get", "transport"], ["literal", groupTransports]],
-      0.98,
-      0.09,
+          ? ([
+              "in",
+              ["get", "transport"],
+              ["literal", paidTransportValues],
+            ] as maplibregl.ExpressionSpecification)
+          : null;
+    const activeFilter = transportFilter ?? groupFilter;
+    const combineFilter = (
+      baseClauses: maplibregl.ExpressionSpecification[],
+    ): maplibregl.FilterSpecification =>
+      [
+        "all",
+        ...baseClauses,
+        ...(activeFilter ? [activeFilter] : []),
+      ] as maplibregl.FilterSpecification;
+    const waypointFilter = combineFilter([
+      ["==", ["get", "pointtype"], "waypoint"],
     ]);
-    map.setPaintProperty("legs-main", "line-width", [
-      "case",
-      selectedTransport
-        ? ["==", ["get", "transport"], selected]
-        : ["in", ["get", "transport"], ["literal", groupTransports]],
-      5.2,
-      1.1,
-    ]);
-    if (map.getLayer("legs-flights")) {
-      map.setPaintProperty("legs-flights", "line-opacity", [
-        "case",
-        selectedTransport
-          ? ["==", ["get", "transport"], selected]
-          : ["in", ["get", "transport"], ["literal", groupTransports]],
-        0.95,
-        0.08,
-      ]);
-      map.setPaintProperty("legs-flights", "line-width", [
-        "case",
-        selectedTransport
-          ? ["==", ["get", "transport"], selected]
-          : ["in", ["get", "transport"], ["literal", groupTransports]],
-        3,
-        1,
-      ]);
+
+    const layerFilters: Partial<
+      Record<(typeof legRouteLayerIds)[number], maplibregl.FilterSpecification>
+    > = {
+      "legs-paid-shadow": combineFilter(paidFilterClauses),
+      "legs-paid-main": combineFilter(paidFilterClauses),
+      "legs-free-shadow": combineFilter(freeFilterClauses),
+      "legs-free-main": combineFilter(freeFilterClauses),
+      "legs-flights": combineFilter(flightFilterClauses),
+      "legs-flights-hit": combineFilter(flightFilterClauses),
+    };
+
+    legRouteLayerIds.forEach((layer) => {
+      if (!map.getLayer(layer)) return;
+      map.setLayoutProperty(layer, "visibility", visibility);
+      const filter = layerFilters[layer];
+      if (filter) map.setFilter(layer, filter);
+    });
+
+    if (map.getLayer("locations-waypoints")) {
+      map.setLayoutProperty("locations-waypoints", "visibility", visibility);
+      map.setFilter("locations-waypoints", waypointFilter);
     }
-    map.setPaintProperty("legs-shadow", "line-opacity", 0.08);
-  }, [selectedTransport, selectedTransportCostGroup]);
+  }, [isTransportLayerVisible, selectedTransport, selectedTransportCostGroup]);
 
   useEffect(() => {
     const map = mapRef.current;
-    if (!map || !map.getLayer("locations-main")) return;
+    if (!map) return;
 
-    const groupSleepCategories =
-      selectedSleepCostGroup === "free"
-        ? freeSleepValues
-        : selectedSleepCostGroup === "paid"
-          ? paidSleepValues
-          : [];
+    const sleepVisibility = isSleepLayerVisible ? "visible" : "none";
+    const sleepFilterClauses: maplibregl.ExpressionSpecification[] = [
+      ["==", ["get", "pointtype"], "sleep"],
+    ];
 
-    if (!selectedSleepCategory && !selectedSleepCostGroup) {
-      map.setPaintProperty("locations-main", "circle-opacity", 0.9);
-      return;
+    if (selectedSleepCategory) {
+      sleepFilterClauses.push([
+        "==",
+        ["get", "sleepcategory"],
+        selectedSleepCategory,
+      ]);
+    } else if (selectedSleepCostGroup === "free") {
+      sleepFilterClauses.push([
+        "in",
+        ["get", "sleepcategory"],
+        ["literal", freeSleepValues],
+      ]);
+    } else if (selectedSleepCostGroup === "paid") {
+      sleepFilterClauses.push([
+        "in",
+        ["get", "sleepcategory"],
+        ["literal", paidSleepValues],
+      ]);
     }
 
-    map.setPaintProperty("locations-main", "circle-opacity", [
-      "case",
-      selectedSleepCategory
-        ? ["==", ["get", "sleepcategory"], selectedSleepCategory]
-        : ["in", ["get", "sleepcategory"], ["literal", groupSleepCategories]],
-      0.96,
-      0.08,
-    ]);
-  }, [selectedSleepCategory, selectedSleepCostGroup]);
+    const sleepFilterExpression = [
+      "all",
+      ...sleepFilterClauses,
+    ] as maplibregl.ExpressionSpecification;
+    const sleepFilter =
+      sleepFilterExpression as maplibregl.FilterSpecification;
+
+    if (map.getLayer("locations-main")) {
+      map.setLayoutProperty("locations-main", "visibility", sleepVisibility);
+      map.setFilter("locations-main", sleepFilter);
+      map.setPaintProperty("locations-main", "circle-opacity", 0.9);
+    }
+
+    if (map.getLayer("locations-hit")) {
+      const visiblePointFilters: maplibregl.ExpressionSpecification[] = [];
+      if (isTransportLayerVisible) {
+        const waypointFilterClauses: maplibregl.ExpressionSpecification[] = [
+          ["==", ["get", "pointtype"], "waypoint"],
+        ];
+        if (selectedTransport) {
+          waypointFilterClauses.push([
+            "==",
+            ["get", "transport"],
+            selectedTransport,
+          ]);
+        } else if (selectedTransportCostGroup === "free") {
+          waypointFilterClauses.push([
+            "in",
+            ["get", "transport"],
+            ["literal", freeTransportValues],
+          ]);
+        } else if (selectedTransportCostGroup === "paid") {
+          waypointFilterClauses.push([
+            "in",
+            ["get", "transport"],
+            ["literal", paidTransportValues],
+          ]);
+        }
+
+        visiblePointFilters.push([
+          "all",
+          ...waypointFilterClauses,
+        ] as maplibregl.ExpressionSpecification);
+      }
+      if (isSleepLayerVisible) {
+        visiblePointFilters.push(sleepFilterExpression);
+      }
+
+      map.setFilter(
+        "locations-hit",
+        visiblePointFilters.length > 0
+          ? (["any", ...visiblePointFilters] as maplibregl.FilterSpecification)
+          : (["in", ["get", "pointtype"], ["literal", []]] as maplibregl.FilterSpecification),
+      );
+    }
+  }, [
+    isSleepLayerVisible,
+    isTransportLayerVisible,
+    selectedSleepCategory,
+    selectedSleepCostGroup,
+    selectedTransport,
+    selectedTransportCostGroup,
+  ]);
 
   return (
     <section className="map-wrap">
@@ -1349,7 +1533,9 @@ export function TravelMap({
           aria-label="Choose timeline feature"
           style={{
             left: featureChoiceDialog.x,
+            maxHeight: featureChoiceDialog.maxHeight,
             top: featureChoiceDialog.y,
+            width: featureChoiceDialog.width,
           }}
         >
           <div className="feature-choice-heading">

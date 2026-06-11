@@ -102,6 +102,10 @@ export function isFreeTransport(value: string | null) {
   return Boolean(value && freeTransportModes.has(value));
 }
 
+export function transportSupportsWaitingTime(value: string | null) {
+  return value === "car" || value === "truck";
+}
+
 export function isDisplayedFreeRide(value: string | null) {
   return Boolean(value && displayedFreeRideModes.has(value));
 }
@@ -439,13 +443,19 @@ export function formatCoordinate(value: number) {
   }).format(value);
 }
 
-function getLatestTravelDate(locations: FeatureCollection | null) {
+function getLatestTravelEntry(locations: FeatureCollection | null) {
   if (!locations) return null;
 
-  return locations.features.reduce<Date | null>((latest, feature) => {
+  return locations.features.reduce<{
+    date: Date;
+    feature: FeatureCollection["features"][number];
+  } | null>((latest, feature) => {
     const date = parseTravelDate(feature.properties?.travel_date);
     if (!date) return latest;
-    return !latest || date.getTime() > latest.getTime() ? date : latest;
+
+    return !latest || date.getTime() >= latest.date.getTime()
+      ? { date, feature }
+      : latest;
   }, null);
 }
 
@@ -472,22 +482,17 @@ export function suggestedDateTimeForDate(
   return formatDateTimeLocal(next);
 }
 
-export function buildEmptyLocationForm(
+function buildLocationFormWithDateTime(
   lng: number,
   lat: number,
-  locations: FeatureCollection | null,
+  travelDateTime: string,
 ): LocationFormState {
-  const latestDate = getLatestTravelDate(locations);
-  const dateValue = latestDate
-    ? formatLocalDate(latestDate)
-    : formatLocalDate(new Date());
-
   return {
     lng,
     lat,
     name: "",
-    transport: "foot",
-    travelDateTime: suggestedDateTimeForDate(dateValue, locations),
+    transport: "car",
+    travelDateTime,
     people: "",
     description: "",
     pointtype: "waypoint",
@@ -499,6 +504,37 @@ export function buildEmptyLocationForm(
     travelcost: "",
     sleepcost: "",
   };
+}
+
+export function buildEmptyLocationForm(
+  lng: number,
+  lat: number,
+  locations: FeatureCollection | null,
+): LocationFormState {
+  const latestEntry = getLatestTravelEntry(locations);
+  const latestDate = latestEntry?.date ?? null;
+  const latestPointType = latestEntry?.feature.properties?.pointtype;
+  if (latestDate && latestPointType === "sleep") {
+    const nextDay = new Date(latestDate);
+    nextDay.setDate(nextDay.getDate() + 1);
+    nextDay.setHours(0, 0, 0, 0);
+
+    return buildLocationFormWithDateTime(
+      lng,
+      lat,
+      formatDateTimeLocal(nextDay),
+    );
+  }
+
+  const dateValue = latestDate
+    ? formatLocalDate(latestDate)
+    : formatLocalDate(new Date());
+
+  return buildLocationFormWithDateTime(
+    lng,
+    lat,
+    suggestedDateTimeForDate(dateValue, locations),
+  );
 }
 
 export function formFromFeature(feature: GeoJSON.Feature): LocationFormState {
@@ -533,6 +569,7 @@ export function formFromFeature(feature: GeoJSON.Feature): LocationFormState {
 export function formToPayload(form: LocationFormState) {
   const isSleep = form.pointtype === "sleep";
   const isBoatTransport = form.transport === "boat";
+  const canSaveWaitingTime = transportSupportsWaitingTime(form.transport);
   const isPaidTransport = !isFreeTransport(form.transport);
   const isPaidSleep = isSleep && paidSleepCategories.has(form.sleepcategory);
 
@@ -548,7 +585,8 @@ export function formToPayload(form: LocationFormState) {
     sleepcategory: isSleep ? form.sleepcategory : null,
     boat: isBoatTransport ? form.boat.trim() || null : null,
     nonights: isSleep && form.nonights ? Number(form.nonights) : null,
-    waitingtime: form.waitingtime ? Number(form.waitingtime) : null,
+    waitingtime:
+      canSaveWaitingTime && form.waitingtime ? Number(form.waitingtime) : null,
     pictures: form.pictures,
     travelcost:
       isPaidTransport && form.travelcost ? Number(form.travelcost) : null,

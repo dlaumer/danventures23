@@ -629,7 +629,7 @@ export function TravelMap({
 
     const canvas = map.getCanvas();
     const previousCursor = canvas.style.cursor;
-    canvas.style.cursor = "crosshair";
+    canvas.style.cursor = "default";
 
     const handleClick = (event: maplibregl.MapMouseEvent) => {
       onNewLocationForm(
@@ -1252,10 +1252,15 @@ export function TravelMap({
       });
     };
     const setPointer = () => {
+      if (isPlacingLocation) {
+        map.getCanvas().style.cursor = "default";
+        return;
+      }
+
       map.getCanvas().style.cursor = "pointer";
     };
     const clearPointer = () => {
-      map.getCanvas().style.cursor = "";
+      map.getCanvas().style.cursor = isPlacingLocation ? "default" : "";
     };
 
     map.on("click", selectMapFeature);

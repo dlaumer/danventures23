@@ -180,6 +180,8 @@ def ensure_location_schema():
 def clean_location_values(location: LocationIn):
     values = location.model_dump()
     values["pictures"] = values["pictures"] or []
+    if values["transport"] not in {"car", "truck"}:
+        values["waitingtime"] = None
     if values["pointtype"] != "sleep":
         values["sleepcategory"] = None
         values["nonights"] = None

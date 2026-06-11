@@ -6,6 +6,7 @@ import {
   isFreeTransport,
   optionLabel,
   suggestedDateTimeForDate,
+  transportSupportsWaitingTime,
 } from "../utils";
 
 function readPictureFile(file: File) {
@@ -51,6 +52,7 @@ export function LocationDialog({
 }: LocationDialogProps) {
   const isSleepPoint = locationForm.pointtype === "sleep";
   const isBoatTransport = locationForm.transport === "boat";
+  const canHaveWaitingTime = transportSupportsWaitingTime(locationForm.transport);
   const isPaidTransport = !isFreeTransport(locationForm.transport);
   const isPaidSleep =
     locationForm.pointtype === "sleep" &&
@@ -100,7 +102,15 @@ export function LocationDialog({
             <span>Transport</span>
             <select
               value={locationForm.transport}
-              onChange={(event) => onUpdate({ transport: event.target.value })}
+              onChange={(event) => {
+                const transport = event.target.value;
+                onUpdate({
+                  transport,
+                  waitingtime: transportSupportsWaitingTime(transport)
+                    ? locationForm.waitingtime
+                    : "",
+                });
+              }}
             >
               {transportOptions.map((option) => (
                 <option key={option} value={option}>
@@ -163,16 +173,18 @@ export function LocationDialog({
           </label>
         </div>
 
-        <label>
-          <span>Waiting time (min)</span>
-          <input
-            min="0"
-            step="1"
-            type="number"
-            value={locationForm.waitingtime}
-            onChange={(event) => onUpdate({ waitingtime: event.target.value })}
-          />
-        </label>
+        {canHaveWaitingTime && (
+          <label>
+            <span>Waiting time (min)</span>
+            <input
+              min="0"
+              step="1"
+              type="number"
+              value={locationForm.waitingtime}
+              onChange={(event) => onUpdate({ waitingtime: event.target.value })}
+            />
+          </label>
+        )}
 
         <label>
           <span>People</span>

@@ -1,4 +1,4 @@
-import type { FormEvent } from "react";
+import type { ChangeEvent, FormEvent } from "react";
 import { Trash2, X } from "lucide-react";
 import { sleepCategoryOptions, transportOptions } from "../constants";
 import type { FeatureCollection, LocationFormState } from "../types";
@@ -7,6 +7,26 @@ import {
   optionLabel,
   suggestedDateTimeForDate,
 } from "../utils";
+
+function readPictureFile(file: File) {
+  return new Promise<LocationFormState["pictures"][number]>((resolve, reject) => {
+    const reader = new FileReader();
+    reader.addEventListener("load", () => {
+      if (typeof reader.result !== "string") {
+        reject(new Error("Could not read image file."));
+        return;
+      }
+
+      resolve({
+        dataUrl: reader.result,
+        mimeType: file.type,
+        name: file.name,
+      });
+    });
+    reader.addEventListener("error", () => reject(reader.error));
+    reader.readAsDataURL(file);
+  });
+}
 
 type LocationDialogProps = {
   editingLocationId: number | null;
@@ -37,6 +57,16 @@ export function LocationDialog({
     ["airbnb", "hostel", "renting", "campingPaid"].includes(
       locationForm.sleepcategory,
     );
+  const updatePictures = async (event: ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(event.target.files ?? []).filter((file) =>
+      file.type.startsWith("image/"),
+    );
+    event.target.value = "";
+    if (files.length === 0) return;
+
+    const pictures = await Promise.all(files.map(readPictureFile));
+    onUpdate({ pictures: [...locationForm.pictures, ...pictures] });
+  };
 
   return (
     <div className="location-dialog" role="dialog" aria-modal="true">
@@ -134,6 +164,17 @@ export function LocationDialog({
         </div>
 
         <label>
+          <span>Waiting time (min)</span>
+          <input
+            min="0"
+            step="1"
+            type="number"
+            value={locationForm.waitingtime}
+            onChange={(event) => onUpdate({ waitingtime: event.target.value })}
+          />
+        </label>
+
+        <label>
           <span>People</span>
           <input
             value={locationForm.people}
@@ -149,6 +190,34 @@ export function LocationDialog({
             onChange={(event) => onUpdate({ description: event.target.value })}
           />
         </label>
+
+        <div className="picture-field">
+          <label>
+            <span>Pictures</span>
+            <input accept="image/*" multiple type="file" onChange={updatePictures} />
+          </label>
+          {locationForm.pictures.length > 0 && (
+            <div className="picture-preview-grid">
+              {locationForm.pictures.map((picture, index) => (
+                <div className="picture-preview" key={`${picture.name}-${index}`}>
+                  <img alt={picture.name} src={picture.dataUrl} />
+                  <button
+                    type="button"
+                    onClick={() =>
+                      onUpdate({
+                        pictures: locationForm.pictures.filter(
+                          (_, pictureIndex) => pictureIndex !== index,
+                        ),
+                      })
+                    }
+                  >
+                    Remove
+                  </button>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
 
         {isSleepPoint && (
           <div className="form-grid">

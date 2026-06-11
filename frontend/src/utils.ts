@@ -6,7 +6,7 @@ import {
   sleepCategoryColors,
   transportColors,
 } from "./constants";
-import type { FeatureCollection, LocationFormState } from "./types";
+import type { FeatureCollection, LocationFormState, LocationPicture } from "./types";
 
 export function colorForTransport(value: string | null) {
   if (!value) return "#6f7782";
@@ -50,6 +50,18 @@ export function formatMoney(value: number | string) {
   return `€${new Intl.NumberFormat("en").format(numberValue)}`;
 }
 
+export function formatWaitingTime(value: number | string) {
+  const minutes = typeof value === "string" ? Number(value) : value;
+  if (!Number.isFinite(minutes)) return "";
+  if (minutes < 60) return `${minutes} min`;
+
+  const hours = Math.floor(minutes / 60);
+  const remainingMinutes = minutes % 60;
+  return remainingMinutes > 0
+    ? `${hours} h ${remainingMinutes} min`
+    : `${hours} h`;
+}
+
 export function numberFromKm(value: number | string) {
   return typeof value === "string" ? Number(value) : value;
 }
@@ -61,6 +73,29 @@ export function numberFromValue(value: unknown) {
     return Number.isFinite(parsed) ? parsed : 0;
   }
   return 0;
+}
+
+export function locationPicturesFromValue(value: unknown): LocationPicture[] {
+  if (!Array.isArray(value)) return [];
+
+  return value.flatMap((item) => {
+    if (!item || typeof item !== "object") return [];
+    const picture = item as Record<string, unknown>;
+    const dataUrl = picture.dataUrl;
+    const mimeType = picture.mimeType;
+    const name = picture.name;
+
+    if (
+      typeof dataUrl !== "string" ||
+      typeof mimeType !== "string" ||
+      typeof name !== "string" ||
+      !dataUrl.startsWith("data:image/")
+    ) {
+      return [];
+    }
+
+    return [{ dataUrl, mimeType, name }];
+  });
 }
 
 export function isFreeTransport(value: string | null) {
@@ -459,6 +494,8 @@ export function buildEmptyLocationForm(
     sleepcategory: "camping",
     boat: "",
     nonights: "1",
+    waitingtime: "",
+    pictures: [],
     travelcost: "",
     sleepcost: "",
   };
@@ -484,6 +521,9 @@ export function formFromFeature(feature: GeoJSON.Feature): LocationFormState {
     sleepcategory: String(properties.sleepcategory ?? "camping"),
     boat: String(properties.boat ?? ""),
     nonights: properties.nonights == null ? "1" : String(properties.nonights),
+    waitingtime:
+      properties.waitingtime == null ? "" : String(properties.waitingtime),
+    pictures: locationPicturesFromValue(properties.pictures),
     travelcost:
       properties.travelcost == null ? "" : String(properties.travelcost),
     sleepcost: properties.sleepcost == null ? "" : String(properties.sleepcost),
@@ -508,6 +548,8 @@ export function formToPayload(form: LocationFormState) {
     sleepcategory: isSleep ? form.sleepcategory : null,
     boat: isBoatTransport ? form.boat.trim() || null : null,
     nonights: isSleep && form.nonights ? Number(form.nonights) : null,
+    waitingtime: form.waitingtime ? Number(form.waitingtime) : null,
+    pictures: form.pictures,
     travelcost:
       isPaidTransport && form.travelcost ? Number(form.travelcost) : null,
     sleepcost: isPaidSleep && form.sleepcost ? Number(form.sleepcost) : null,

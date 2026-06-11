@@ -15,6 +15,7 @@ import {
   Car,
   ChevronDown,
   CircleDollarSign,
+  Clock,
   Footprints,
   LocateFixed,
   MapPin,
@@ -45,8 +46,10 @@ import {
   formatKm,
   formatMoney,
   formatTimelineDate,
+  formatWaitingTime,
   formFromFeature,
   featureRecordId,
+  locationPicturesFromValue,
   normalizeLngLat,
   optionLabel,
   parseTravelDate,
@@ -155,6 +158,7 @@ function LocationDetails({
   const transport = propertyString(properties, "transport");
   const people = propertyString(properties, "people");
   const description = propertyString(properties, "description");
+  const pictures = locationPicturesFromValue(properties.pictures);
   const metaItems: DetailItem[] = [
     {
       icon: transportIconFor(transport),
@@ -182,6 +186,13 @@ function LocationDetails({
       icon: <Ship size={14} />,
       label: "Boat",
       value: propertyString(properties, "boat"),
+    },
+    {
+      icon: <Clock size={14} />,
+      label: "Waiting",
+      value: propertyString(properties, "waitingtime")
+        ? formatWaitingTime(propertyString(properties, "waitingtime") ?? 0)
+        : null,
     },
     {
       icon: <CircleDollarSign size={14} />,
@@ -230,6 +241,18 @@ function LocationDetails({
         <div className="timeline-detail-note">
           <MessageSquareText size={15} />
           <p>{description}</p>
+        </div>
+      )}
+
+      {pictures.length > 0 && (
+        <div className="timeline-picture-grid">
+          {pictures.map((picture, index) => (
+            <img
+              alt={picture.name || `Location picture ${index + 1}`}
+              key={`${picture.name}-${index}`}
+              src={picture.dataUrl}
+            />
+          ))}
         </div>
       )}
     </div>

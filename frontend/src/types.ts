@@ -27,6 +27,12 @@ export type PeopleStory = {
   transport: string | null;
 };
 
+export type LocationPicture = {
+  dataUrl: string;
+  mimeType: string;
+  name: string;
+};
+
 export type LocationFormState = {
   lng: number;
   lat: number;
@@ -39,6 +45,8 @@ export type LocationFormState = {
   sleepcategory: string;
   boat: string;
   nonights: string;
+  waitingtime: string;
+  pictures: LocationPicture[];
   travelcost: string;
   sleepcost: string;
 };

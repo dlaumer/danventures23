@@ -127,6 +127,19 @@ export function SleepPieChart({
         const color =
           group === "free" ? costGroupColors.free : costGroupColors.paid;
         const isGroupSelected = selectedPart?.id === `sleep-cost:${group}`;
+        const toggleGroupSelection = () => {
+          onSelectSleepCategory(null);
+          onSelectPart(
+            isGroupSelected
+              ? null
+              : {
+                  color,
+                  id: `sleep-cost:${group}`,
+                  label: group === "free" ? "Free" : "Paid",
+                  value: groupTotals[group],
+                },
+          );
+        };
 
         return (
           <div className="bar-chart-group" key={group}>
@@ -135,19 +148,7 @@ export function SleepPieChart({
               className={`bar-chart-group-rail ${
                 isGroupSelected ? "selected" : ""
               }`}
-              onClick={() => {
-                onSelectSleepCategory(null);
-                onSelectPart(
-                  isGroupSelected
-                    ? null
-                    : {
-                        color,
-                        id: `sleep-cost:${group}`,
-                        label: group === "free" ? "Free" : "Paid",
-                        value: groupTotals[group],
-                      },
-                );
-              }}
+              onClick={toggleGroupSelection}
               style={
                 {
                   "--group-color": color,
@@ -156,69 +157,72 @@ export function SleepPieChart({
               }
               title={group === "free" ? "Free stays" : "Paid stays"}
             />
-            <div className="bar-chart-rows">
-              {groupItems.map((item) => {
-                const isSelected =
-                  selectedSleepCategory === item.sleepcategory;
-                const width = logarithmicBarWidth(item.night_count, maxValue);
+            <div className="bar-chart-group-body">
+              <button
+                type="button"
+                className={`bar-chart-group-header ${
+                  isGroupSelected ? "selected" : ""
+                }`}
+                onClick={toggleGroupSelection}
+              >
+                <span>{group === "free" ? "Free" : "Paid"}</span>
+                <strong>{describeNights(groupTotals[group])}</strong>
+              </button>
+              <div className="bar-chart-rows">
+                {groupItems.map((item) => {
+                  const isSelected =
+                    selectedSleepCategory === item.sleepcategory;
+                  const width = logarithmicBarWidth(item.night_count, maxValue);
 
-                return (
-                  <button
-                    type="button"
-                    className={`bar-chart-row ${isSelected ? "selected" : ""}`}
-                    key={item.sleepcategory ?? "unknown"}
-                    onClick={() => {
-                      onSelectSleepCategory(
-                        isSelected ? null : item.sleepcategory,
-                      );
-                      onSelectPart(
-                        isSelected
-                          ? null
-                          : {
-                              color: item.color,
-                              id: `sleep:${item.sleepcategory ?? "unknown"}`,
-                              label: item.label,
-                              value: item.night_count,
-                            },
-                      );
-                    }}
-                  >
-                    <span className="bar-chart-label">
-                      <span
-                        className="bar-chart-icon"
-                        style={{ color: item.color }}
-                      >
-                        {sleepIconFor(item.sleepcategory)}
+                  return (
+                    <button
+                      type="button"
+                      className={`bar-chart-row ${isSelected ? "selected" : ""}`}
+                      key={item.sleepcategory ?? "unknown"}
+                      onClick={() => {
+                        onSelectSleepCategory(
+                          isSelected ? null : item.sleepcategory,
+                        );
+                        onSelectPart(
+                          isSelected
+                            ? null
+                            : {
+                                color: item.color,
+                                id: `sleep:${item.sleepcategory ?? "unknown"}`,
+                                label: item.label,
+                                value: item.night_count,
+                              },
+                        );
+                      }}
+                    >
+                      <span className="bar-chart-label">
+                        <span
+                          className="bar-chart-icon"
+                          style={{ color: item.color }}
+                        >
+                          {sleepIconFor(item.sleepcategory)}
+                        </span>
+                        <span>{item.label}</span>
                       </span>
-                      <span>{item.label}</span>
-                    </span>
-                    <span className="bar-track">
-                      <span
-                        className="bar-fill"
-                        style={{
-                          backgroundColor: paleColor(item.color),
-                          borderColor: item.color,
-                          width,
-                        }}
-                      />
-                    </span>
-                    <strong>{describeNights(item.night_count)}</strong>
-                  </button>
-                );
-              })}
+                      <span className="bar-track">
+                        <span
+                          className="bar-fill"
+                          style={{
+                            backgroundColor: paleColor(item.color),
+                            borderColor: item.color,
+                            width,
+                          }}
+                        />
+                      </span>
+                      <strong>{describeNights(item.night_count)}</strong>
+                    </button>
+                  );
+                })}
+              </div>
             </div>
           </div>
         );
       })}
-      {selectedPart?.id.startsWith("sleep-cost:") && (
-        <div className="chart-selection compact">
-          <span>
-            <i style={{ backgroundColor: selectedPart.color }} />
-            {selectedPart.label}
-          </span>
-          <strong>{describeNights(selectedPart.value)}</strong>
-        </div>
-      )}
     </div>
   );
 }

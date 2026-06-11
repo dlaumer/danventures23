@@ -9,7 +9,8 @@ from dotenv import load_dotenv
 from fastapi import FastAPI, HTTPException, Query
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
-from sqlalchemy import create_engine, text
+from sqlalchemy import bindparam, create_engine, text
+from sqlalchemy.dialects.postgresql import JSONB
 
 BACKEND_DIR = Path(__file__).resolve().parent
 load_dotenv(BACKEND_DIR / ".env")
@@ -58,6 +59,12 @@ ORS_PROFILES_BY_TRANSPORT = {
 }
 
 
+class LocationPicture(BaseModel):
+    name: str
+    mimeType: str
+    dataUrl: str
+
+
 class LocationIn(BaseModel):
     lng: float = Field(ge=-180, le=180)
     lat: float = Field(ge=-90, le=90)
@@ -70,6 +77,8 @@ class LocationIn(BaseModel):
     boat: str | None = None
     nonights: int | None = None
     pointtype: str
+    waitingtime: int | None = Field(default=None, ge=0)
+    pictures: list[LocationPicture] = Field(default_factory=list)
     travelcost: int | None = None
     sleepcost: int | None = None
 
@@ -151,8 +160,26 @@ def limited_feature_collection_query(table_name: str):
     """)
 
 
+@app.on_event("startup")
+def ensure_location_schema():
+    with engine.begin() as conn:
+        conn.execute(
+            text("""
+                alter table public.locations
+                add column if not exists waitingtime integer
+            """),
+        )
+        conn.execute(
+            text("""
+                alter table public.locations
+                add column if not exists pictures jsonb not null default '[]'::jsonb
+            """),
+        )
+
+
 def clean_location_values(location: LocationIn):
     values = location.model_dump()
+    values["pictures"] = values["pictures"] or []
     if values["pointtype"] != "sleep":
         values["sleepcategory"] = None
         values["nonights"] = None
@@ -527,6 +554,8 @@ def create_location(location: LocationIn):
             boat,
             nonights,
             pointtype,
+            waitingtime,
+            pictures,
             travelcost,
             sleepcost
         )
@@ -541,11 +570,13 @@ def create_location(location: LocationIn):
             :boat,
             :nonights,
             :pointtype,
+            :waitingtime,
+            :pictures,
             :travelcost,
             :sleepcost
         )
         returning id
-    """)
+    """).bindparams(bindparam("pictures", type_=JSONB))
 
     with engine.begin() as conn:
         location_id = conn.execute(query, values).scalar_one()
@@ -572,11 +603,13 @@ def update_location(location_id: int, location: LocationIn):
             boat = :boat,
             nonights = :nonights,
             pointtype = :pointtype,
+            waitingtime = :waitingtime,
+            pictures = :pictures,
             travelcost = :travelcost,
             sleepcost = :sleepcost
         where id = :id
         returning id
-    """)
+    """).bindparams(bindparam("pictures", type_=JSONB))
 
     with engine.begin() as conn:
         if not remove_location_and_reconnect(conn, location_id):

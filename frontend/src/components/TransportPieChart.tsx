@@ -131,6 +131,19 @@ export function TransportPieChart({
         const color =
           group === "free" ? costGroupColors.free : costGroupColors.paid;
         const isGroupSelected = selectedPart?.id === `cost:${group}`;
+        const toggleGroupSelection = () => {
+          onSelectTransport(null);
+          onSelectPart(
+            isGroupSelected
+              ? null
+              : {
+                  color,
+                  id: `cost:${group}`,
+                  label: group === "free" ? "Free" : "Paid",
+                  value: groupTotals[group],
+                },
+          );
+        };
 
         return (
           <div className="bar-chart-group" key={group}>
@@ -139,19 +152,7 @@ export function TransportPieChart({
               className={`bar-chart-group-rail ${
                 isGroupSelected ? "selected" : ""
               }`}
-              onClick={() => {
-                onSelectTransport(null);
-                onSelectPart(
-                  isGroupSelected
-                    ? null
-                    : {
-                        color,
-                        id: `cost:${group}`,
-                        label: group === "free" ? "Free" : "Paid",
-                        value: groupTotals[group],
-                      },
-                );
-              }}
+              onClick={toggleGroupSelection}
               style={
                 {
                   "--group-color": color,
@@ -160,69 +161,72 @@ export function TransportPieChart({
               }
               title={group === "free" ? "Free transport" : "Paid transport"}
             />
-            <div className="bar-chart-rows">
-              {groupItems.map((item) => {
-                const isSelected = selectedTransport === item.transport;
-                const width = logarithmicBarWidth(
-                  item.distanceValue,
-                  maxValue,
-                );
+            <div className="bar-chart-group-body">
+              <button
+                type="button"
+                className={`bar-chart-group-header ${
+                  isGroupSelected ? "selected" : ""
+                }`}
+                onClick={toggleGroupSelection}
+              >
+                <span>{group === "free" ? "Free" : "Paid"}</span>
+                <strong>{formatKm(groupTotals[group])} km</strong>
+              </button>
+              <div className="bar-chart-rows">
+                {groupItems.map((item) => {
+                  const isSelected = selectedTransport === item.transport;
+                  const width = logarithmicBarWidth(
+                    item.distanceValue,
+                    maxValue,
+                  );
 
-                return (
-                  <button
-                    type="button"
-                    className={`bar-chart-row ${isSelected ? "selected" : ""}`}
-                    key={item.transport ?? "unknown"}
-                    onClick={() => {
-                      onSelectTransport(isSelected ? null : item.transport);
-                      onSelectPart(
-                        isSelected
-                          ? null
-                          : {
-                              color: item.color,
-                              id: `transport:${item.transport ?? "unknown"}`,
-                              label: item.label,
-                              value: item.distanceValue,
-                            },
-                      );
-                    }}
-                  >
-                    <span className="bar-chart-label">
-                      <span
-                        className="bar-chart-icon"
-                        style={{ color: item.color }}
-                      >
-                        {transportIconFor(item.transport)}
+                  return (
+                    <button
+                      type="button"
+                      className={`bar-chart-row ${isSelected ? "selected" : ""}`}
+                      key={item.transport ?? "unknown"}
+                      onClick={() => {
+                        onSelectTransport(isSelected ? null : item.transport);
+                        onSelectPart(
+                          isSelected
+                            ? null
+                            : {
+                                color: item.color,
+                                id: `transport:${item.transport ?? "unknown"}`,
+                                label: item.label,
+                                value: item.distanceValue,
+                              },
+                        );
+                      }}
+                    >
+                      <span className="bar-chart-label">
+                        <span
+                          className="bar-chart-icon"
+                          style={{ color: item.color }}
+                        >
+                          {transportIconFor(item.transport)}
+                        </span>
+                        <span>{item.label}</span>
                       </span>
-                      <span>{item.label}</span>
-                    </span>
-                    <span className="bar-track">
-                      <span
-                        className="bar-fill"
-                        style={{
-                          backgroundColor: paleColor(item.color),
-                          borderColor: item.color,
-                          width,
-                        }}
-                      />
-                    </span>
-                    <strong>{formatKm(item.distanceValue)} km</strong>
-                  </button>
-                );
-              })}
+                      <span className="bar-track">
+                        <span
+                          className="bar-fill"
+                          style={{
+                            backgroundColor: paleColor(item.color),
+                            borderColor: item.color,
+                            width,
+                          }}
+                        />
+                      </span>
+                      <strong>{formatKm(item.distanceValue)} km</strong>
+                    </button>
+                  );
+                })}
+              </div>
             </div>
           </div>
         );
       })}
-      {selectedPart?.id.startsWith("cost:") && (
-        <div className="chart-selection compact">
-          <span>
-            <i style={{ backgroundColor: selectedPart.color }} />
-            {selectedPart.label}
-          </span>
-          <strong>{formatKm(selectedPart.value)} km</strong>
-        </div>
-      )}
     </div>
   );
 }

@@ -530,6 +530,7 @@ def insert_leg(conn, previous_location, current_location, route):
 
 
 def create_leg_between_locations(conn, previous_location, current_location):
+    delete_leg_between_locations(conn, previous_location, current_location)
     insert_leg(
         conn,
         previous_location,
@@ -566,6 +567,18 @@ def delete_leg_between_locations(conn, previous_location, current_location):
     return result.rowcount
 
 
+def delete_legs_touching_location(conn, location_id: int):
+    result = conn.execute(
+        text("""
+            delete from public.legs
+            where from_key = :location_key
+               or to_key = :location_key
+        """),
+        {"location_key": str(location_id)},
+    )
+    return result.rowcount
+
+
 def rebuild_location_splice(conn, location_id: int):
     current_location = current_location_for(conn, location_id)
     if current_location is None:
@@ -594,8 +607,7 @@ def remove_location_and_reconnect(conn, location_id: int):
     previous_location = previous_location_for(conn, location_id)
     next_location = next_location_for(conn, location_id)
 
-    delete_leg_between_locations(conn, previous_location, current_location)
-    delete_leg_between_locations(conn, current_location, next_location)
+    delete_legs_touching_location(conn, location_id)
 
     if previous_location is not None and next_location is not None:
         create_leg_between_locations(conn, previous_location, next_location)

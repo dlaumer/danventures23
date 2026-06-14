@@ -4,7 +4,15 @@ import maplibregl, {
   Map as MapLibreMap,
 } from "maplibre-gl";
 import "maplibre-gl/dist/maplibre-gl.css";
-import { CalendarDays, Check, MapPin, MapPinPlus, Route, X } from "lucide-react";
+import {
+  CalendarDays,
+  Check,
+  Crosshair,
+  MapPin,
+  MapPinPlus,
+  Route,
+  X,
+} from "lucide-react";
 import {
   freeTransportModes,
   paidSleepCategories,
@@ -42,6 +50,7 @@ type TravelMapProps = {
   isPlacingLocation: boolean;
   legs: FeatureCollection | null;
   locationForm: LocationFormState | null;
+  isMovingLocation: boolean;
   locations: FeatureCollection | null;
   focusedLocation: { lat: number; lng: number; signal: number } | null;
   timelinePosition: TimelineMapPosition | null;
@@ -56,9 +65,11 @@ type TravelMapProps = {
   editableLeg: EditableLeg | null;
   isSavingLegGeometry: boolean;
   onCancelPlacingLocation: () => void;
+  onCancelMovingLocation: () => void;
   onCancelLegGeometryEdit: () => void;
   onMapError: (message: string) => void;
   onNewLocationForm: (form: LocationFormState) => void;
+  onMoveLocationForm: (coordinates: { lat: number; lng: number }) => void;
   onSaveLegGeometry: (id: number, coordinates: [number, number][]) => void;
   onSelectTimelineEntry: (id: string, expandEntryId?: string) => void;
 };
@@ -455,6 +466,7 @@ export function TravelMap({
   isPlacingLocation,
   legs,
   locationForm,
+  isMovingLocation,
   locations,
   focusedLocation,
   timelinePosition,
@@ -469,9 +481,11 @@ export function TravelMap({
   editableLeg,
   isSavingLegGeometry,
   onCancelPlacingLocation,
+  onCancelMovingLocation,
   onCancelLegGeometryEdit,
   onMapError,
   onNewLocationForm,
+  onMoveLocationForm,
   onSaveLegGeometry,
   onSelectTimelineEntry,
 }: TravelMapProps) {
@@ -1082,6 +1096,81 @@ export function TravelMap({
       canvas.style.cursor = previousCursor;
     };
   }, [isMapReady, isPlacingLocation, locations, onNewLocationForm]);
+
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map || !isMapReady || !isMovingLocation || !locationForm) return;
+
+    setFeatureChoiceDialog(null);
+
+    const canvas = map.getCanvas();
+    const previousCursor = canvas.style.cursor;
+    canvas.style.cursor = "crosshair";
+
+    const snappedVisibleLocationCoordinates = (
+      event: maplibregl.MapMouseEvent,
+    ): [number, number] | null => {
+      if (!map.getLayer("locations-hit")) return null;
+
+      const visibleLocationFeatures = map.queryRenderedFeatures(
+        [
+          [event.point.x - pointSnapRadiusPx, event.point.y - pointSnapRadiusPx],
+          [event.point.x + pointSnapRadiusPx, event.point.y + pointSnapRadiusPx],
+        ],
+        { layers: ["locations-hit"] },
+      );
+
+      const nearest = visibleLocationFeatures.reduce<{
+        coordinates: [number, number];
+        distance: number;
+      } | null>((closest, feature) => {
+        if (feature.geometry.type !== "Point") return closest;
+
+        const coordinates = normalizeLngLat(feature.geometry.coordinates);
+        if (!coordinates) return closest;
+
+        const point = map.project(coordinates);
+        const distance = Math.hypot(
+          point.x - event.point.x,
+          point.y - event.point.y,
+        );
+
+        if (distance > pointSnapRadiusPx || (closest && closest.distance <= distance)) {
+          return closest;
+        }
+
+        return {
+          coordinates: [coordinates[0], coordinates[1]],
+          distance,
+        };
+      }, null);
+
+      return nearest?.coordinates ?? null;
+    };
+
+    const handleClick = (event: maplibregl.MapMouseEvent) => {
+      const [lng, lat] = snappedVisibleLocationCoordinates(event) ?? [
+        event.lngLat.lng,
+        event.lngLat.lat,
+      ];
+
+      onMoveLocationForm({ lat, lng });
+      onCancelMovingLocation();
+    };
+
+    map.on("click", handleClick);
+
+    return () => {
+      map.off("click", handleClick);
+      canvas.style.cursor = previousCursor;
+    };
+  }, [
+    isMapReady,
+    isMovingLocation,
+    locationForm,
+    onCancelMovingLocation,
+    onMoveLocationForm,
+  ]);
 
   useEffect(() => {
     const map = mapRef.current;
@@ -1753,6 +1842,7 @@ export function TravelMap({
     const selectMapFeature = (event: maplibregl.MapMouseEvent) => {
       if (editableLeg) return;
       if (isPlacingLocation) return;
+      if (isMovingLocation) return;
 
       const nearbyLocations = currentLocations.features.reduce<
         {
@@ -1883,12 +1973,20 @@ export function TravelMap({
         map.getCanvas().style.cursor = "default";
         return;
       }
+      if (isMovingLocation) {
+        map.getCanvas().style.cursor = "crosshair";
+        return;
+      }
 
       map.getCanvas().style.cursor = "pointer";
     };
     const clearPointer = () => {
       if (editableLeg) {
         map.getCanvas().style.cursor = "";
+        return;
+      }
+      if (isMovingLocation) {
+        map.getCanvas().style.cursor = "crosshair";
         return;
       }
       map.getCanvas().style.cursor = isPlacingLocation ? "default" : "";
@@ -1918,6 +2016,7 @@ export function TravelMap({
     isMapReady,
     editableLeg,
     isPlacingLocation,
+    isMovingLocation,
     isSleepLayerVisible,
     isTransportLayerVisible,
     locations,
@@ -2135,6 +2234,15 @@ export function TravelMap({
           <MapPinPlus size={18} />
           <span>Click the map to place the new point.</span>
           <button type="button" onClick={onCancelPlacingLocation}>
+            <X size={15} />
+          </button>
+        </div>
+      )}
+      {isMovingLocation && (
+        <div className="placement-panel">
+          <Crosshair size={18} />
+          <span>Click the map to move this point.</span>
+          <button type="button" onClick={onCancelMovingLocation}>
             <X size={15} />
           </button>
         </div>

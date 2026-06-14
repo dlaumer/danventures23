@@ -702,6 +702,32 @@
   font-weight: 760;
 }
 
+.secondary-action-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 38px;
+  gap: 8px;
+  border: 1px solid #cfd8d1;
+  border-radius: 8px;
+  background: #ffffff;
+  color: #26343e;
+  cursor: pointer;
+  font-weight: 760;
+}
+
+.secondary-action-button:hover,
+.secondary-action-button:focus-visible {
+  border-color: #9eb0d9;
+  outline: none;
+  box-shadow: 0 0 0 2px rgba(70, 105, 201, 0.12);
+}
+
+.secondary-action-button:disabled {
+  cursor: wait;
+  opacity: 0.68;
+}
+
 .dialog-actions {
   display: flex;
   justify-content: flex-end;

@@ -301,6 +301,7 @@ function App() {
   const [editingLocationId, setEditingLocationId] = useState<number | null>(
     null,
   );
+  const [isMovingLocation, setIsMovingLocation] = useState(false);
   const [editableLeg, setEditableLeg] = useState<EditableLeg | null>(null);
   const [isSavingLocation, setIsSavingLocation] = useState(false);
   const [isSavingLegGeometry, setIsSavingLegGeometry] = useState(false);
@@ -747,6 +748,7 @@ function App() {
     setLocationForm(null);
     setEditingLocationId(null);
     setIsPlacingLocation(false);
+    setIsMovingLocation(false);
   }
 
   function startLegGeometryEdit(
@@ -757,6 +759,7 @@ function App() {
 
     setIsPlacingLocation(false);
     setLocationForm(null);
+    setIsMovingLocation(false);
     setEditingLocationId(null);
     setEditableLeg((current) => ({
       feature,
@@ -890,6 +893,7 @@ function App() {
         error={error}
         isLoading={isLoading}
         isPlacingLocation={isPlacingLocation}
+        isMovingLocation={isMovingLocation}
         legs={filteredLegs}
         locationForm={locationForm}
         locations={filteredLocations}
@@ -906,12 +910,19 @@ function App() {
         editableLeg={editableLeg}
         isSavingLegGeometry={isSavingLegGeometry}
         onCancelPlacingLocation={() => setIsPlacingLocation(false)}
+        onCancelMovingLocation={() => setIsMovingLocation(false)}
         onCancelLegGeometryEdit={() => setEditableLeg(null)}
         onMapError={setError}
         onNewLocationForm={(form) => {
           setEditingLocationId(null);
           setLocationForm(form);
           setIsPlacingLocation(false);
+          setIsMovingLocation(false);
+        }}
+        onMoveLocationForm={({ lat, lng }) => {
+          setLocationForm((current) =>
+            current ? { ...current, lat, lng } : current,
+          );
         }}
         onSelectTimelineEntry={(id, expandEntryId) => {
           const isMobile = isMobileLayout();
@@ -936,6 +947,7 @@ function App() {
             onClick={() => {
               setLocationForm(null);
               setEditingLocationId(null);
+              setIsMovingLocation(false);
               setIsPlacingLocation(true);
             }}
             title="Add new point"
@@ -1203,6 +1215,8 @@ function App() {
               onEditLocation={(id, form) => {
                 if (!isAdmin) return;
                 setEditableLeg(null);
+                setIsPlacingLocation(false);
+                setIsMovingLocation(false);
                 setEditingLocationId(id);
                 setLocationForm(form);
               }}
@@ -1229,10 +1243,16 @@ function App() {
         <LocationDialog
           editingLocationId={editingLocationId}
           isSavingLocation={isSavingLocation}
+          isMovingLocation={isMovingLocation}
           locationForm={locationForm}
           locations={locations}
           onClose={closeLocationDialog}
           onDelete={deleteLocation}
+          onStartMoving={() => {
+            setIsPlacingLocation(false);
+            setEditableLeg(null);
+            setIsMovingLocation(true);
+          }}
           onSubmit={saveLocation}
           onUpdate={updateLocationForm}
         />

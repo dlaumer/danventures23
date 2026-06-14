@@ -1,5 +1,5 @@
 import type { ChangeEvent, FormEvent } from "react";
-import { Trash2, X } from "lucide-react";
+import { Crosshair, Trash2, X } from "lucide-react";
 import { sleepCategoryOptions, transportOptions } from "../constants";
 import type { FeatureCollection, LocationFormState } from "../types";
 import {
@@ -32,10 +32,12 @@ function readPictureFile(file: File) {
 type LocationDialogProps = {
   editingLocationId: number | null;
   isSavingLocation: boolean;
+  isMovingLocation: boolean;
   locationForm: LocationFormState;
   locations: FeatureCollection | null;
   onClose: () => void;
   onDelete: () => void;
+  onStartMoving: () => void;
   onSubmit: (event: FormEvent<HTMLFormElement>) => void;
   onUpdate: (update: Partial<LocationFormState>) => void;
 };
@@ -43,10 +45,12 @@ type LocationDialogProps = {
 export function LocationDialog({
   editingLocationId,
   isSavingLocation,
+  isMovingLocation,
   locationForm,
   locations,
   onClose,
   onDelete,
+  onStartMoving,
   onSubmit,
   onUpdate,
 }: LocationDialogProps) {
@@ -274,8 +278,9 @@ export function LocationDialog({
             <label>
               <span>Travel cost</span>
               <input
-                min="0"
-                type="number"
+                inputMode="numeric"
+                pattern="[0-9]*"
+                type="text"
                 value={locationForm.travelcost}
                 onChange={(event) => onUpdate({ travelcost: event.target.value })}
               />
@@ -286,8 +291,9 @@ export function LocationDialog({
             <label>
               <span>Sleep cost</span>
               <input
-                min="0"
-                type="number"
+                inputMode="numeric"
+                pattern="[0-9]*"
+                type="text"
                 value={locationForm.sleepcost}
                 onChange={(event) => onUpdate({ sleepcost: event.target.value })}
               />
@@ -317,6 +323,16 @@ export function LocationDialog({
             />
           </label>
         </div>
+
+        <button
+          type="button"
+          className="secondary-action-button"
+          disabled={isSavingLocation}
+          onClick={onStartMoving}
+        >
+          <Crosshair size={16} />
+          {isMovingLocation ? "Click the map..." : "Move point on map"}
+        </button>
 
         <div className="dialog-actions">
           {editingLocationId && (

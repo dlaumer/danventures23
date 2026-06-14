@@ -54,6 +54,18 @@ export type LocationFormState = {
   favorite: boolean;
 };
 
+export type LegAttributeFormState = {
+  fromKey: string;
+  toKey: string;
+  fromName: string;
+  toName: string;
+  transport: string;
+  travelDateTime: string;
+  travelCost: string;
+  routeSource: string;
+  routeConfidence: string;
+};
+
 export type TimelineLocationEntry = {
   date: Date | null;
   feature: GeoJSON.Feature<GeoJSON.Geometry, Record<string, unknown>>;

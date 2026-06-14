@@ -572,7 +572,8 @@
   color: #ffffff;
 }
 
-.location-dialog {
+.location-dialog,
+.leg-attributes-dialog {
   position: absolute;
   top: 74px;
   right: 18px;
@@ -588,7 +589,13 @@
   -webkit-overflow-scrolling: touch;
 }
 
-.location-dialog form {
+.leg-attributes-dialog {
+  top: auto;
+  bottom: 18px;
+}
+
+.location-dialog form,
+.leg-attributes-dialog form {
   display: flex;
   flex-direction: column;
   gap: 13px;
@@ -608,7 +615,8 @@
   line-height: 1.1;
 }
 
-.location-dialog label {
+.location-dialog label,
+.leg-attributes-dialog label {
   display: flex;
   flex-direction: column;
   gap: 6px;
@@ -620,7 +628,9 @@
 
 .location-dialog input,
 .location-dialog select,
-.location-dialog textarea {
+.location-dialog textarea,
+.leg-attributes-dialog input,
+.leg-attributes-dialog select {
   width: 100%;
   min-width: 0;
   border: 1px solid #cfd8d1;
@@ -632,7 +642,9 @@
 }
 
 .location-dialog input,
-.location-dialog select {
+.location-dialog select,
+.leg-attributes-dialog input,
+.leg-attributes-dialog select {
   height: 38px;
   padding: 0 10px;
 }
@@ -649,7 +661,9 @@
 
 .location-dialog input:focus,
 .location-dialog select:focus,
-.location-dialog textarea:focus {
+.location-dialog textarea:focus,
+.leg-attributes-dialog input:focus,
+.leg-attributes-dialog select:focus {
   border-color: #4669c9;
   outline: 2px solid rgba(70, 105, 201, 0.18);
 }
@@ -2374,7 +2388,8 @@
 
   .placement-panel,
   .leg-edit-panel,
-  .location-dialog {
+  .location-dialog,
+  .leg-attributes-dialog {
     left: 12px;
     right: 12px;
     width: auto;
@@ -2392,6 +2407,12 @@
   .location-dialog {
     top: 142px;
     max-height: calc(var(--app-height, 100svh) - 154px);
+  }
+
+  .leg-attributes-dialog {
+    top: 172px;
+    bottom: auto;
+    max-height: calc(var(--app-height, 100svh) - 184px);
   }
 
   .location-dialog:focus-within {

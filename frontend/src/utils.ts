@@ -6,7 +6,12 @@ import {
   sleepCategoryColors,
   transportColors,
 } from "./constants";
-import type { FeatureCollection, LocationFormState, LocationPicture } from "./types";
+import type {
+  FeatureCollection,
+  LegAttributeFormState,
+  LocationFormState,
+  LocationPicture,
+} from "./types";
 
 export function colorForTransport(value: string | null) {
   if (!value) return "#6f7782";
@@ -606,6 +611,42 @@ export function formToPayload(form: LocationFormState) {
       isPaidTransport && form.travelcost ? Number(form.travelcost) : null,
     sleepcost: isPaidSleep && form.sleepcost ? Number(form.sleepcost) : null,
     favorite: form.favorite,
+  };
+}
+
+export function legAttributeFormFromFeature(
+  feature: GeoJSON.Feature,
+): LegAttributeFormState {
+  const properties = feature.properties ?? {};
+  const travelDate = parseTravelDate(properties.travel_date);
+
+  return {
+    fromKey: String(properties.from_key ?? ""),
+    toKey: String(properties.to_key ?? ""),
+    fromName: String(properties.from_name ?? ""),
+    toName: String(properties.to_name ?? ""),
+    transport: String(properties.transport ?? "foot"),
+    travelDateTime: travelDate
+      ? formatDateTimeLocal(travelDate)
+      : formatDateTimeLocal(new Date()),
+    travelCost:
+      properties.travel_cost == null ? "" : String(properties.travel_cost),
+    routeSource: String(properties.route_source ?? ""),
+    routeConfidence: String(properties.route_confidence ?? ""),
+  };
+}
+
+export function legAttributeFormToPayload(form: LegAttributeFormState) {
+  return {
+    from_key: form.fromKey.trim() || null,
+    to_key: form.toKey.trim() || null,
+    from_name: form.fromName.trim() || null,
+    to_name: form.toName.trim() || null,
+    transport: form.transport.trim() || null,
+    travel_date: new Date(form.travelDateTime).toUTCString(),
+    travel_cost: form.travelCost ? Number(form.travelCost) : null,
+    route_source: form.routeSource.trim() || null,
+    route_confidence: form.routeConfidence.trim() || null,
   };
 }
 

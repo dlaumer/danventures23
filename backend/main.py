@@ -117,6 +117,18 @@ class LegGeometryIn(BaseModel):
         return clean_coordinates
 
 
+class LegAttributesIn(BaseModel):
+    from_key: str | None = None
+    to_key: str | None = None
+    from_name: str | None = None
+    to_name: str | None = None
+    transport: str | None = None
+    travel_date: str | None = None
+    travel_cost: int | None = None
+    route_source: str | None = None
+    route_confidence: str | None = None
+
+
 def location_feature_query(where_clause: str):
     return text(f"""
         select jsonb_build_object(
@@ -647,6 +659,8 @@ def remove_location_and_reconnect(conn, location_id: int):
     previous_location = previous_location_for(conn, location_id)
     next_location = next_location_for(conn, location_id)
 
+    delete_leg_between_locations(conn, previous_location, current_location)
+    delete_leg_between_locations(conn, current_location, next_location)
     delete_legs_touching_location(conn, location_id)
 
     if previous_location is not None and next_location is not None:
@@ -926,6 +940,50 @@ def update_leg_geometry(leg_id: int, geometry: LegGeometryIn):
     return updated
 
 
+@app.put("/legs/{leg_id}")
+def update_leg_attributes(leg_id: int, attributes: LegAttributesIn):
+    values = attributes.model_dump() | {"id": leg_id}
+    query = text("""
+        update public.legs as feature
+        set
+            from_key = :from_key,
+            to_key = :to_key,
+            from_name = :from_name,
+            to_name = :to_name,
+            transport = :transport,
+            travel_date = :travel_date,
+            travel_cost = :travel_cost,
+            route_source = :route_source,
+            route_confidence = :route_confidence
+        where feature.id = :id
+        returning jsonb_build_object(
+            'type', 'Feature',
+            'id', id,
+            'geometry', ST_AsGeoJSON(geom)::jsonb,
+            'properties', to_jsonb(feature) - 'geom'
+        )
+    """)
+
+    with engine.begin() as conn:
+        updated = conn.execute(query, values).scalar_one_or_none()
+
+    if updated is None:
+        raise HTTPException(status_code=404, detail="Leg not found")
+
+    return updated
+
+
+@app.delete("/legs/{leg_id}", status_code=204)
+def delete_leg(leg_id: int):
+    query = text("delete from public.legs where id = :id returning id")
+
+    with engine.begin() as conn:
+        deleted_id = conn.execute(query, {"id": leg_id}).scalar_one_or_none()
+
+    if deleted_id is None:
+        raise HTTPException(status_code=404, detail="Leg not found")
+
+
 @app.get("/stats/transport-distance")
 def transport_distance():
     query = text("""
@@ -943,6 +1001,60 @@ def transport_distance():
         rows = conn.execute(query).mappings().all()
 
     return [dict(row) for row in rows]
+
+
+@app.get("/stats/duplicate-leg-timestamps")
+def duplicate_leg_timestamps():
+    query = text("""
+        with duplicate_timestamps as (
+            select travel_date
+            from public.legs
+            where travel_date is not null
+            group by travel_date
+            having count(*) > 1
+        ),
+        grouped as (
+            select
+                duplicate_timestamps.travel_date,
+                duplicate_timestamps.travel_date::timestamptz as travel_at,
+                count(legs.id) as leg_count,
+                jsonb_agg(
+                    jsonb_build_object(
+                        'id', legs.id,
+                        'from_key', legs.from_key,
+                        'to_key', legs.to_key,
+                        'from_name', legs.from_name,
+                        'to_name', legs.to_name,
+                        'transport', legs.transport,
+                        'travel_date', legs.travel_date,
+                        'travel_cost', legs.travel_cost,
+                        'distance_m', legs.distance_m,
+                        'route_source', legs.route_source,
+                        'route_confidence', legs.route_confidence
+                    )
+                    order by legs.id
+                ) as legs
+            from duplicate_timestamps
+            join public.legs as legs
+              on legs.travel_date is not distinct from duplicate_timestamps.travel_date
+            group by duplicate_timestamps.travel_date
+        )
+        select coalesce(
+            jsonb_agg(
+                jsonb_build_object(
+                    'travel_date', travel_date,
+                    'leg_count', leg_count,
+                    'legs', legs
+                )
+                order by leg_count desc, travel_at asc
+            ),
+            '[]'::jsonb
+        )
+        from grouped
+    """)
+
+    with engine.connect() as conn:
+        return conn.execute(query).scalar_one()
 
 
 @app.get("/stats/monthly-transport-distance")

@@ -30,6 +30,7 @@ import {
 } from "./constants";
 import { GeneralStatsPanel } from "./components/GeneralStatsPanel";
 import { LocationDialog } from "./components/LocationDialog";
+import { LegAttributesDialog } from "./components/LegAttributesDialog";
 import { PeopleExplorerPanel } from "./components/PeopleExplorerPanel";
 import { SleepCategoryPanel } from "./components/SleepCategoryPanel";
 import { TransportDistancePanel } from "./components/TransportDistancePanel";
@@ -40,6 +41,7 @@ import type {
   FeatureCollection,
   EditableLeg,
   GeneralStats,
+  LegAttributeFormState,
   LocationFormState,
   SelectedChartPart,
   SleepStat,
@@ -56,6 +58,8 @@ import {
   formatLocalDate,
   isDisplayedFreeRide,
   isFreeTransport,
+  legAttributeFormFromFeature,
+  legAttributeFormToPayload,
   normalizeFeatureCollection,
   numberFromKm,
   numberFromValue,
@@ -303,8 +307,11 @@ function App() {
   );
   const [isMovingLocation, setIsMovingLocation] = useState(false);
   const [editableLeg, setEditableLeg] = useState<EditableLeg | null>(null);
+  const [legAttributeForm, setLegAttributeForm] =
+    useState<LegAttributeFormState | null>(null);
   const [isSavingLocation, setIsSavingLocation] = useState(false);
   const [isSavingLegGeometry, setIsSavingLegGeometry] = useState(false);
+  const [isSavingLegAttributes, setIsSavingLegAttributes] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const isAdmin =
     typeof window !== "undefined" &&
@@ -751,6 +758,11 @@ function App() {
     setIsMovingLocation(false);
   }
 
+  function closeLegEditor() {
+    setEditableLeg(null);
+    setLegAttributeForm(null);
+  }
+
   function startLegGeometryEdit(
     feature: GeoJSON.Feature<GeoJSON.Geometry, Record<string, unknown>>,
   ) {
@@ -766,10 +778,17 @@ function App() {
       id,
       signal: (current?.signal ?? 0) + 1,
     }));
+    setLegAttributeForm(legAttributeFormFromFeature(feature));
   }
 
   function updateLocationForm(update: Partial<LocationFormState>) {
     setLocationForm((current) => (current ? { ...current, ...update } : current));
+  }
+
+  function updateLegAttributeForm(update: Partial<LegAttributeFormState>) {
+    setLegAttributeForm((current) =>
+      current ? { ...current, ...update } : current,
+    );
   }
 
   async function saveLocation(event: FormEvent<HTMLFormElement>) {
@@ -844,6 +863,35 @@ function App() {
     }
   }
 
+  async function saveLegAttributes(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    if (!editableLeg || !legAttributeForm) return;
+
+    setIsSavingLegAttributes(true);
+    setError(null);
+
+    try {
+      const response = await fetch(`${API_BASE_URL}/legs/${editableLeg.id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(legAttributeFormToPayload(legAttributeForm)),
+      });
+
+      if (!response.ok) {
+        throw new Error("Saving the leg attributes failed.");
+      }
+
+      await loadTravelData();
+      closeLegEditor();
+    } catch (caught) {
+      setError(
+        caught instanceof Error ? caught.message : "Saving leg attributes failed.",
+      );
+    } finally {
+      setIsSavingLegAttributes(false);
+    }
+  }
+
   async function saveLegGeometry(id: number, coordinates: [number, number][]) {
     const cleanCoordinates = coordinates
       .map(([lng, lat]) => [Number(lng), Number(lat)] as [number, number])
@@ -877,7 +925,7 @@ function App() {
       }
 
       await loadTravelData();
-      setEditableLeg(null);
+      closeLegEditor();
     } catch (caught) {
       setError(
         caught instanceof Error ? caught.message : "Saving leg geometry failed.",
@@ -911,7 +959,7 @@ function App() {
         isSavingLegGeometry={isSavingLegGeometry}
         onCancelPlacingLocation={() => setIsPlacingLocation(false)}
         onCancelMovingLocation={() => setIsMovingLocation(false)}
-        onCancelLegGeometryEdit={() => setEditableLeg(null)}
+        onCancelLegGeometryEdit={closeLegEditor}
         onMapError={setError}
         onNewLocationForm={(form) => {
           setEditingLocationId(null);
@@ -948,6 +996,7 @@ function App() {
               setLocationForm(null);
               setEditingLocationId(null);
               setIsMovingLocation(false);
+              closeLegEditor();
               setIsPlacingLocation(true);
             }}
             title="Add new point"
@@ -1214,7 +1263,7 @@ function App() {
               onToggleFavorite={toggleLocationFavorite}
               onEditLocation={(id, form) => {
                 if (!isAdmin) return;
-                setEditableLeg(null);
+                closeLegEditor();
                 setIsPlacingLocation(false);
                 setIsMovingLocation(false);
                 setEditingLocationId(id);
@@ -1250,11 +1299,20 @@ function App() {
           onDelete={deleteLocation}
           onStartMoving={() => {
             setIsPlacingLocation(false);
-            setEditableLeg(null);
+            closeLegEditor();
             setIsMovingLocation(true);
           }}
           onSubmit={saveLocation}
           onUpdate={updateLocationForm}
+        />
+      )}
+      {legAttributeForm && (
+        <LegAttributesDialog
+          form={legAttributeForm}
+          isSaving={isSavingLegAttributes}
+          onClose={closeLegEditor}
+          onSubmit={saveLegAttributes}
+          onUpdate={updateLegAttributeForm}
         />
       )}
     </main>

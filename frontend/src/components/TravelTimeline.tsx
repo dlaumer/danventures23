@@ -121,10 +121,10 @@ function buildTimelineEntries(
     const bTime = b.date?.getTime() ?? 0;
 
     if (aTime !== bTime) return bTime - aTime;
+    if (a.kind !== b.kind) return a.kind === "location" ? -1 : 1;
     const aTieKey = tieKeyForEntry(a);
     const bTieKey = tieKeyForEntry(b);
     if (aTieKey !== bTieKey) return bTieKey - aTieKey;
-    if (a.kind !== b.kind) return a.kind === "location" ? -1 : 1;
     return a.id.localeCompare(b.id);
   });
 }
@@ -597,8 +597,8 @@ export function TravelTimeline({
                           type="button"
                           className="timeline-edit-button"
                           onClick={() => onEditLeg(entry.feature)}
-                          title="Edit leg geometry"
-                          aria-label="Edit leg geometry"
+                          title="Edit leg"
+                          aria-label="Edit leg"
                         >
                           <SquarePen size={15} />
                         </button>

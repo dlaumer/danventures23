@@ -1628,49 +1628,6 @@ export function TravelMap({
       const index = currentLegs.features.findIndex((leg) => leg === feature);
       return timelineEntryId("leg", feature, index === -1 ? undefined : index);
     };
-    const destinationLocationForLeg = (feature: GeoJSON.Feature) => {
-      const endpoints = legEndpoints(feature);
-      const destination = endpoints ? normalizeLngLat(endpoints.to) : null;
-      if (!destination) return null;
-
-      const legTime = parseTravelDate(feature.properties?.travel_date)?.getTime();
-      const candidates: {
-        distanceKm: number;
-        feature: FeatureCollection["features"][number];
-        isSameTime: boolean;
-      }[] = [];
-
-      currentLocations.features.forEach((location) => {
-          if (location.geometry?.type !== "Point") return null;
-
-          const coordinates = normalizeLngLat(location.geometry.coordinates);
-          if (!coordinates) return;
-
-          const distanceKm = positionDistanceKm(destination, coordinates);
-          if (distanceKm > 0.1) return;
-
-          const locationTime = parseTravelDate(
-            location.properties?.travel_date,
-          )?.getTime();
-
-          candidates.push({
-            distanceKm,
-            feature: location,
-            isSameTime: Boolean(
-              legTime !== undefined &&
-                locationTime !== undefined &&
-                legTime === locationTime,
-            ),
-          });
-        });
-
-      candidates.sort((a, b) => {
-          if (a.isSameTime !== b.isSameTime) return a.isSameTime ? -1 : 1;
-          return a.distanceKm - b.distanceKm;
-        });
-
-      return candidates[0]?.feature ?? null;
-    };
     const distanceToSegment = (
       point: maplibregl.Point,
       start: maplibregl.Point,
@@ -1803,11 +1760,8 @@ export function TravelMap({
 
     const buildLegCandidate = (feature: GeoJSON.Feature): MapFeatureCandidate => {
       const legFeature = canonicalLegFeature(feature);
-      const destinationLocation = destinationLocationForLeg(legFeature);
       const destinationName = propertyString(legFeature.properties, "to_name");
-      const targetEntryId = destinationLocation
-        ? locationEntryIdForFeature(destinationLocation)
-        : legEntryIdForFeature(legFeature);
+      const targetEntryId = legEntryIdForFeature(legFeature);
       const transport = propertyString(legFeature.properties, "transport");
 
       return {
@@ -1821,7 +1775,6 @@ export function TravelMap({
           .filter(Boolean)
           .join(" "),
         targetEntryId,
-        expandEntryId: destinationLocation ? targetEntryId : undefined,
       };
     };
 

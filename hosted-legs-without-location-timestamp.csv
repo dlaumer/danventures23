@@ -1,0 +1,5 @@
+﻿"leg_id","timestamp_utc","from_key","to_key","from_name","to_name","transport","route_source","route_confidence"
+"429","2024-05-20 22:00:00","1716156300000","1716242400000","Bonnhof","Bonnhof","foot","arcgis","existing"
+"672","2024-08-29 22:06:00","1724969100000","1724969160000","Bogota outskirts","Bogota bus terminal","bus","arcgis","existing"
+"676","2024-08-29 22:07:00","1724969160000","1724969220000","Bogota bus terminal","Ruta 90","bus","arcgis","existing"
+"1586","2025-10-19 22:00:00","1760738400000","1760911200000","Baiona","Porto","boat","arcgis","existing"

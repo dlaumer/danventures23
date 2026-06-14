@@ -579,6 +579,46 @@ def delete_legs_touching_location(conn, location_id: int):
     return result.rowcount
 
 
+def sync_legs_for_arriving_location(conn, location_id: int):
+    result = conn.execute(
+        text("""
+            update public.legs as leg
+            set
+                to_name = location.name,
+                transport = location.transport,
+                travel_date = location.travel_date,
+                travel_cost = location.travelcost
+            from public.locations as location
+            where location.id = :location_id
+              and leg.to_key = location.id::text
+        """),
+        {"location_id": location_id},
+    )
+    return result.rowcount
+
+
+def sync_all_leg_arrival_fields(conn):
+    result = conn.execute(
+        text("""
+            update public.legs as leg
+            set
+                to_name = location.name,
+                transport = location.transport,
+                travel_date = location.travel_date,
+                travel_cost = location.travelcost
+            from public.locations as location
+            where leg.to_key = location.id::text
+        """),
+    )
+    return result.rowcount
+
+
+@app.on_event("startup")
+def ensure_leg_arrival_fields():
+    with engine.begin() as conn:
+        sync_all_leg_arrival_fields(conn)
+
+
 def rebuild_location_splice(conn, location_id: int):
     current_location = current_location_for(conn, location_id)
     if current_location is None:
@@ -671,6 +711,7 @@ def create_location(location: LocationIn):
     with engine.begin() as conn:
         location_id = conn.execute(query, values).scalar_one()
         rebuild_location_splice(conn, location_id)
+        sync_legs_for_arriving_location(conn, location_id)
         return conn.execute(
             location_feature_query("where id = :id"),
             {"id": location_id},
@@ -707,6 +748,7 @@ def update_location(location_id: int, location: LocationIn):
             raise HTTPException(status_code=404, detail="Location not found")
         updated_id = conn.execute(query, values).scalar_one_or_none()
         rebuild_location_splice(conn, updated_id)
+        sync_legs_for_arriving_location(conn, updated_id)
         return conn.execute(
             location_feature_query("where id = :id"),
             {"id": updated_id},

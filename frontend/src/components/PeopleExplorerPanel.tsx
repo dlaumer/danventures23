@@ -7,6 +7,7 @@ import {
   Plane,
   Search,
   Ship,
+  Star,
   Train,
   Truck,
   Users,
@@ -17,6 +18,7 @@ import type { PeopleStory } from "../types";
 import { formatTimelineDate, transportLabel } from "../utils";
 
 type PeopleExplorerPanelProps = {
+  isAdmin: boolean;
   query: string;
   selectedIndex: number;
   stories: PeopleStory[];
@@ -24,6 +26,7 @@ type PeopleExplorerPanelProps = {
   onFocusStory: (story: PeopleStory) => void;
   onQueryChange: (query: string) => void;
   onSelectedIndexChange: (index: number) => void;
+  onToggleFavorite: (locationId: number, favorite: boolean) => void;
 };
 
 const peopleWheelItemHeight = 26;
@@ -62,6 +65,7 @@ function transportIconFor(value: string | null) {
 }
 
 export function PeopleExplorerPanel({
+  isAdmin,
   query,
   selectedIndex,
   stories,
@@ -69,8 +73,10 @@ export function PeopleExplorerPanel({
   onFocusStory,
   onQueryChange,
   onSelectedIndexChange,
+  onToggleFavorite,
 }: PeopleExplorerPanelProps) {
   const wheelRef = useRef<HTMLDivElement | null>(null);
+  const pendingFavoriteStoryIdRef = useRef<string | null>(null);
   const shouldRestoreScrollRef = useRef(true);
   const selectedIndexRef = useRef(selectedIndex);
 
@@ -86,6 +92,7 @@ export function PeopleExplorerPanel({
   }, [query, stories]);
 
   const selectedStory = filteredStories[selectedIndex] ?? null;
+  const favoriteCount = filteredStories.filter((story) => story.favorite).length;
   const visibleStart = Math.max(0, selectedIndex - 18);
   const visibleEnd = Math.min(filteredStories.length, selectedIndex + 19);
   const visibleStories = filteredStories.slice(visibleStart, visibleEnd);
@@ -95,17 +102,43 @@ export function PeopleExplorerPanel({
   }, [selectedIndex]);
 
   useEffect(() => {
-    if (selectedIndex >= 0) return;
-    if (filteredStories.length === 0) return;
+    const pendingStoryId = pendingFavoriteStoryIdRef.current;
+    if (!pendingStoryId) return;
 
-    const nextIndex = Math.max(0, Math.floor(filteredStories.length / 2));
+    const nextIndex = filteredStories.findIndex(
+      (story) => story.id === pendingStoryId,
+    );
+    if (nextIndex === -1) return;
+
+    pendingFavoriteStoryIdRef.current = null;
     selectedIndexRef.current = nextIndex;
     onSelectedIndexChange(nextIndex);
 
     window.requestAnimationFrame(() => {
       wheelRef.current?.scrollTo({ top: nextIndex * peopleWheelItemHeight });
     });
-  }, [filteredStories.length, onSelectedIndexChange, selectedIndex]);
+  }, [filteredStories, onSelectedIndexChange]);
+
+  useEffect(() => {
+    if (selectedIndex >= 0) return;
+    if (filteredStories.length === 0) return;
+
+    const nextIndex =
+      favoriteCount > 0
+        ? Math.floor((favoriteCount - 1) / 2)
+        : Math.max(0, Math.floor(filteredStories.length / 2));
+    selectedIndexRef.current = nextIndex;
+    onSelectedIndexChange(nextIndex);
+
+    window.requestAnimationFrame(() => {
+      wheelRef.current?.scrollTo({ top: nextIndex * peopleWheelItemHeight });
+    });
+  }, [
+    favoriteCount,
+    filteredStories.length,
+    onSelectedIndexChange,
+    selectedIndex,
+  ]);
 
   useEffect(() => {
     if (selectedIndex < 0) return;
@@ -142,6 +175,13 @@ export function PeopleExplorerPanel({
     }
   }
 
+  function toggleSelectedStoryFavorite(story: PeopleStory) {
+    if (story.locationId === null) return;
+
+    pendingFavoriteStoryIdRef.current = story.id;
+    onToggleFavorite(story.locationId, !story.favorite);
+  }
+
   return (
     <>
       <div className="panel-heading">
@@ -150,16 +190,45 @@ export function PeopleExplorerPanel({
         </div>
         <div className="people-heading-actions">
           {selectedStory && (
-            <button
-              type="button"
-              className="panel-icon-button people-heading-zoom"
-              onClick={() => onFocusStory(selectedStory)}
-              disabled={!selectedStory.coordinates}
-              title="Zoom to spot"
-              aria-label="Zoom to spot"
-            >
-              <LocateFixed size={16} />
-            </button>
+            <>
+              <button
+                type="button"
+                className="panel-icon-button people-heading-zoom"
+                onClick={() => onFocusStory(selectedStory)}
+                disabled={!selectedStory.coordinates}
+                title="Zoom to spot"
+                aria-label="Zoom to spot"
+              >
+                <LocateFixed size={16} />
+              </button>
+              {isAdmin && selectedStory.locationId !== null && (
+                <button
+                  type="button"
+                  className={`panel-icon-button people-heading-favorite favorite-action ${
+                    selectedStory.favorite ? "active" : ""
+                  }`}
+                  onClick={() => toggleSelectedStoryFavorite(selectedStory)}
+                  title={
+                    selectedStory.favorite ? "Remove favorite" : "Add favorite"
+                  }
+                  aria-label={
+                    selectedStory.favorite ? "Remove favorite" : "Add favorite"
+                  }
+                  aria-pressed={selectedStory.favorite}
+                >
+                  <Star size={16} fill="currentColor" />
+                </button>
+              )}
+              {!isAdmin && selectedStory.favorite && (
+                <span
+                  className="panel-icon-button people-heading-favorite favorite-action active passive"
+                  title="Favorite"
+                  aria-label="Favorite"
+                >
+                  <Star size={16} fill="currentColor" />
+                </span>
+              )}
+            </>
           )}
           <button
             type="button"
@@ -222,7 +291,12 @@ export function PeopleExplorerPanel({
                     aria-selected={index === selectedIndex}
                     className={`people-wheel-item ${focusClass}`}
                   >
-                    <span>{story.people}</span>
+                    <span>
+                      {story.favorite && (
+                        <Star size={11} fill="currentColor" aria-hidden="true" />
+                      )}
+                      {story.people}
+                    </span>
                     <small>{formatTimelineDate(story.date)}</small>
                   </div>
                 );

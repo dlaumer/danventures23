@@ -322,6 +322,17 @@ export function propertyNumber(
   return numberFromValue(properties?.[key]);
 }
 
+export function propertyBoolean(
+  properties: Record<string, unknown> | null | undefined,
+  key: string,
+) {
+  const value = properties?.[key];
+  if (typeof value === "boolean") return value;
+  if (typeof value === "number") return value !== 0;
+  if (typeof value === "string") return value.toLowerCase() === "true";
+  return false;
+}
+
 export function featureRecordId(feature: GeoJSON.Feature) {
   const value = feature.id ?? feature.properties?.id;
   if (value === null || value === undefined || value === "") return null;
@@ -503,6 +514,7 @@ function buildLocationFormWithDateTime(
     pictures: [],
     travelcost: "",
     sleepcost: "",
+    favorite: false,
   };
 }
 
@@ -563,6 +575,7 @@ export function formFromFeature(feature: GeoJSON.Feature): LocationFormState {
     travelcost:
       properties.travelcost == null ? "" : String(properties.travelcost),
     sleepcost: properties.sleepcost == null ? "" : String(properties.sleepcost),
+    favorite: propertyBoolean(properties, "favorite"),
   };
 }
 
@@ -591,6 +604,7 @@ export function formToPayload(form: LocationFormState) {
     travelcost:
       isPaidTransport && form.travelcost ? Number(form.travelcost) : null,
     sleepcost: isPaidSleep && form.sleepcost ? Number(form.sleepcost) : null,
+    favorite: form.favorite,
   };
 }
 

@@ -22,6 +22,7 @@ import {
   MessageSquareText,
   Plane,
   Ship,
+  Star,
   SquarePen,
   Train,
   Truck,
@@ -55,6 +56,7 @@ import {
   parseTravelDate,
   propertyNumber,
   propertyString,
+  propertyBoolean,
   timelineEntryId,
   transportLabel,
 } from "../utils";
@@ -67,9 +69,13 @@ type TravelTimelineProps = {
   expandEntryId: string | null;
   targetEntryId: string | null;
   targetEntrySignal: number;
+  onEditLeg: (
+    feature: GeoJSON.Feature<GeoJSON.Geometry, Record<string, unknown>>,
+  ) => void;
   onEditLocation: (id: number, form: LocationFormState) => void;
   onFocusLocation: (coordinates: { lat: number; lng: number }) => void;
   onTimelinePositionChange: (position: TimelineMapPosition | null) => void;
+  onToggleFavorite: (locationId: number, favorite: boolean) => void;
 };
 
 function buildTimelineEntries(
@@ -148,12 +154,17 @@ type DetailItem = {
 
 function LocationDetails({
   entry,
+  isAdmin,
   onZoomToLocation,
+  onToggleFavorite,
 }: {
   entry: TimelineLocationEntry;
+  isAdmin: boolean;
   onZoomToLocation: () => void;
+  onToggleFavorite: () => void;
 }) {
   const properties = entry.feature.properties ?? {};
+  const isFavorite = propertyBoolean(properties, "favorite");
   const pointType = propertyString(properties, "pointtype") ?? "waypoint";
   const transport = propertyString(properties, "transport");
   const people = propertyString(properties, "people");
@@ -219,15 +230,40 @@ function LocationDetails({
             <span>{item.value}</span>
           </span>
         ))}
-        <button
-          type="button"
-          className="timeline-zoom-button"
-          onClick={onZoomToLocation}
-          title="Zoom to location"
-          aria-label="Zoom to location"
-        >
-          <LocateFixed size={15} />
-        </button>
+        <div className="timeline-detail-actions">
+          <button
+            type="button"
+            className="timeline-icon-action timeline-zoom-button"
+            onClick={onZoomToLocation}
+            title="Zoom to location"
+            aria-label="Zoom to location"
+          >
+            <LocateFixed size={15} />
+          </button>
+          {isAdmin && (
+            <button
+              type="button"
+              className={`timeline-icon-action favorite-action ${
+                isFavorite ? "active" : ""
+              }`}
+              onClick={onToggleFavorite}
+              title={isFavorite ? "Remove favorite" : "Add favorite"}
+              aria-label={isFavorite ? "Remove favorite" : "Add favorite"}
+              aria-pressed={isFavorite}
+            >
+              <Star size={15} fill="currentColor" />
+            </button>
+          )}
+          {!isAdmin && isFavorite && (
+            <span
+              className="timeline-icon-action favorite-action active passive"
+              title="Favorite"
+              aria-label="Favorite"
+            >
+              <Star size={15} fill="currentColor" />
+            </span>
+          )}
+        </div>
       </div>
 
       {people && (
@@ -289,6 +325,8 @@ export function TravelTimeline({
   onEditLocation,
   onFocusLocation,
   onTimelinePositionChange,
+  onEditLeg,
+  onToggleFavorite,
 }: TravelTimelineProps) {
   const listRef = useRef<HTMLDivElement | null>(null);
   const entryRefs = useRef(new Map<string, HTMLElement>());
@@ -542,6 +580,17 @@ export function TravelTimeline({
                         {transportIconFor(transport)}
                       </span>
                       <strong>{formatKm(distanceKm)} km</strong>
+                      {isAdmin && (
+                        <button
+                          type="button"
+                          className="timeline-edit-button"
+                          onClick={() => onEditLeg(entry.feature)}
+                          title="Edit leg geometry"
+                          aria-label="Edit leg geometry"
+                        >
+                          <SquarePen size={15} />
+                        </button>
+                      )}
                     </div>
                   </div>
                 )}
@@ -554,6 +603,7 @@ export function TravelTimeline({
           const transport = propertyString(properties, "transport");
           const name = propertyString(properties, "name") ?? "Unnamed location";
           const coordinates = coordinatesForFeature(entry.feature);
+          const locationId = Number(featureRecordId(entry.feature));
 
           const toggleLocation = () => {
             setExpandedEntryId(isExpanded ? null : entry.id);
@@ -622,6 +672,14 @@ export function TravelTimeline({
                   {isExpanded && (
                     <LocationDetails
                       entry={entry}
+                      isAdmin={isAdmin}
+                      onToggleFavorite={() => {
+                        if (!Number.isFinite(locationId)) return;
+                        onToggleFavorite(
+                          locationId,
+                          !propertyBoolean(properties, "favorite"),
+                        );
+                      }}
                       onZoomToLocation={() => {
                         if (coordinates) onFocusLocation(coordinates);
                       }}

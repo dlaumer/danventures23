@@ -1,5 +1,6 @@
 import os
 import json
+import math
 import urllib.error
 import urllib.request
 from pathlib import Path
@@ -8,7 +9,7 @@ from typing import Annotated
 from dotenv import load_dotenv
 from fastapi import FastAPI, HTTPException, Query
 from fastapi.middleware.cors import CORSMiddleware
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator
 from sqlalchemy import bindparam, create_engine, text
 from sqlalchemy.dialects.postgresql import JSONB
 
@@ -81,6 +82,39 @@ class LocationIn(BaseModel):
     pictures: list[LocationPicture] = Field(default_factory=list)
     travelcost: int | None = None
     sleepcost: int | None = None
+    favorite: bool = False
+
+
+class LocationFavoriteIn(BaseModel):
+    favorite: bool
+
+
+class LegGeometryIn(BaseModel):
+    coordinates: list[tuple[float, float]] = Field(min_length=2)
+
+    @field_validator("coordinates", mode="before")
+    @classmethod
+    def validate_coordinates(cls, coordinates):
+        if not isinstance(coordinates, list) or len(coordinates) < 2:
+            raise ValueError("coordinates must contain at least two points")
+
+        clean_coordinates = []
+        for coordinate in coordinates:
+            if not isinstance(coordinate, list | tuple) or len(coordinate) < 2:
+                raise ValueError("each coordinate must contain longitude and latitude")
+
+            lng = float(coordinate[0])
+            lat = float(coordinate[1])
+            if not math.isfinite(lng) or not math.isfinite(lat):
+                raise ValueError("coordinate values must be finite numbers")
+            if not (-180 <= lng <= 180):
+                raise ValueError("longitude is out of range")
+            if not (-90 <= lat <= 90):
+                raise ValueError("latitude is out of range")
+
+            clean_coordinates.append((lng, lat))
+
+        return clean_coordinates
 
 
 def location_feature_query(where_clause: str):
@@ -160,6 +194,40 @@ def limited_feature_collection_query(table_name: str):
     """)
 
 
+def parse_bbox(bbox: str | None):
+    if bbox is None:
+        return None
+
+    parts = bbox.split(",")
+    if len(parts) != 4:
+        raise HTTPException(
+            status_code=400,
+            detail="bbox must be minLng,minLat,maxLng,maxLat",
+        )
+
+    try:
+        min_lng, min_lat, max_lng, max_lat = [float(part) for part in parts]
+    except ValueError:
+        raise HTTPException(status_code=400, detail="bbox values must be numbers")
+
+    if not (-180 <= min_lng <= 180 and -180 <= max_lng <= 180):
+        raise HTTPException(status_code=400, detail="bbox longitude is out of range")
+    if not (-90 <= min_lat <= 90 and -90 <= max_lat <= 90):
+        raise HTTPException(status_code=400, detail="bbox latitude is out of range")
+    if min_lng >= max_lng or min_lat >= max_lat:
+        raise HTTPException(
+            status_code=400,
+            detail="bbox min values must be lower than max values",
+        )
+
+    return {
+        "min_lng": min_lng,
+        "min_lat": min_lat,
+        "max_lng": max_lng,
+        "max_lat": max_lat,
+    }
+
+
 @app.on_event("startup")
 def ensure_location_schema():
     with engine.begin() as conn:
@@ -173,6 +241,12 @@ def ensure_location_schema():
             text("""
                 alter table public.locations
                 add column if not exists pictures jsonb not null default '[]'::jsonb
+            """),
+        )
+        conn.execute(
+            text("""
+                alter table public.locations
+                add column if not exists favorite boolean not null default false
             """),
         )
 
@@ -559,7 +633,8 @@ def create_location(location: LocationIn):
             waitingtime,
             pictures,
             travelcost,
-            sleepcost
+            sleepcost,
+            favorite
         )
         values (
             ST_SetSRID(ST_MakePoint(:lng, :lat, 0), 4326),
@@ -575,7 +650,8 @@ def create_location(location: LocationIn):
             :waitingtime,
             :pictures,
             :travelcost,
-            :sleepcost
+            :sleepcost,
+            :favorite
         )
         returning id
     """).bindparams(bindparam("pictures", type_=JSONB))
@@ -608,7 +684,8 @@ def update_location(location_id: int, location: LocationIn):
             waitingtime = :waitingtime,
             pictures = :pictures,
             travelcost = :travelcost,
-            sleepcost = :sleepcost
+            sleepcost = :sleepcost,
+            favorite = :favorite
         where id = :id
         returning id
     """).bindparams(bindparam("pictures", type_=JSONB))
@@ -622,6 +699,32 @@ def update_location(location_id: int, location: LocationIn):
             location_feature_query("where id = :id"),
             {"id": updated_id},
         ).scalar_one()
+
+
+@app.patch("/locations/{location_id}/favorite")
+def update_location_favorite(location_id: int, payload: LocationFavoriteIn):
+    query = text("""
+        update public.locations as feature
+        set favorite = :favorite
+        where feature.id = :id
+        returning jsonb_build_object(
+            'type', 'Feature',
+            'id', id,
+            'geometry', ST_AsGeoJSON(geom)::jsonb,
+            'properties', to_jsonb(feature) - 'geom'
+        )
+    """)
+
+    with engine.begin() as conn:
+        updated = conn.execute(
+            query,
+            {"id": location_id, "favorite": payload.favorite},
+        ).scalar_one_or_none()
+
+    if updated is None:
+        raise HTTPException(status_code=404, detail="Location not found")
+
+    return updated
 
 
 @app.delete("/locations/{location_id}", status_code=204)
@@ -638,45 +741,135 @@ def delete_location(location_id: int):
 def legs(
     limit: Annotated[int | None, Query(ge=1, le=10000)] = None,
     simplify: Annotated[float | None, Query(ge=0)] = None,
+    bbox: str | None = None,
+    exclude_transport: str | None = None,
+    clip_to_bbox: bool = False,
 ):
-    if simplify is not None:
-        query = text("""
-            select jsonb_build_object(
-                'type', 'FeatureCollection',
-                'features', coalesce(
-                    jsonb_agg(
-                        jsonb_build_object(
-                            'type', 'Feature',
-                            'id', id,
-                            'geometry', ST_AsGeoJSON(
-                                ST_Multi(ST_SimplifyPreserveTopology(geom, :simplify))
-                            )::jsonb,
-                            'properties', to_jsonb(feature) - 'geom'
-                        )
-                        order by id
-                    ),
-                    '[]'::jsonb
-                )
-            ) as geojson
-            from (
-                select *
-                from public.legs
-                order by id
-                limit coalesce(:limit, 1000000)
-            ) as feature
-        """)
+    parsed_bbox = parse_bbox(bbox)
 
+    if (
+        simplify is None
+        and parsed_bbox is None
+        and exclude_transport is None
+        and not clip_to_bbox
+    ):
         with engine.connect() as conn:
-            return conn.execute(
-                query,
-                {"limit": limit, "simplify": simplify},
-            ).scalar_one()
+            if limit is None:
+                return conn.execute(feature_collection_query("legs")).scalar_one()
+
+            return conn.execute(limited_feature_collection_query("legs"), {"limit": limit}).scalar_one()
+
+    where_clauses = []
+    params = {
+        "limit": limit,
+        "simplify": simplify,
+        "exclude_transport": exclude_transport,
+    }
+    if parsed_bbox is not None:
+        where_clauses.append("""
+            geom && ST_MakeEnvelope(
+                :min_lng,
+                :min_lat,
+                :max_lng,
+                :max_lat,
+                4326
+            )
+        """)
+        params |= parsed_bbox
+    if exclude_transport is not None:
+        where_clauses.append("transport is distinct from :exclude_transport")
+
+    where_sql = f"where {' and '.join(where_clauses)}" if where_clauses else ""
+    bbox_sql = """
+        ST_MakeEnvelope(
+            :min_lng,
+            :min_lat,
+            :max_lng,
+            :max_lat,
+            4326
+        )
+    """
+    base_geometry_sql = (
+        f"ST_Multi(ST_CollectionExtract(ST_Intersection(geom, {bbox_sql}), 2))"
+        if clip_to_bbox and parsed_bbox is not None
+        else "geom"
+    )
+    geometry_sql = (
+        f"ST_Multi(ST_SimplifyPreserveTopology({base_geometry_sql}, :simplify))"
+        if simplify is not None
+        else base_geometry_sql
+    )
+    query = text(f"""
+        with rendered as (
+            select
+                *,
+                {geometry_sql} as render_geom
+            from public.legs
+            {where_sql}
+        )
+        select jsonb_build_object(
+            'type', 'FeatureCollection',
+            'features', coalesce(
+                jsonb_agg(
+                    jsonb_build_object(
+                        'type', 'Feature',
+                        'id', id,
+                        'geometry', ST_AsGeoJSON(render_geom)::jsonb,
+                        'properties', to_jsonb(feature) - 'geom' - 'render_geom'
+                    )
+                    order by id
+                ),
+                '[]'::jsonb
+            )
+        ) as geojson
+        from (
+            select *
+            from rendered
+            where not ST_IsEmpty(render_geom)
+            order by id
+            limit coalesce(:limit, 1000000)
+        ) as feature
+    """)
 
     with engine.connect() as conn:
-        if limit is None:
-            return conn.execute(feature_collection_query("legs")).scalar_one()
+        return conn.execute(query, params).scalar_one()
 
-        return conn.execute(limited_feature_collection_query("legs"), {"limit": limit}).scalar_one()
+
+@app.put("/legs/{leg_id}/geometry")
+def update_leg_geometry(leg_id: int, geometry: LegGeometryIn):
+    geojson = {
+        "type": "LineString",
+        "coordinates": [[lng, lat] for lng, lat in geometry.coordinates],
+    }
+
+    query = text("""
+        update public.legs as feature
+        set
+            geom = ST_Multi(ST_Force3D(ST_SetSRID(ST_GeomFromGeoJSON(:geometry), 4326))),
+            distance_m = ST_Length(
+                ST_SetSRID(ST_GeomFromGeoJSON(:geometry), 4326)::geography
+            ),
+            route_source = 'manual',
+            route_confidence = 'edited'
+        where feature.id = :id
+        returning jsonb_build_object(
+            'type', 'Feature',
+            'id', id,
+            'geometry', ST_AsGeoJSON(geom)::jsonb,
+            'properties', to_jsonb(feature) - 'geom'
+        )
+    """)
+
+    with engine.begin() as conn:
+        updated = conn.execute(
+            query,
+            {"id": leg_id, "geometry": json.dumps(geojson)},
+        ).scalar_one_or_none()
+
+    if updated is None:
+        raise HTTPException(status_code=404, detail="Leg not found")
+
+    return updated
 
 
 @app.get("/stats/transport-distance")

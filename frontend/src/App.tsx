@@ -38,6 +38,7 @@ import { TravelMap } from "./components/TravelMap";
 import { TravelTimeline } from "./components/TravelTimeline";
 import type {
   FeatureCollection,
+  EditableLeg,
   GeneralStats,
   LocationFormState,
   SelectedChartPart,
@@ -58,6 +59,7 @@ import {
   normalizeFeatureCollection,
   numberFromKm,
   numberFromValue,
+  propertyBoolean,
   parseTravelDate,
   propertyString,
   timelineEntryId,
@@ -299,7 +301,9 @@ function App() {
   const [editingLocationId, setEditingLocationId] = useState<number | null>(
     null,
   );
+  const [editableLeg, setEditableLeg] = useState<EditableLeg | null>(null);
   const [isSavingLocation, setIsSavingLocation] = useState(false);
+  const [isSavingLegGeometry, setIsSavingLegGeometry] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const isAdmin =
     typeof window !== "undefined" &&
@@ -476,7 +480,9 @@ function App() {
           coordinates: coordinatesForFeature(feature),
           date: parseTravelDate(properties.travel_date),
           description,
+          favorite: propertyBoolean(properties, "favorite"),
           id: `people:${recordId}`,
+          locationId: Number.isFinite(Number(recordId)) ? Number(recordId) : null,
           locationName: propertyString(properties, "name") ?? "Unknown place",
           people,
           randomOrder: randomOrderForStory(
@@ -488,6 +494,8 @@ function App() {
       })
       .filter((story): story is PeopleStory => Boolean(story))
       .sort((a, b) => {
+        if (a.favorite !== b.favorite) return a.favorite ? -1 : 1;
+
         const aHasDescription = a.description.trim().length > 0 ? 0 : 1;
         const bHasDescription = b.description.trim().length > 0 ? 0 : 1;
         if (aHasDescription !== bHasDescription) {
@@ -656,6 +664,52 @@ function App() {
     if (isMobileLayout()) setActiveAnalysisPanel(null);
   }
 
+  async function toggleLocationFavorite(locationId: number, favorite: boolean) {
+    setError(null);
+    setLocations((current) =>
+      current
+        ? {
+            ...current,
+            features: current.features.map((feature) =>
+              Number(featureRecordId(feature)) === locationId
+                ? {
+                    ...feature,
+                    properties: {
+                      ...(feature.properties ?? {}),
+                      favorite,
+                    },
+                  }
+                : feature,
+            ),
+          }
+        : current,
+    );
+
+    try {
+      const response = await fetch(
+        `${API_BASE_URL}/locations/${locationId}/favorite`,
+        {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ favorite }),
+        },
+      );
+
+      if (!response.ok) {
+        throw new Error("Updating the favorite failed.");
+      }
+
+      await loadTravelData();
+    } catch (caught) {
+      await loadTravelData();
+      setError(
+        caught instanceof Error
+          ? caught.message
+          : "Updating the favorite failed.",
+      );
+    }
+  }
+
   function panelSwipeCloseHandlers(onClose: () => void) {
     return {
       onPointerDown(event: PointerEvent<HTMLElement>) {
@@ -693,6 +747,22 @@ function App() {
     setLocationForm(null);
     setEditingLocationId(null);
     setIsPlacingLocation(false);
+  }
+
+  function startLegGeometryEdit(
+    feature: GeoJSON.Feature<GeoJSON.Geometry, Record<string, unknown>>,
+  ) {
+    const id = Number(featureRecordId(feature));
+    if (!Number.isFinite(id)) return;
+
+    setIsPlacingLocation(false);
+    setLocationForm(null);
+    setEditingLocationId(null);
+    setEditableLeg((current) => ({
+      feature,
+      id,
+      signal: (current?.signal ?? 0) + 1,
+    }));
   }
 
   function updateLocationForm(update: Partial<LocationFormState>) {
@@ -771,6 +841,49 @@ function App() {
     }
   }
 
+  async function saveLegGeometry(id: number, coordinates: [number, number][]) {
+    const cleanCoordinates = coordinates
+      .map(([lng, lat]) => [Number(lng), Number(lat)] as [number, number])
+      .filter(
+        ([lng, lat]) =>
+          Number.isFinite(lng) &&
+          Number.isFinite(lat) &&
+          lng >= -180 &&
+          lng <= 180 &&
+          lat >= -90 &&
+          lat <= 90,
+      );
+
+    if (cleanCoordinates.length < 2) {
+      setError("The leg needs at least two valid points before it can be saved.");
+      return;
+    }
+
+    setIsSavingLegGeometry(true);
+    setError(null);
+
+    try {
+      const response = await fetch(`${API_BASE_URL}/legs/${id}/geometry`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ coordinates: cleanCoordinates }),
+      });
+
+      if (!response.ok) {
+        throw new Error("Saving the leg geometry failed.");
+      }
+
+      await loadTravelData();
+      setEditableLeg(null);
+    } catch (caught) {
+      setError(
+        caught instanceof Error ? caught.message : "Saving leg geometry failed.",
+      );
+    } finally {
+      setIsSavingLegGeometry(false);
+    }
+  }
+
   return (
     <main className="app-shell">
       <TravelMap
@@ -790,7 +903,10 @@ function App() {
         selectedSleepCostGroup={selectedSleepCostGroup}
         isSleepLayerVisible={isSleepLayerVisible}
         basemap={basemap}
+        editableLeg={editableLeg}
+        isSavingLegGeometry={isSavingLegGeometry}
         onCancelPlacingLocation={() => setIsPlacingLocation(false)}
+        onCancelLegGeometryEdit={() => setEditableLeg(null)}
         onMapError={setError}
         onNewLocationForm={(form) => {
           setEditingLocationId(null);
@@ -809,6 +925,7 @@ function App() {
           setTimelineExpandEntryId(expandEntryId ?? id);
           setTimelineTargetSignal((current) => current + 1);
         }}
+        onSaveLegGeometry={saveLegGeometry}
       />
 
       <div className="map-button-row" aria-label="Map controls">
@@ -989,11 +1106,13 @@ function App() {
 
               {activeAnalysisPanel === "people" && (
                 <PeopleExplorerPanel
+                  isAdmin={isAdmin}
                   query={peopleExplorerQuery}
                   selectedIndex={peopleExplorerSelectedIndex}
                   stories={peopleStories}
                   onClose={closeAnalysisPanel}
                   onFocusStory={focusPeopleStory}
+                  onToggleFavorite={toggleLocationFavorite}
                   onQueryChange={(nextQuery) => {
                     setPeopleExplorerQuery(nextQuery);
                     setPeopleExplorerSelectedIndex(-1);
@@ -1080,10 +1199,16 @@ function App() {
                 }))
               }
               onTimelinePositionChange={setTimelineMapPosition}
+              onToggleFavorite={toggleLocationFavorite}
               onEditLocation={(id, form) => {
                 if (!isAdmin) return;
+                setEditableLeg(null);
                 setEditingLocationId(id);
                 setLocationForm(form);
+              }}
+              onEditLeg={(feature) => {
+                if (!isAdmin) return;
+                startLegGeometryEdit(feature);
               }}
             />
           </section>

@@ -4,7 +4,7 @@ import maplibregl, {
   Map as MapLibreMap,
 } from "maplibre-gl";
 import "maplibre-gl/dist/maplibre-gl.css";
-import { CalendarDays, MapPin, MapPinPlus, Route, X } from "lucide-react";
+import { CalendarDays, Check, MapPin, MapPinPlus, Route, X } from "lucide-react";
 import {
   freeTransportModes,
   paidSleepCategories,
@@ -13,10 +13,12 @@ import {
   globeSky,
   IMAGERY_MAP_STYLE,
   type MapBasemap,
+  API_BASE_URL,
   MAP_STYLE_URL,
 } from "../constants";
 import type {
   FeatureCollection,
+  EditableLeg,
   LocationFormState,
   TimelineMapPosition,
 } from "../types";
@@ -51,9 +53,13 @@ type TravelMapProps = {
   selectedSleepCostGroup: "free" | "paid" | null;
   isSleepLayerVisible: boolean;
   basemap: MapBasemap;
+  editableLeg: EditableLeg | null;
+  isSavingLegGeometry: boolean;
   onCancelPlacingLocation: () => void;
+  onCancelLegGeometryEdit: () => void;
   onMapError: (message: string) => void;
   onNewLocationForm: (form: LocationFormState) => void;
+  onSaveLegGeometry: (id: number, coordinates: [number, number][]) => void;
   onSelectTimelineEntry: (id: string, expandEntryId?: string) => void;
 };
 
@@ -71,10 +77,13 @@ const freeSleepValues = sleepCategoryOptions.filter(
 );
 const travelSourceIds = [
   "legs",
+  "detailed-legs",
   "flight-lines",
   "locations",
   "timeline-position",
   "draft-location",
+  "editable-leg",
+  "editable-leg-points",
 ] as const;
 
 const INITIAL_MAP_VIEW = {
@@ -87,21 +96,38 @@ const travelLayerIds = [
   "locations-waypoints",
   "legs-paid-shadow",
   "legs-paid-main",
+  "detailed-legs-paid-shadow",
+  "detailed-legs-paid-main",
   "legs-flights",
   "legs-free-shadow",
   "legs-free-main",
+  "detailed-legs-free-shadow",
+  "detailed-legs-free-main",
   "legs-flights-hit",
   "locations-main",
   "locations-hit",
   "timeline-position-pulse",
   "timeline-position",
   "draft-location",
+  "editable-leg-shadow",
+  "editable-leg-line",
+  "editable-leg-points",
 ] as const;
 const legMainLayerIds = ["legs-paid-main", "legs-free-main"] as const;
 const legShadowLayerIds = ["legs-paid-shadow", "legs-free-shadow"] as const;
+const detailedLegMainLayerIds = [
+  "detailed-legs-paid-main",
+  "detailed-legs-free-main",
+] as const;
+const detailedLegShadowLayerIds = [
+  "detailed-legs-paid-shadow",
+  "detailed-legs-free-shadow",
+] as const;
 const legRouteLayerIds = [
   ...legShadowLayerIds,
   ...legMainLayerIds,
+  ...detailedLegShadowLayerIds,
+  ...detailedLegMainLayerIds,
   "legs-flights",
   "legs-flights-hit",
 ] as const;
@@ -126,9 +152,21 @@ type FeatureChoiceDialog = {
   y: number;
 };
 
+type EditableLegPointProperties = {
+  index: number;
+};
+
 const featureChoiceMargin = 12;
 const featureChoicePreferredWidth = 280;
 const featureChoicePreferredMaxHeight = 320;
+const pointSnapRadiusPx = 18;
+const detailedLegsMinZoom = 9.5;
+const detailedLegsBboxPaddingRatio = 0.75;
+const detailedLegsFetchDelayMs = 350;
+const emptyFeatureCollection: FeatureCollection = {
+  type: "FeatureCollection",
+  features: [],
+};
 
 function preserveTravelLayers(
   previousStyle: maplibregl.StyleSpecification | undefined,
@@ -286,12 +324,129 @@ function buildVisibleFlightCollection(legs: FeatureCollection): FeatureCollectio
   };
 }
 
+function clamp(value: number, min: number, max: number) {
+  return Math.max(min, Math.min(max, value));
+}
+
+function paddedMapBbox(map: MapLibreMap) {
+  const bounds = map.getBounds();
+  const west = bounds.getWest();
+  const south = bounds.getSouth();
+  const east = bounds.getEast();
+  const north = bounds.getNorth();
+  const lngPadding = (east - west) * detailedLegsBboxPaddingRatio;
+  const latPadding = (north - south) * detailedLegsBboxPaddingRatio;
+
+  return [
+    clamp(west - lngPadding, -180, 180),
+    clamp(south - latPadding, -90, 90),
+    clamp(east + lngPadding, -180, 180),
+    clamp(north + latPadding, -90, 90),
+  ] as const;
+}
+
+function detailedLegsSimplifyForZoom(zoom: number) {
+  if (zoom >= 14) return null;
+  if (zoom >= 12) return "0.00003";
+  if (zoom >= 10.75) return "0.00008";
+  return "0.0002";
+}
+
 function getMapFocusOffset(): [number, number] {
   if (typeof window === "undefined") return [0, -70];
 
   if (window.matchMedia("(max-width: 560px)").matches) return [0, -92];
   if (window.matchMedia("(max-width: 900px)").matches) return [0, -84];
   return [0, -70];
+}
+
+function editableCoordinatesForLeg(
+  feature: GeoJSON.Feature<GeoJSON.Geometry, Record<string, unknown>>,
+): [number, number][] {
+  const geometry = feature.geometry;
+  const lines =
+    geometry?.type === "LineString"
+      ? [geometry.coordinates]
+      : geometry?.type === "MultiLineString"
+        ? geometry.coordinates
+        : [];
+
+  return lines
+    .flat()
+    .map((position) => normalizeLngLat(position))
+    .filter((position): position is [number, number] => Boolean(position));
+}
+
+function boundsForCoordinates(coordinates: [number, number][]) {
+  const [first, ...rest] = coordinates;
+  if (!first) return null;
+
+  const bounds = new maplibregl.LngLatBounds(first, first);
+  rest.forEach((coordinate) => bounds.extend(coordinate));
+  return bounds;
+}
+
+function closestPointOnSegment(
+  point: maplibregl.Point,
+  start: maplibregl.Point,
+  end: maplibregl.Point,
+) {
+  const segmentX = end.x - start.x;
+  const segmentY = end.y - start.y;
+  const lengthSquared = segmentX * segmentX + segmentY * segmentY;
+
+  if (lengthSquared === 0) {
+    return {
+      distance: Math.hypot(point.x - start.x, point.y - start.y),
+      x: start.x,
+      y: start.y,
+    };
+  }
+
+  const progress = Math.max(
+    0,
+    Math.min(
+      1,
+      ((point.x - start.x) * segmentX + (point.y - start.y) * segmentY) /
+        lengthSquared,
+    ),
+  );
+  const x = start.x + progress * segmentX;
+  const y = start.y + progress * segmentY;
+
+  return {
+    distance: Math.hypot(point.x - x, point.y - y),
+    x,
+    y,
+  };
+}
+
+function insertionPointForEditableLeg(
+  coordinates: [number, number][],
+  map: MapLibreMap,
+  point: maplibregl.Point,
+) {
+  return coordinates.reduce<{
+    coordinate: [number, number];
+    distance: number;
+    insertAt: number;
+  } | null>((closest, coordinate, index) => {
+    if (index === 0) return closest;
+
+    const start = map.project(coordinates[index - 1]);
+    const end = map.project(coordinate);
+    const projected = closestPointOnSegment(point, start, end);
+    if (projected.distance > 22 || (closest && closest.distance <= projected.distance)) {
+      return closest;
+    }
+
+    const lngLat = map.unproject([projected.x, projected.y]);
+    return {
+      coordinate: [lngLat.lng, lngLat.lat],
+      distance: projected.distance,
+      insertAt: index,
+    };
+  }, null);
 }
 
 export function TravelMap({
@@ -311,9 +466,13 @@ export function TravelMap({
   selectedSleepCostGroup,
   isSleepLayerVisible,
   basemap,
+  editableLeg,
+  isSavingLegGeometry,
   onCancelPlacingLocation,
+  onCancelLegGeometryEdit,
   onMapError,
   onNewLocationForm,
+  onSaveLegGeometry,
   onSelectTimelineEntry,
 }: TravelMapProps) {
   const mapContainerRef = useRef<HTMLDivElement | null>(null);
@@ -323,6 +482,9 @@ export function TravelMap({
   const [isMapReady, setIsMapReady] = useState(false);
   const [featureChoiceDialog, setFeatureChoiceDialog] =
     useState<FeatureChoiceDialog | null>(null);
+  const [editableLegCoordinates, setEditableLegCoordinates] = useState<
+    [number, number][]
+  >([]);
   const isMapLoading = !error && (isLoading || !isMapReady);
 
   const loadBasemapStyle = useCallback(
@@ -545,6 +707,54 @@ export function TravelMap({
       });
     }
 
+    if (!map.getSource("editable-leg")) {
+      map.addSource("editable-leg", {
+        type: "geojson",
+        data: emptyFeatureCollection,
+      });
+
+      map.addLayer({
+        id: "editable-leg-shadow",
+        type: "line",
+        source: "editable-leg",
+        paint: {
+          "line-color": "#12202b",
+          "line-opacity": 0.58,
+          "line-width": 9,
+        },
+      });
+
+      map.addLayer({
+        id: "editable-leg-line",
+        type: "line",
+        source: "editable-leg",
+        paint: {
+          "line-color": "#ff4d2d",
+          "line-opacity": 0.98,
+          "line-width": 5,
+        },
+      });
+    }
+
+    if (!map.getSource("editable-leg-points")) {
+      map.addSource("editable-leg-points", {
+        type: "geojson",
+        data: emptyFeatureCollection,
+      });
+
+      map.addLayer({
+        id: "editable-leg-points",
+        type: "circle",
+        source: "editable-leg-points",
+        paint: {
+          "circle-radius": 7,
+          "circle-color": "#ffffff",
+          "circle-stroke-color": "#ff4d2d",
+          "circle-stroke-width": 3,
+        },
+      });
+    }
+
     moveTravelLayersToTop(map);
   }, [isMapReady]);
 
@@ -600,6 +810,188 @@ export function TravelMap({
   }, [isMapReady, locationForm]);
 
   useEffect(() => {
+    if (!editableLeg) {
+      setEditableLegCoordinates([]);
+      return;
+    }
+
+    const coordinates = editableCoordinatesForLeg(editableLeg.feature);
+    setEditableLegCoordinates(coordinates);
+    setFeatureChoiceDialog(null);
+
+    const map = mapRef.current;
+    const bounds = boundsForCoordinates(coordinates);
+    if (!map || !isMapReady || !bounds) return;
+
+    map.fitBounds(bounds, {
+      duration: 850,
+      essential: true,
+      maxZoom: 13,
+      padding: {
+        bottom: 120,
+        left: 70,
+        right: 70,
+        top: 90,
+      },
+    });
+  }, [editableLeg, isMapReady]);
+
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map || !isMapReady) return;
+
+    const lineSource = map.getSource("editable-leg") as GeoJSONSource | undefined;
+    const pointSource = map.getSource("editable-leg-points") as
+      | GeoJSONSource
+      | undefined;
+    if (!lineSource || !pointSource) return;
+
+    const hasEditableLine = editableLeg && editableLegCoordinates.length >= 2;
+
+    lineSource.setData({
+      type: "FeatureCollection",
+      features: hasEditableLine
+        ? [
+            {
+              type: "Feature",
+              properties: {},
+              geometry: {
+                type: "LineString",
+                coordinates: editableLegCoordinates,
+              },
+            },
+          ]
+        : [],
+    });
+
+    pointSource.setData({
+      type: "FeatureCollection",
+      features: hasEditableLine
+        ? editableLegCoordinates.map((coordinates, index) => ({
+            type: "Feature",
+            properties: { index } satisfies EditableLegPointProperties,
+            geometry: {
+              type: "Point",
+              coordinates,
+            },
+          }))
+        : [],
+    });
+  }, [editableLeg, editableLegCoordinates, isMapReady]);
+
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map || !isMapReady || !editableLeg || !map.getLayer("editable-leg-points")) {
+      return;
+    }
+
+    let activePointIndex: number | null = null;
+    let shouldIgnoreNextLineClick = false;
+
+    const setPointer = () => {
+      map.getCanvas().style.cursor = "grab";
+    };
+    const setLinePointer = () => {
+      if (activePointIndex === null) map.getCanvas().style.cursor = "copy";
+    };
+    const clearPointer = () => {
+      if (activePointIndex === null) map.getCanvas().style.cursor = "";
+    };
+    const stopDragging = () => {
+      if (activePointIndex === null) return;
+      activePointIndex = null;
+      map.dragPan.enable();
+      map.getCanvas().style.cursor = "grab";
+    };
+    const startDragging = (
+      event: maplibregl.MapLayerMouseEvent | maplibregl.MapLayerTouchEvent,
+    ) => {
+      const feature = event.features?.[0];
+      const index = Number(feature?.properties?.index);
+      if (!Number.isInteger(index)) return;
+
+      event.preventDefault();
+      shouldIgnoreNextLineClick = true;
+      activePointIndex = index;
+      map.dragPan.disable();
+      map.getCanvas().style.cursor = "grabbing";
+    };
+    const movePoint = (
+      event: maplibregl.MapMouseEvent | maplibregl.MapTouchEvent,
+    ) => {
+      if (activePointIndex === null) return;
+
+      setEditableLegCoordinates((current) =>
+        current.map((coordinate, index) =>
+          index === activePointIndex
+            ? [event.lngLat.lng, event.lngLat.lat]
+            : coordinate,
+        ),
+      );
+    };
+    const insertPoint = (event: maplibregl.MapMouseEvent) => {
+      if (activePointIndex !== null) return;
+      if (shouldIgnoreNextLineClick) {
+        shouldIgnoreNextLineClick = false;
+        return;
+      }
+
+      const pointFeatures = map.queryRenderedFeatures(
+        [
+          [event.point.x - 10, event.point.y - 10],
+          [event.point.x + 10, event.point.y + 10],
+        ],
+        { layers: ["editable-leg-points"] },
+      );
+      if (pointFeatures.length > 0) return;
+
+      setEditableLegCoordinates((current) => {
+        const insertion = insertionPointForEditableLeg(current, map, event.point);
+        if (!insertion) return current;
+
+        return [
+          ...current.slice(0, insertion.insertAt),
+          insertion.coordinate,
+          ...current.slice(insertion.insertAt),
+        ];
+      });
+    };
+
+    map.on("mouseenter", "editable-leg-points", setPointer);
+    map.on("mouseleave", "editable-leg-points", clearPointer);
+    map.on("mouseenter", "editable-leg-line", setLinePointer);
+    map.on("mouseleave", "editable-leg-line", clearPointer);
+    map.on("mouseenter", "editable-leg-shadow", setLinePointer);
+    map.on("mouseleave", "editable-leg-shadow", clearPointer);
+    map.on("mousedown", "editable-leg-points", startDragging);
+    map.on("touchstart", "editable-leg-points", startDragging);
+    map.on("click", insertPoint);
+    map.on("mousemove", movePoint);
+    map.on("touchmove", movePoint);
+    map.on("mouseup", stopDragging);
+    map.on("touchend", stopDragging);
+    map.on("touchcancel", stopDragging);
+
+    return () => {
+      map.off("mouseenter", "editable-leg-points", setPointer);
+      map.off("mouseleave", "editable-leg-points", clearPointer);
+      map.off("mouseenter", "editable-leg-line", setLinePointer);
+      map.off("mouseleave", "editable-leg-line", clearPointer);
+      map.off("mouseenter", "editable-leg-shadow", setLinePointer);
+      map.off("mouseleave", "editable-leg-shadow", clearPointer);
+      map.off("mousedown", "editable-leg-points", startDragging);
+      map.off("touchstart", "editable-leg-points", startDragging);
+      map.off("click", insertPoint);
+      map.off("mousemove", movePoint);
+      map.off("touchmove", movePoint);
+      map.off("mouseup", stopDragging);
+      map.off("touchend", stopDragging);
+      map.off("touchcancel", stopDragging);
+      if (activePointIndex !== null) map.dragPan.enable();
+    };
+  }, [editableLeg, isMapReady]);
+
+  useEffect(() => {
     const map = mapRef.current;
     if (!map || !isMapReady || !focusedLocation) return;
 
@@ -631,9 +1023,55 @@ export function TravelMap({
     const previousCursor = canvas.style.cursor;
     canvas.style.cursor = "default";
 
+    const snappedVisibleLocationCoordinates = (
+      event: maplibregl.MapMouseEvent,
+    ): [number, number] | null => {
+      if (!map.getLayer("locations-hit")) return null;
+
+      const visibleLocationFeatures = map.queryRenderedFeatures(
+        [
+          [event.point.x - pointSnapRadiusPx, event.point.y - pointSnapRadiusPx],
+          [event.point.x + pointSnapRadiusPx, event.point.y + pointSnapRadiusPx],
+        ],
+        { layers: ["locations-hit"] },
+      );
+
+      const nearest = visibleLocationFeatures.reduce<{
+        coordinates: [number, number];
+        distance: number;
+      } | null>((closest, feature) => {
+        if (feature.geometry.type !== "Point") return closest;
+
+        const coordinates = normalizeLngLat(feature.geometry.coordinates);
+        if (!coordinates) return closest;
+
+        const point = map.project(coordinates);
+        const distance = Math.hypot(
+          point.x - event.point.x,
+          point.y - event.point.y,
+        );
+
+        if (distance > pointSnapRadiusPx || (closest && closest.distance <= distance)) {
+          return closest;
+        }
+
+        return {
+          coordinates: [coordinates[0], coordinates[1]],
+          distance,
+        };
+      }, null);
+
+      return nearest?.coordinates ?? null;
+    };
+
     const handleClick = (event: maplibregl.MapMouseEvent) => {
+      const [lng, lat] = snappedVisibleLocationCoordinates(event) ?? [
+        event.lngLat.lng,
+        event.lngLat.lat,
+      ];
+
       onNewLocationForm(
-        buildEmptyLocationForm(event.lngLat.lng, event.lngLat.lat, locations),
+        buildEmptyLocationForm(lng, lat, locations),
       );
     };
 
@@ -664,6 +1102,11 @@ export function TravelMap({
         map.addSource("legs", {
           type: "geojson",
           data: legs,
+        });
+
+        map.addSource("detailed-legs", {
+          type: "geojson",
+          data: emptyFeatureCollection,
         });
 
         map.addSource("flight-lines", {
@@ -703,6 +1146,7 @@ export function TravelMap({
             ["!=", ["get", "transport"], "plane"],
             ["in", ["get", "transport"], ["literal", paidTransportValues]],
           ],
+          maxzoom: detailedLegsMinZoom,
           paint: {
             "line-color": "#12202b",
             "line-opacity": 0.42,
@@ -719,6 +1163,7 @@ export function TravelMap({
             ["!=", ["get", "transport"], "plane"],
             ["in", ["get", "transport"], ["literal", paidTransportValues]],
           ],
+          maxzoom: detailedLegsMinZoom,
           paint: {
             "line-color": buildTransportColorExpression(),
             "line-opacity": 0.92,
@@ -732,6 +1177,48 @@ export function TravelMap({
               4.8,
               10,
               6,
+            ],
+          },
+        });
+
+        map.addLayer({
+          id: "detailed-legs-paid-shadow",
+          type: "line",
+          source: "detailed-legs",
+          filter: [
+            "all",
+            ["!=", ["get", "transport"], "plane"],
+            ["in", ["get", "transport"], ["literal", paidTransportValues]],
+          ],
+          minzoom: detailedLegsMinZoom,
+          paint: {
+            "line-color": "#12202b",
+            "line-opacity": 0.46,
+            "line-width": 5.8,
+          },
+        });
+
+        map.addLayer({
+          id: "detailed-legs-paid-main",
+          type: "line",
+          source: "detailed-legs",
+          filter: [
+            "all",
+            ["!=", ["get", "transport"], "plane"],
+            ["in", ["get", "transport"], ["literal", paidTransportValues]],
+          ],
+          minzoom: detailedLegsMinZoom,
+          paint: {
+            "line-color": buildTransportColorExpression(),
+            "line-opacity": 0.96,
+            "line-width": [
+              "interpolate",
+              ["linear"],
+              ["zoom"],
+              detailedLegsMinZoom,
+              5.4,
+              14,
+              7,
             ],
           },
         });
@@ -767,6 +1254,7 @@ export function TravelMap({
             ["!=", ["get", "transport"], "plane"],
             ["in", ["get", "transport"], ["literal", freeTransportValues]],
           ],
+          maxzoom: detailedLegsMinZoom,
           paint: {
             "line-color": "#12202b",
             "line-opacity": 0.42,
@@ -783,6 +1271,7 @@ export function TravelMap({
             ["!=", ["get", "transport"], "plane"],
             ["in", ["get", "transport"], ["literal", freeTransportValues]],
           ],
+          maxzoom: detailedLegsMinZoom,
           paint: {
             "line-color": buildTransportColorExpression(),
             "line-opacity": 0.92,
@@ -801,6 +1290,48 @@ export function TravelMap({
         });
 
         map.addLayer({
+          id: "detailed-legs-free-shadow",
+          type: "line",
+          source: "detailed-legs",
+          filter: [
+            "all",
+            ["!=", ["get", "transport"], "plane"],
+            ["in", ["get", "transport"], ["literal", freeTransportValues]],
+          ],
+          minzoom: detailedLegsMinZoom,
+          paint: {
+            "line-color": "#12202b",
+            "line-opacity": 0.46,
+            "line-width": 5.8,
+          },
+        });
+
+        map.addLayer({
+          id: "detailed-legs-free-main",
+          type: "line",
+          source: "detailed-legs",
+          filter: [
+            "all",
+            ["!=", ["get", "transport"], "plane"],
+            ["in", ["get", "transport"], ["literal", freeTransportValues]],
+          ],
+          minzoom: detailedLegsMinZoom,
+          paint: {
+            "line-color": buildTransportColorExpression(),
+            "line-opacity": 0.96,
+            "line-width": [
+              "interpolate",
+              ["linear"],
+              ["zoom"],
+              detailedLegsMinZoom,
+              5.4,
+              14,
+              7,
+            ],
+          },
+        });
+
+        map.addLayer({
           id: "legs-flights-hit",
           type: "line",
           source: "legs",
@@ -813,6 +1344,12 @@ export function TravelMap({
         });
       } else {
         (map.getSource("legs") as GeoJSONSource).setData(legs);
+        if (!map.getSource("detailed-legs")) {
+          map.addSource("detailed-legs", {
+            type: "geojson",
+            data: emptyFeatureCollection,
+          });
+        }
         if (!map.getSource("flight-lines")) {
           map.addSource("flight-lines", {
             type: "geojson",
@@ -888,6 +1425,91 @@ export function TravelMap({
 
     addTravelLayers();
   }, [isMapReady, locations, legs]);
+
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map || !isMapReady || !legs) return;
+
+    let fetchTimeout: number | undefined;
+    let abortController: AbortController | null = null;
+    let lastRequestKey = "";
+
+    const setDetailedLegs = (data: FeatureCollection) => {
+      const source = map.getSource("detailed-legs") as GeoJSONSource | undefined;
+      source?.setData(data);
+    };
+
+    const clearDetailedLegs = () => {
+      abortController?.abort();
+      abortController = null;
+      lastRequestKey = "";
+      setDetailedLegs(emptyFeatureCollection);
+    };
+
+    const loadDetailedLegs = () => {
+      window.clearTimeout(fetchTimeout);
+
+      fetchTimeout = window.setTimeout(async () => {
+        if (!map.getSource("detailed-legs")) return;
+
+        if (map.getZoom() < detailedLegsMinZoom) {
+          clearDetailedLegs();
+          return;
+        }
+
+        const bbox = paddedMapBbox(map);
+        if (bbox[0] >= bbox[2] || bbox[1] >= bbox[3]) {
+          clearDetailedLegs();
+          return;
+        }
+
+        const bboxKey = bbox.map((value) => value.toFixed(5)).join(",");
+        const simplify = detailedLegsSimplifyForZoom(map.getZoom());
+        const requestKey = `${bboxKey}|${simplify ?? "full"}`;
+        if (requestKey === lastRequestKey) return;
+        lastRequestKey = requestKey;
+
+        abortController?.abort();
+        abortController = new AbortController();
+        const currentController = abortController;
+
+        const params = new URLSearchParams({
+          bbox: bboxKey,
+          clip_to_bbox: "true",
+          exclude_transport: "plane",
+        });
+        if (simplify !== null) {
+          params.set("simplify", simplify);
+        }
+
+        try {
+          const response = await fetch(`${API_BASE_URL}/legs?${params}`, {
+            signal: currentController.signal,
+          });
+          if (!response.ok) throw new Error("Detailed legs request failed.");
+
+          const detailedLegs = (await response.json()) as FeatureCollection;
+          if (!currentController.signal.aborted) {
+            setDetailedLegs(detailedLegs);
+          }
+        } catch (caught) {
+          if (caught instanceof DOMException && caught.name === "AbortError") {
+            return;
+          }
+          console.error(caught);
+        }
+      }, detailedLegsFetchDelayMs);
+    };
+
+    loadDetailedLegs();
+    map.on("moveend", loadDetailedLegs);
+
+    return () => {
+      window.clearTimeout(fetchTimeout);
+      abortController?.abort();
+      map.off("moveend", loadDetailedLegs);
+    };
+  }, [isMapReady, legs]);
 
   useEffect(() => {
     const map = mapRef.current;
@@ -1129,6 +1751,7 @@ export function TravelMap({
     };
 
     const selectMapFeature = (event: maplibregl.MapMouseEvent) => {
+      if (editableLeg) return;
       if (isPlacingLocation) return;
 
       const nearbyLocations = currentLocations.features.reduce<
@@ -1252,6 +1875,10 @@ export function TravelMap({
       });
     };
     const setPointer = () => {
+      if (editableLeg) {
+        map.getCanvas().style.cursor = "";
+        return;
+      }
       if (isPlacingLocation) {
         map.getCanvas().style.cursor = "default";
         return;
@@ -1260,6 +1887,10 @@ export function TravelMap({
       map.getCanvas().style.cursor = "pointer";
     };
     const clearPointer = () => {
+      if (editableLeg) {
+        map.getCanvas().style.cursor = "";
+        return;
+      }
       map.getCanvas().style.cursor = isPlacingLocation ? "default" : "";
     };
 
@@ -1285,6 +1916,7 @@ export function TravelMap({
     };
   }, [
     isMapReady,
+    editableLeg,
     isPlacingLocation,
     isSleepLayerVisible,
     isTransportLayerVisible,
@@ -1360,8 +1992,12 @@ export function TravelMap({
     > = {
       "legs-paid-shadow": combineFilter(paidFilterClauses),
       "legs-paid-main": combineFilter(paidFilterClauses),
+      "detailed-legs-paid-shadow": combineFilter(paidFilterClauses),
+      "detailed-legs-paid-main": combineFilter(paidFilterClauses),
       "legs-free-shadow": combineFilter(freeFilterClauses),
       "legs-free-main": combineFilter(freeFilterClauses),
+      "detailed-legs-free-shadow": combineFilter(freeFilterClauses),
+      "detailed-legs-free-main": combineFilter(freeFilterClauses),
       "legs-flights": combineFilter(flightFilterClauses),
       "legs-flights-hit": combineFilter(flightFilterClauses),
     };
@@ -1500,6 +2136,30 @@ export function TravelMap({
           <span>Click the map to place the new point.</span>
           <button type="button" onClick={onCancelPlacingLocation}>
             <X size={15} />
+          </button>
+        </div>
+      )}
+      {editableLeg && (
+        <div className="leg-edit-panel">
+          <Route size={18} />
+          <span>Click a segment to add a point, then drag points to reshape.</span>
+          <button
+            type="button"
+            className="leg-edit-cancel"
+            onClick={onCancelLegGeometryEdit}
+            disabled={isSavingLegGeometry}
+          >
+            <X size={15} />
+            Cancel
+          </button>
+          <button
+            type="button"
+            className="leg-edit-save"
+            onClick={() => onSaveLegGeometry(editableLeg.id, editableLegCoordinates)}
+            disabled={isSavingLegGeometry || editableLegCoordinates.length < 2}
+          >
+            <Check size={15} />
+            {isSavingLegGeometry ? "Saving" : "Save"}
           </button>
         </div>
       )}

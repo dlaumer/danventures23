@@ -19,7 +19,9 @@ export type PeopleStory = {
   coordinates: { lat: number; lng: number } | null;
   date: Date | null;
   description: string;
+  favorite: boolean;
   id: string;
+  locationId: number | null;
   locationName: string;
   people: string;
   randomOrder: number;
@@ -49,6 +51,7 @@ export type LocationFormState = {
   pictures: LocationPicture[];
   travelcost: string;
   sleepcost: string;
+  favorite: boolean;
 };
 
 export type TimelineLocationEntry = {
@@ -73,6 +76,12 @@ export type TimelineMapPosition = {
   entryId: string;
   kind: "leg" | "location";
   routeProgress: number;
+};
+
+export type EditableLeg = {
+  feature: GeoJSON.Feature<GeoJSON.Geometry, Record<string, unknown>>;
+  id: number;
+  signal: number;
 };
 
 export type SelectedChartPart = {

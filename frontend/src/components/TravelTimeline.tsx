@@ -107,11 +107,23 @@ function buildTimelineEntries(
       };
     }) ?? [];
 
+  const tieKeyForEntry = (entry: TimelineLegEntry | TimelineLocationEntry) => {
+    const rawKey =
+      entry.kind === "leg"
+        ? propertyString(entry.feature.properties, "to_key")
+        : featureRecordId(entry.feature);
+    const key = Number(rawKey);
+    return Number.isFinite(key) ? key : -Infinity;
+  };
+
   return [...locationEntries, ...legEntries].sort((a, b) => {
     const aTime = a.date?.getTime() ?? 0;
     const bTime = b.date?.getTime() ?? 0;
 
     if (aTime !== bTime) return bTime - aTime;
+    const aTieKey = tieKeyForEntry(a);
+    const bTieKey = tieKeyForEntry(b);
+    if (aTieKey !== bTieKey) return bTieKey - aTieKey;
     if (a.kind !== b.kind) return a.kind === "location" ? -1 : 1;
     return a.id.localeCompare(b.id);
   });

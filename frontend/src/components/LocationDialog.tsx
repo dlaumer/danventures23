@@ -1,6 +1,10 @@
 import type { ChangeEvent, FormEvent } from "react";
 import { Crosshair, Trash2, X } from "lucide-react";
-import { sleepCategoryOptions, transportOptions } from "../constants";
+import {
+  paidSleepCategories,
+  sleepCategoryOptions,
+  transportOptions,
+} from "../constants";
 import type { FeatureCollection, LocationFormState } from "../types";
 import {
   isFreeTransport,
@@ -60,9 +64,7 @@ export function LocationDialog({
   const isPaidTransport = !isFreeTransport(locationForm.transport);
   const isPaidSleep =
     locationForm.pointtype === "sleep" &&
-    ["airbnb", "hostel", "renting", "campingPaid"].includes(
-      locationForm.sleepcategory,
-    );
+    paidSleepCategories.has(locationForm.sleepcategory);
   const updatePictures = async (event: ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(event.target.files ?? []).filter((file) =>
       file.type.startsWith("image/"),

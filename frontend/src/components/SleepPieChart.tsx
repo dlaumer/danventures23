@@ -1,6 +1,7 @@
 import type { CSSProperties } from "react";
 import {
   BedDouble,
+  TrainFront,
   HandHeart,
   Home,
   Sailboat,
@@ -44,6 +45,8 @@ function sleepIconFor(value: string | null) {
       return <Tent size={size} />;
     case "boat":
       return <Sailboat size={size} />;
+    case "nightbusNighttrain":
+      return <TrainFront size={size} />;
     case "house":
     case "airbnb":
     case "renting":

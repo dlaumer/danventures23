@@ -35,7 +35,7 @@ export function sleepCategoryLabel(value: string | null) {
 
 export function optionLabel(value: string) {
   if (value === "campingPaid") return "paid camping";
-  if (value === "nightbusNighttrain") return "Nightbus/Nighttrain";
+  if (value === "nightbusNighttrain") return "Overnight transport";
   if (value === "rentalCar") return "rental car";
   return value.replace(/([a-z])([A-Z])/g, "$1 $2");
 }

@@ -28,6 +28,7 @@ import type {
   FeatureCollection,
   EditableLeg,
   LocationFormState,
+  SleepCountryAssignments,
   TimelineMapPosition,
 } from "../types";
 import {
@@ -59,7 +60,9 @@ type TravelMapProps = {
   selectedTransportCostGroup: "free" | "paid" | null;
   isTransportLayerVisible: boolean;
   selectedSleepCategory: string | null;
+  selectedSleepCountry: string | null;
   selectedSleepCostGroup: "free" | "paid" | null;
+  sleepCountryAssignments: SleepCountryAssignments;
   isSleepLayerVisible: boolean;
   basemap: MapBasemap;
   editableLeg: EditableLeg | null;
@@ -475,7 +478,9 @@ export function TravelMap({
   selectedTransportCostGroup,
   isTransportLayerVisible,
   selectedSleepCategory,
+  selectedSleepCountry,
   selectedSleepCostGroup,
+  sleepCountryAssignments,
   isSleepLayerVisible,
   basemap,
   editableLeg,
@@ -500,6 +505,18 @@ export function TravelMap({
     [number, number][]
   >([]);
   const isMapLoading = !error && (isLoading || !isMapReady);
+  const selectedCountrySleepLocationIds =
+    selectedSleepCountry && locations
+      ? locations.features.flatMap((feature) => {
+          const id = featureRecordId(feature);
+          const pointType = propertyString(feature.properties, "pointtype");
+          return id &&
+            pointType === "sleep" &&
+            sleepCountryAssignments.get(id) === selectedSleepCountry
+            ? [id]
+            : [];
+        })
+      : null;
 
   const loadBasemapStyle = useCallback(
     async (nextBasemap: MapBasemap): Promise<maplibregl.StyleSpecification> => {
@@ -829,25 +846,66 @@ export function TravelMap({
       return;
     }
 
-    const coordinates = editableCoordinatesForLeg(editableLeg.feature);
-    setEditableLegCoordinates(coordinates);
+    const activeEditableLeg = editableLeg;
+    let isMounted = true;
+    const abortController = new AbortController();
+    const useFeatureForEdit = (
+      feature: GeoJSON.Feature<GeoJSON.Geometry, Record<string, unknown>>,
+    ) => {
+      const coordinates = editableCoordinatesForLeg(feature);
+      setEditableLegCoordinates(coordinates);
+
+      const map = mapRef.current;
+      const bounds = boundsForCoordinates(coordinates);
+      if (!map || !isMapReady || !bounds) return;
+
+      map.fitBounds(bounds, {
+        duration: 850,
+        essential: true,
+        maxZoom: 13,
+        padding: {
+          bottom: 120,
+          left: 70,
+          right: 70,
+          top: 90,
+        },
+      });
+    };
+
     setFeatureChoiceDialog(null);
+    setEditableLegCoordinates([]);
 
-    const map = mapRef.current;
-    const bounds = boundsForCoordinates(coordinates);
-    if (!map || !isMapReady || !bounds) return;
+    async function loadEditableLeg() {
+      try {
+        const response = await fetch(
+          `${API_BASE_URL}/legs/${activeEditableLeg.id}`,
+          {
+            signal: abortController.signal,
+          },
+        );
+        if (!response.ok) throw new Error("Full leg request failed.");
 
-    map.fitBounds(bounds, {
-      duration: 850,
-      essential: true,
-      maxZoom: 13,
-      padding: {
-        bottom: 120,
-        left: 70,
-        right: 70,
-        top: 90,
-      },
-    });
+        const fullLeg = (await response.json()) as GeoJSON.Feature<
+          GeoJSON.Geometry,
+          Record<string, unknown>
+        >;
+        if (!isMounted || abortController.signal.aborted) return;
+
+        useFeatureForEdit(fullLeg);
+      } catch (caught) {
+        if (caught instanceof DOMException && caught.name === "AbortError") {
+          return;
+        }
+        if (isMounted) useFeatureForEdit(activeEditableLeg.feature);
+      }
+    }
+
+    loadEditableLeg();
+
+    return () => {
+      isMounted = false;
+      abortController.abort();
+    };
   }, [editableLeg, isMapReady]);
 
   useEffect(() => {
@@ -1663,7 +1721,15 @@ export function TravelMap({
       return true;
     };
     const isVisibleLocation = (feature: GeoJSON.Feature) => {
+      const recordId = featureRecordId(feature);
       const pointType = propertyString(feature.properties, "pointtype");
+      if (
+        selectedCountrySleepLocationIds &&
+        pointType === "sleep" &&
+        (!recordId || !selectedCountrySleepLocationIds.includes(recordId))
+      ) {
+        return false;
+      }
       if (pointType === "waypoint") {
         const transport = propertyString(feature.properties, "transport");
         return isVisibleTransport(transport);
@@ -1976,6 +2042,7 @@ export function TravelMap({
     legs,
     onSelectTimelineEntry,
     selectedSleepCategory,
+    selectedCountrySleepLocationIds,
     selectedSleepCostGroup,
     selectedTransport,
     selectedTransportCostGroup,
@@ -2035,9 +2102,11 @@ export function TravelMap({
         ...baseClauses,
         ...(activeFilter ? [activeFilter] : []),
       ] as maplibregl.FilterSpecification;
-    const waypointFilter = combineFilter([
+    const waypointFilter = [
+      "all",
       ["==", ["get", "pointtype"], "waypoint"],
-    ]);
+      ...(activeFilter ? [activeFilter] : []),
+    ] as maplibregl.FilterSpecification;
 
     const layerFilters: Partial<
       Record<(typeof legRouteLayerIds)[number], maplibregl.FilterSpecification>
@@ -2065,7 +2134,11 @@ export function TravelMap({
       map.setLayoutProperty("locations-waypoints", "visibility", visibility);
       map.setFilter("locations-waypoints", waypointFilter);
     }
-  }, [isTransportLayerVisible, selectedTransport, selectedTransportCostGroup]);
+  }, [
+    isTransportLayerVisible,
+    selectedTransport,
+    selectedTransportCostGroup,
+  ]);
 
   useEffect(() => {
     const map = mapRef.current;
@@ -2075,6 +2148,14 @@ export function TravelMap({
     const sleepFilterClauses: maplibregl.ExpressionSpecification[] = [
       ["==", ["get", "pointtype"], "sleep"],
     ];
+    const countrySleepFilter =
+      selectedCountrySleepLocationIds === null
+        ? null
+        : ([
+            "in",
+            ["to-string", ["get", "id"]],
+            ["literal", selectedCountrySleepLocationIds],
+          ] as maplibregl.ExpressionSpecification);
 
     if (selectedSleepCategory) {
       sleepFilterClauses.push([
@@ -2095,6 +2176,7 @@ export function TravelMap({
         ["literal", paidSleepValues],
       ]);
     }
+    if (countrySleepFilter) sleepFilterClauses.push(countrySleepFilter);
 
     const sleepFilterExpression = [
       "all",
@@ -2134,7 +2216,6 @@ export function TravelMap({
             ["literal", paidTransportValues],
           ]);
         }
-
         visiblePointFilters.push([
           "all",
           ...waypointFilterClauses,
@@ -2154,6 +2235,7 @@ export function TravelMap({
   }, [
     isSleepLayerVisible,
     isTransportLayerVisible,
+    selectedCountrySleepLocationIds,
     selectedSleepCategory,
     selectedSleepCostGroup,
     selectedTransport,

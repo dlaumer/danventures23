@@ -135,7 +135,7 @@ const manualRules = [
   },
 ];
 
-const locations = readJson(inputPath);
+const locations = await readJsonInput(inputPath);
 const countries = await fetchJson(COUNTRY_GEOJSON_URL);
 const indexedCountries = countries.features.map((feature) => ({
   feature,
@@ -351,6 +351,11 @@ function inBox(point, { minLng, maxLng, minLat, maxLat }) {
     point[1] >= minLat &&
     point[1] <= maxLat
   );
+}
+
+async function readJsonInput(input) {
+  if (/^https?:\/\//i.test(input)) return fetchJson(input);
+  return readJson(input);
 }
 
 function readJson(filePath) {

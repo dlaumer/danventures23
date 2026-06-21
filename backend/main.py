@@ -903,6 +903,28 @@ def legs(
         return conn.execute(query, params).scalar_one()
 
 
+@app.get("/legs/{leg_id}")
+def leg(leg_id: int):
+    query = text("""
+        select jsonb_build_object(
+            'type', 'Feature',
+            'id', id,
+            'geometry', ST_AsGeoJSON(geom)::jsonb,
+            'properties', to_jsonb(feature) - 'geom'
+        )
+        from public.legs as feature
+        where id = :id
+    """)
+
+    with engine.connect() as conn:
+        feature = conn.execute(query, {"id": leg_id}).scalar_one_or_none()
+
+    if feature is None:
+        raise HTTPException(status_code=404, detail="Leg not found")
+
+    return feature
+
+
 @app.put("/legs/{leg_id}/geometry")
 def update_leg_geometry(leg_id: int, geometry: LegGeometryIn):
     geojson = {

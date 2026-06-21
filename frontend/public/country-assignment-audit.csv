@@ -1,0 +1,527 @@
+id,travel_date,name,sleepcategory,nights,lng,lat,country,method,reason
+7,"Wed, 27 Sep 2023 22:00:05 GMT",Aix-en-Provence,couchsurfing,1,5.494698116,43.53963761,France,auto,Matched source country polygon
+8,"Tue, 26 Sep 2023 22:00:05 GMT",Albisola,camping,1,8.499490104,44.323763643,Italy,auto,Matched source country polygon
+13,"Thu, 28 Sep 2023 22:00:05 GMT",Montpellier,couchsurfing,3,3.878887683,43.60943627,France,auto,Matched source country polygon
+18,"Sun, 01 Oct 2023 22:00:05 GMT",Molins de Rei,camping,1,2.024876254,41.421078123,Spain,auto,Matched source country polygon
+24,"Mon, 02 Oct 2023 22:00:05 GMT",Tarragona beach,camping,1,1.328422301,41.128995968,Spain,auto,Matched source country polygon
+35,"Tue, 03 Oct 2023 22:00:12 GMT",Valencia,friends,8,-0.370055396,39.488928784,Spain,auto,Matched source country polygon
+42,"Wed, 11 Oct 2023 22:00:07 GMT",San Vincente,house,1,-0.519743251,38.39612397,Spain,auto,Matched source country polygon
+50,"Thu, 12 Oct 2023 22:00:08 GMT",Olula del Rio,house,1,-2.301289352,37.362832586,Spain,auto,Matched source country polygon
+53,"Fri, 13 Oct 2023 22:00:04 GMT",Malaga,camping,1,-4.412836137,36.723006366,Spain,auto,Matched source country polygon
+60,"Sat, 14 Oct 2023 22:00:09 GMT",Gibraltar,couchsurfing,1,-5.348984436,36.153290043,Spain,auto,Matched source country polygon
+61,"Mon, 16 Oct 2023 15:50:21 GMT",Gibraltar,couchsurfing,4,-5.354105222,36.13957853,Gibraltar,auto,Matched source country polygon
+62,"Fri, 20 Oct 2023 15:54:54 GMT",The Jungle,camping,2,-5.353116691,36.156709902,Spain,auto,Matched source country polygon
+65,"Sat, 28 Oct 2023 22:00:06 GMT",Ceuta,boat,2,-5.313558581,35.88963049,Spain,auto,Matched source country polygon
+66,"Sat, 21 Oct 2023 22:00:00 GMT",La Esteponera,hostel,1,-5.350929553,36.163228987,Spain,auto,Matched source country polygon
+67,"Sun, 22 Oct 2023 22:00:00 GMT",The Jungle,camping,6,-5.353116691,36.156709901,Spain,auto,Matched source country polygon
+69,"Mon, 30 Oct 2023 23:00:03 GMT",Tetouan,airbnb,2,-5.374305303,35.570379204,Morocco,auto,Matched source country polygon
+71,"Wed, 01 Nov 2023 23:00:06 GMT",Ceuta,boat,4,-5.313558581,35.88963049,Spain,auto,Matched source country polygon
+72,"Tue, 07 Nov 2023 11:00:00 GMT","Ceuta - La Graciosa, Day 1",boat,1,-5.665811026,35.838699645,At sea,manual,Boat transit night outside a country polygon
+73,"Wed, 08 Nov 2023 11:00:00 GMT","Ceuta - La Graciosa, Day 2",boat,1,-7.916601902,34.621735316,At sea,manual,Boat transit night outside a country polygon
+74,"Thu, 09 Nov 2023 11:00:00 GMT","Ceuta - La Graciosa, Day 3",boat,1,-9.824369355,33.211496211,At sea,manual,Boat transit night outside a country polygon
+75,"Fri, 10 Nov 2023 17:39:58 GMT","Ceuta - La Graciosa, Day 4",boat,1,-11.439693688,31.444473882,At sea,manual,Boat transit night outside a country polygon
+76,"Sat, 11 Nov 2023 11:00:00 GMT","Ceuta - La Graciosa, Day 5",boat,1,-13.249622752,29.506171962,At sea,manual,Boat transit night outside a country polygon
+77,"Sat, 11 Nov 2023 15:50:00 GMT",La Graciosa,boat,2,-13.529713984,29.21749391,Spain,manual,Canary Islands / Spanish island points not covered by source polygons
+80,"Mon, 13 Nov 2023 23:00:01 GMT",Las Palmas,camping,4,-15.429077202,28.129162084,Spain,auto,Matched source country polygon
+83,"Fri, 17 Nov 2023 23:00:04 GMT",Maspalomas Dunes,camping,1,-15.583306111,27.745902684,Spain,auto,Matched source country polygon
+88,"Sat, 18 Nov 2023 23:00:06 GMT",Random beach,camping,1,-15.740074967,27.802188592,Spain,manual,Canary Islands / Spanish island points not covered by source polygons
+89,"Sun, 19 Nov 2023 23:00:00 GMT",Playa de Tauro,camping,2,-15.727098299,27.794832496,Spain,auto,Matched source country polygon
+90,"Tue, 21 Nov 2023 23:20:01 GMT",San Sebastian,camping,2,-17.114033775,28.086317726,Spain,auto,Matched source country polygon
+92,"Thu, 23 Nov 2023 23:00:02 GMT",Playa Ingles,camping,6,-17.347268543,28.100506726,Spain,manual,Canary Islands / Spanish island points not covered by source polygons
+98,"Wed, 29 Nov 2023 23:00:07 GMT",Vallehermoso,camping,1,-17.264700784,28.178985168,Spain,auto,Matched source country polygon
+99,"Thu, 30 Nov 2023 23:00:00 GMT",Los Chapines,camping,1,-17.262634141,28.165009638,Spain,auto,Matched source country polygon
+103,"Fri, 01 Dec 2023 23:00:04 GMT",San Sebastian,camping,2,-17.114033775,28.086317726,Spain,auto,Matched source country polygon
+108,"Sun, 03 Dec 2023 23:00:03 GMT",Los Christianos Beach,camping,2,-16.709672869,28.042634184,Spain,auto,Matched source country polygon
+113,"Tue, 05 Dec 2023 23:00:05 GMT",Las Galettas Beach,camping,1,-16.663040749,28.008809866,Spain,auto,Matched source country polygon
+114,"Wed, 06 Dec 2023 23:00:00 GMT",Los Christianos Beach,camping,3,-16.709672869,28.042634184,Spain,auto,Matched source country polygon
+116,"Sat, 09 Dec 2023 23:00:01 GMT",Las Lajas,camping,2,-16.665191308,28.189898746,Spain,auto,Matched source country polygon
+118,"Mon, 11 Dec 2023 23:00:01 GMT",San Miguel,camping,1,-16.617234597,28.020222233,Spain,auto,Matched source country polygon
+123,"Tue, 12 Dec 2023 23:04:00 GMT",Coast of Tenerife,boat,1,-16.816446131,28.167228242,Spain,manual,Canary Islands / Spanish island points not covered by source polygons
+126,"Wed, 13 Dec 2023 23:02:00 GMT",Cave,camping,1,-16.76071556,28.105443925,Spain,manual,Canary Islands / Spanish island points not covered by source polygons
+131,"Thu, 14 Dec 2023 23:05:00 GMT",Playa Ingles,camping,1,-17.347268543,28.100506725,Spain,manual,Canary Islands / Spanish island points not covered by source polygons
+132,"Fri, 15 Dec 2023 23:00:00 GMT",Mirador de El Santo,camping,1,-17.323596911,28.132506632,Spain,auto,Matched source country polygon
+133,"Sat, 16 Dec 2023 23:00:00 GMT",Playa Ingles,camping,2,-17.347268543,28.100506725,Spain,manual,Canary Islands / Spanish island points not covered by source polygons
+135,"Mon, 18 Dec 2023 23:01:00 GMT",Hippie Cave,camping,1,-17.17948726,28.038176346,Spain,auto,Matched source country polygon
+138,"Tue, 19 Dec 2023 23:03:00 GMT",Los Christianos Beach,camping,1,-16.709672869,28.042634184,Spain,auto,Matched source country polygon
+143,"Wed, 20 Dec 2023 23:06:00 GMT",Cave,camping,5,-16.760715559,28.105443925,Spain,manual,Canary Islands / Spanish island points not covered by source polygons
+145,"Mon, 25 Dec 2023 23:01:00 GMT",Las Lajas,camping,1,-16.665191308,28.189898746,Spain,auto,Matched source country polygon
+147,"Tue, 26 Dec 2023 23:01:00 GMT",Playa Teresitas,camping,1,-16.183482518,28.510345323,Spain,manual,Canary Islands / Spanish island points not covered by source polygons
+148,"Wed, 27 Dec 2023 23:00:00 GMT",Playa Benijo,camping,2,-16.193450247,28.571907583,Spain,manual,Canary Islands / Spanish island points not covered by source polygons
+149,"Fri, 29 Dec 2023 23:00:00 GMT",El Medano,camping,1,-16.533692757,28.044143042,Spain,auto,Matched source country polygon
+151,"Sat, 30 Dec 2023 23:01:00 GMT",Cave,camping,2,-16.760715559,28.105443925,Spain,manual,Canary Islands / Spanish island points not covered by source polygons
+152,"Mon, 01 Jan 2024 23:00:00 GMT",Playa Teresitas,camping,15,-16.183482517,28.510345323,Spain,manual,Canary Islands / Spanish island points not covered by source polygons
+153,"Tue, 16 Jan 2024 23:00:00 GMT",SY Falkor,boat,11,-16.244091173,28.466829138,Spain,manual,Canary Islands / Spanish island points not covered by source polygons
+155,"Fri, 26 Jan 2024 23:01:00 GMT",SY Falkor,boat,19,-16.244091173,28.466829138,Spain,manual,Canary Islands / Spanish island points not covered by source polygons
+156,"Tue, 13 Feb 2024 23:00:00 GMT","Tenerife - Fuerteventura, Day 1",boat,1,-15.502927639,28.257746615,Spain,manual,Canary Islands / Spanish island points not covered by source polygons
+157,"Wed, 14 Feb 2024 23:00:00 GMT",Gran Tarajal,boat,1,-14.026606371,28.206766278,Spain,manual,Canary Islands / Spanish island points not covered by source polygons
+160,"Thu, 15 Feb 2024 23:03:00 GMT",Playa Solapa,camping,1,-14.165126981,28.364666825,Spain,auto,Matched source country polygon
+168,"Fri, 16 Feb 2024 23:09:00 GMT",Cotillo Beach,camping,1,-14.009123169,28.677863884,Spain,manual,Canary Islands / Spanish island points not covered by source polygons
+171,"Sat, 17 Feb 2024 23:03:00 GMT",Corralejo,camping,1,-13.872090796,28.74242846,Spain,auto,Matched source country polygon
+177,"Sun, 18 Feb 2024 23:08:00 GMT",Playa el Salmo,camping,1,-14.271616707,28.101995248,Spain,auto,Matched source country polygon
+178,"Mon, 19 Feb 2024 23:00:00 GMT",Yeremi's house,house,1,-14.116275233,28.238239715,Spain,auto,Matched source country polygon
+180,"Tue, 20 Feb 2024 23:01:00 GMT",Cave,camping,1,-14.187801799,28.338473816,Spain,manual,Canary Islands / Spanish island points not covered by source polygons
+181,"Wed, 21 Feb 2024 23:00:00 GMT",Playa de la Hermosas,camping,1,-14.21267011,28.237426834,Spain,auto,Matched source country polygon
+186,"Thu, 22 Feb 2024 23:04:00 GMT",Yeremi's house,house,1,-14.116275234,28.238239715,Spain,auto,Matched source country polygon
+191,"Fri, 23 Feb 2024 23:06:00 GMT",Corralejo,camping,1,-13.872090796,28.74242846,Spain,auto,Matched source country polygon
+194,"Sat, 24 Feb 2024 23:03:00 GMT",Playa Mujeres,camping,1,-13.793757459,28.854145063,Spain,auto,Matched source country polygon
+197,"Sun, 25 Feb 2024 23:03:00 GMT",Playa Quemada,camping,1,-13.734993166,28.907456394,Spain,auto,Matched source country polygon
+201,"Mon, 26 Feb 2024 23:04:00 GMT",Arecife Marina,boat,1,-13.539793619,28.962044743,Spain,manual,Canary Islands / Spanish island points not covered by source polygons
+205,"Tue, 27 Feb 2024 23:05:00 GMT",Famara dunes,camping,1,-13.561643486,29.114577704,Spain,auto,Matched source country polygon
+215,"Wed, 28 Feb 2024 23:10:00 GMT",La Concha,camping,1,-13.580859167,28.953722737,Spain,auto,Matched source country polygon
+221,"Thu, 29 Feb 2024 23:07:00 GMT",SY Thinking of Dave,boat,2,-15.424978343,28.128836552,Spain,auto,Matched source country polygon
+222,"Sat, 02 Mar 2024 23:00:00 GMT","Las Palmas - Mindelo, Day 1",boat,1,-15.162465221,26.653511074,At sea,manual,Boat transit night outside a country polygon
+223,"Sun, 03 Mar 2024 23:00:00 GMT","Las Palmas - Mindelo, Day 2",boat,1,-17.474529106,25.644420869,At sea,manual,Boat transit night outside a country polygon
+224,"Mon, 04 Mar 2024 23:00:00 GMT","Las Palmas - Mindelo, Day 3",boat,1,-18.926534337,24.015750748,At sea,manual,Boat transit night outside a country polygon
+225,"Tue, 05 Mar 2024 23:00:00 GMT","Las Palmas - Mindelo, Day 4",boat,1,-19.364239106,22.033689451,At sea,manual,Boat transit night outside a country polygon
+226,"Wed, 06 Mar 2024 23:00:00 GMT","Las Palmas - Mindelo, Day 5",boat,1,-20.973719106,20.822940532,At sea,manual,Boat transit night outside a country polygon
+227,"Thu, 07 Mar 2024 23:00:00 GMT","Las Palmas - Mindelo, Day 6",boat,1,-22.498589569,19.552823935,At sea,manual,Boat transit night outside a country polygon
+228,"Fri, 08 Mar 2024 23:00:00 GMT","Las Palmas - Mindelo, Day 7",boat,1,-23.512159553,18.038599719,At sea,manual,Boat transit night outside a country polygon
+229,"Sat, 09 Mar 2024 23:00:00 GMT","Las Palmas - Mindelo, Day 8",boat,1,-24.996676618,16.890002106,Cabo Verde,auto,Matched source country polygon
+230,"Sun, 10 Mar 2024 23:00:00 GMT",Mindelo Marina,boat,2,-24.991943242,16.886671548,Cabo Verde,auto,Matched source country polygon
+235,"Tue, 12 Mar 2024 23:06:00 GMT",Pico da Cruz,camping,1,-25.036118025,17.106293886,Cabo Verde,auto,Matched source country polygon
+238,"Wed, 13 Mar 2024 23:04:00 GMT",Praja di Gi,camping,1,-25.00054241,17.126455777,Cabo Verde,auto,Matched source country polygon
+244,"Thu, 14 Mar 2024 23:08:00 GMT",Fontainhas,camping,1,-25.107646751,17.192302315,Cabo Verde,auto,Matched source country polygon
+249,"Fri, 15 Mar 2024 23:09:00 GMT",Mindelo Marina,boat,7,-24.991943242,16.886671547,Cabo Verde,auto,Matched source country polygon
+250,"Fri, 22 Mar 2024 23:00:00 GMT","Mindelp - Sal, Day 1",boat,1,-23.906427831,16.787906459,At sea,manual,Boat transit night outside a country polygon
+251,"Sat, 23 Mar 2024 23:00:00 GMT",Palmeira anchorage,boat,1,-22.980297884,16.753998104,Cabo Verde,manual,Cabo Verde island points not covered by source polygons
+252,"Sun, 24 Mar 2024 23:00:00 GMT",Palmeira beach,camping,2,-22.976578836,16.754184937,Cabo Verde,manual,Cabo Verde island points not covered by source polygons
+255,"Tue, 26 Mar 2024 23:13:00 GMT",Santa Maria beach,camping,1,-22.913005743,16.594863662,Cabo Verde,manual,Cabo Verde island points not covered by source polygons
+261,"Wed, 27 Mar 2024 23:09:00 GMT",Shark Bay,camping,1,-22.899532713,16.751488148,Cabo Verde,manual,Cabo Verde island points not covered by source polygons
+266,"Thu, 28 Mar 2024 23:12:00 GMT",Khalil's house,couchsurfing,3,-17.360078169,14.74866588,Senegal,auto,Matched source country polygon
+271,"Mon, 01 Apr 2024 00:07:00 GMT",St Louis,house,1,-16.432919044,16.033633083,Senegal,auto,Matched source country polygon
+278,"Mon, 01 Apr 2024 22:07:00 GMT",Fishing village,camping,2,-16.082381085,17.517722694,Mauritania,auto,Matched source country polygon
+287,"Wed, 03 Apr 2024 22:07:00 GMT",Nouadhibou,couchsurfing,2,-17.050908621,20.915123105,Mauritania,auto,Matched source country polygon
+293,"Fri, 05 Apr 2024 22:07:00 GMT",Dakhla,couchsurfing,3,-15.915138059,23.734658922,Morocco,manual,Dakhla point not covered by source polygons
+303,"Tue, 09 Apr 2024 22:10:00 GMT",Paradise,camping,1,-9.528622302,30.588296427,Morocco,auto,Matched source country polygon
+307,"Thu, 11 Apr 2024 22:02:00 GMT",Imsouane,camping,1,-9.821575901,30.844423147,Morocco,auto,Matched source country polygon
+314,"Fri, 12 Apr 2024 22:08:00 GMT",Cap,camping,1,-9.234406428,32.577610032,Morocco,auto,Matched source country polygon
+322,"Sat, 13 Apr 2024 22:07:00 GMT",Casablanca,camping,1,-7.627911434,33.481131742,Morocco,auto,Matched source country polygon
+334,"Sun, 14 Apr 2024 22:13:00 GMT",The Jungle,camping,1,-5.353116691,36.156709901,Spain,auto,Matched source country polygon
+338,"Mon, 15 Apr 2024 22:04:00 GMT",Lucas Home,friends,4,-5.017387938,36.469387131,Spain,auto,Matched source country polygon
+340,"Fri, 19 Apr 2024 22:01:00 GMT",Charco de la virgen,camping,2,-4.91129141,36.675318205,Spain,auto,Matched source country polygon
+344,"Sun, 21 Apr 2024 22:05:00 GMT",Malaga Castillo,camping,1,-4.412661979,36.722919358,Spain,auto,Matched source country polygon
+346,"Mon, 22 Apr 2024 22:03:00 GMT",Middle of nowhere,camping,1,-4.465064596,36.983575035,Spain,auto,Matched source country polygon
+349,"Tue, 23 Apr 2024 22:01:00 GMT",Madrid,couchsurfing,1,-3.704800171,40.414955811,Spain,auto,Matched source country polygon
+350,"Wed, 24 Apr 2024 22:00:00 GMT",Madrid,couchsurfing,1,-3.699726623,40.423430659,Spain,auto,Matched source country polygon
+358,"Thu, 25 Apr 2024 22:08:00 GMT",Bilbao - Kristina,friends,3,-2.950250006,43.270989502,Spain,auto,Matched source country polygon
+367,"Mon, 29 Apr 2024 22:05:00 GMT","Paris, Bagneux",house,3,2.300832366,48.795357413,France,auto,Matched source country polygon
+371,"Thu, 02 May 2024 22:04:00 GMT",Gembloux,house,1,4.700666114,50.57063197,Belgium,auto,Matched source country polygon
+378,"Fri, 03 May 2024 22:10:00 GMT",Lola,friends,1,6.786144259,51.247346853,Germany,auto,Matched source country polygon
+384,"Sat, 04 May 2024 22:07:00 GMT",Marie,friends,1,6.902335216,52.215709308,Netherlands,auto,Matched source country polygon
+393,"Sun, 05 May 2024 22:08:00 GMT",Kiel - Carola,friends,1,10.126016059,54.332091475,Germany,auto,Matched source country polygon
+401,"Mon, 06 May 2024 22:09:00 GMT",Malmö ,airbnb,3,13.038012276,55.609288189,Sweden,auto,Matched source country polygon
+402,"Thu, 09 May 2024 22:00:00 GMT",Malmö - Vini and Mau,couchsurfing,2,13.010220601,55.591660426,Sweden,auto,Matched source country polygon
+408,"Sun, 12 May 2024 22:03:00 GMT",Forest next to rest stop,camping,1,10.318624513,53.692974665,Germany,auto,Matched source country polygon
+415,"Sun, 12 May 2024 22:11:00 GMT",Next to rest stop,camping,1,11.451131038,52.188430847,Germany,auto,Matched source country polygon
+420,"Mon, 13 May 2024 22:06:00 GMT",Quirl,camping,1,14.057700107,50.910549177,Germany,auto,Matched source country polygon
+424,"Tue, 14 May 2024 22:06:00 GMT",Bad Schandau,camping,1,14.19257918,50.908195156,Germany,auto,Matched source country polygon
+429,"Wed, 15 May 2024 22:10:00 GMT",Prague,house,1,14.44854334,50.093906399,Czechia,auto,Matched source country polygon
+430,"Thu, 16 May 2024 22:00:00 GMT",Prague,house,3,14.477003369,50.077365506,Czechia,auto,Matched source country polygon
+435,"Sun, 19 May 2024 22:05:00 GMT",Bonnhof,friends,2,10.794114799,49.356048736,Germany,auto,Matched source country polygon
+443,"Tue, 21 May 2024 22:09:00 GMT",Mettnauturm,camping,1,9.002937005,47.729269518,Germany,auto,Matched source country polygon
+453,"Wed, 22 May 2024 22:09:00 GMT",Schlieren - My parent's home,friends,1,8.464780556,47.392640521,Switzerland,auto,Matched source country polygon
+455,"Sat, 01 Jun 2024 22:01:00 GMT",Zermatt Triftweg 46,volunteering,5,7.744490941,46.020751526,Switzerland,auto,Matched source country polygon
+459,"Thu, 06 Jun 2024 22:03:00 GMT",Centre Fries,house,1,7.154973329,46.800719197,Switzerland,auto,Matched source country polygon
+469,"Fri, 07 Jun 2024 22:11:00 GMT",Liddes,camping,1,7.183779412,45.987321085,Switzerland,auto,Matched source country polygon
+478,"Sat, 08 Jun 2024 22:08:00 GMT",Zermatt Triftweg 46,volunteering,6,7.744490941,46.020751526,Switzerland,auto,Matched source country polygon
+491,"Sat, 15 Jun 2024 10:14:00 GMT",Zermatt Triftweg 46,volunteering,12,7.744490941,46.020751526,Switzerland,auto,Matched source country polygon
+504,"Thu, 27 Jun 2024 22:13:00 GMT",Luzern,friends,1,8.30927414,47.050244796,Switzerland,auto,Matched source country polygon
+519,"Fri, 28 Jun 2024 22:15:00 GMT",Zermatt Triftweg 46,volunteering,3,7.744490941,46.020751526,Switzerland,auto,Matched source country polygon
+530,"Mon, 01 Jul 2024 22:10:00 GMT",Weil am Rhein,camping,1,7.605003774,47.598808518,Germany,auto,Matched source country polygon
+539,"Tue, 02 Jul 2024 22:10:00 GMT",Detmold Lola,friends,3,8.87564556,51.934635601,Germany,auto,Matched source country polygon
+540,"Tue, 02 Jul 2024 22:10:00 GMT",Detmold Lola,friends,3,8.87564556,51.934635601,Germany,auto,Matched source country polygon
+541,"Fri, 05 Jul 2024 22:00:00 GMT",Düsseldorf,friends,1,6.786144259,51.247346853,Germany,auto,Matched source country polygon
+545,"Sat, 06 Jul 2024 22:03:00 GMT",Bern Grauholz,camping,1,7.476290175,46.992260937,Switzerland,auto,Matched source country polygon
+553,"Sun, 07 Jul 2024 22:09:00 GMT",Zermatt Triftweg 46,volunteering,6,7.744490941,46.020751526,Switzerland,auto,Matched source country polygon
+564,"Sat, 13 Jul 2024 22:13:00 GMT",Zermatt Triftweg 46,volunteering,5,7.744490941,46.020751526,Switzerland,auto,Matched source country polygon
+573,"Fri, 19 Jul 2024 22:14:00 GMT",Zermatt Triftweg 46,volunteering,9,7.744490941,46.020751526,Switzerland,auto,Matched source country polygon
+574,"Thu, 18 Jul 2024 22:00:00 GMT",Zermatt Zmutt,camping,1,7.723850424,46.009662673,Switzerland,auto,Matched source country polygon
+576,"Wed, 26 Jun 2024 22:00:00 GMT",Zermatt Hohbalmen,camping,1,7.715971334,46.015476595,Switzerland,auto,Matched source country polygon
+578,"Sun, 28 Jul 2024 22:00:00 GMT",Zermatt Lost Valley,camping,1,7.822369204,46.00543574,Switzerland,auto,Matched source country polygon
+579,"Mon, 29 Jul 2024 22:00:00 GMT",Zermatt Triftweg 46,volunteering,1,7.744490941,46.020751526,Switzerland,auto,Matched source country polygon
+582,"Tue, 30 Jul 2024 22:02:00 GMT",Schlieren Parent's house,friends,8,8.464780555,47.392640522,Switzerland,auto,Matched source country polygon
+583,"Tue, 30 Jul 2024 22:02:00 GMT",Schlieren Parent's house,friends,8,8.464780555,47.392640522,Switzerland,auto,Matched source country polygon
+589,"Wed, 07 Aug 2024 22:06:00 GMT",Musenalp,camping,1,8.442438878,46.934416311,Switzerland,auto,Matched source country polygon
+598,"Thu, 08 Aug 2024 22:09:00 GMT",Münsingen,camping,1,7.540916777,46.876984099,Switzerland,auto,Matched source country polygon
+603,"Fri, 09 Aug 2024 22:05:00 GMT","Wiler, Lötschental",airbnb,4,7.784552492,46.404277857,Switzerland,auto,Matched source country polygon
+611,"Tue, 13 Aug 2024 22:07:00 GMT",Peuty Camping,camping,1,6.994588977,46.046126892,Switzerland,auto,Matched source country polygon
+618,"Wed, 14 Aug 2024 22:08:00 GMT","Wiler, Lötschental",airbnb,1,7.784552492,46.404277857,Switzerland,auto,Matched source country polygon
+628,"Thu, 15 Aug 2024 23:12:00 GMT",Bern Grauholz,camping,1,7.476290175,46.992260937,Switzerland,auto,Matched source country polygon
+634,"Fri, 16 Aug 2024 22:10:00 GMT",Göttingen Wald,camping,3,9.995644523,51.533108858,Germany,auto,Matched source country polygon
+635,"Mon, 19 Aug 2024 22:00:00 GMT",Berlin David's Home,friends,3,13.450737735,52.549914566,Germany,auto,Matched source country polygon
+643,"Fri, 23 Aug 2024 22:05:00 GMT",Etangs d'Or,camping,1,4.827974287,46.956976661,France,auto,Matched source country polygon
+653,"Sat, 24 Aug 2024 22:09:00 GMT",Curemont,house,1,1.745798067,45.011155675,France,auto,Matched source country polygon
+661,"Mon, 26 Aug 2024 17:10:00 GMT",Valle de Barossa,camping,1,0.192653534,42.703366867,Spain,auto,Matched source country polygon
+670,"Mon, 26 Aug 2024 22:11:00 GMT",Zaragoza,camping,1,-0.881956001,41.61249009,Spain,auto,Matched source country polygon
+674,"Tue, 27 Aug 2024 22:04:00 GMT",Madrid OK Hostel,hostel,1,-3.706885345,40.411103846,Spain,auto,Matched source country polygon
+678,"Wed, 28 Aug 2024 22:05:00 GMT",Bogota,house,1,-74.085918754,4.650160008,Colombia,auto,Matched source country polygon
+684,"Thu, 29 Aug 2024 22:05:00 GMT",Bogota outskirts,camping,1,-74.043142858,4.803297938,Colombia,auto,Matched source country polygon
+687,"Fri, 30 Aug 2024 22:00:00 GMT",Costeno Beach Hostel,volunteering,14,-73.845831298,11.272158566,Colombia,auto,Matched source country polygon
+693,"Sat, 14 Sep 2024 22:06:00 GMT",Minca,camping,1,-74.118462302,11.133143362,Colombia,auto,Matched source country polygon
+694,"Sun, 15 Sep 2024 22:00:00 GMT",Eco Point Hostel,hostel,2,-74.116566874,11.14463562,Colombia,auto,Matched source country polygon
+698,"Tue, 17 Sep 2024 22:05:00 GMT",Collegio,camping,1,-74.078437188,11.097222666,Colombia,auto,Matched source country polygon
+699,"Wed, 18 Sep 2024 22:00:00 GMT",Cerro Kennedy,camping,1,-74.035159452,11.11204019,Colombia,auto,Matched source country polygon
+700,"Thu, 19 Sep 2024 22:00:00 GMT",Way to Cerro Kennedy,camping,1,-74.055151453,11.111298579,Colombia,auto,Matched source country polygon
+704,"Fri, 20 Sep 2024 22:06:00 GMT",Believer Hostal,hostel,2,-74.208090994,11.243587593,Colombia,auto,Matched source country polygon
+709,"Sun, 22 Sep 2024 22:06:00 GMT",Barranquilla Couchsurfing,couchsurfing,2,-74.811515555,10.930231632,Colombia,auto,Matched source country polygon
+714,"Tue, 24 Sep 2024 22:06:00 GMT",Santa Marta,airbnb,1,-74.208150894,11.251675481,Colombia,auto,Matched source country polygon
+717,"Wed, 25 Sep 2024 22:04:00 GMT",Caoba Farm,camping,1,-74.101170093,11.196653288,Colombia,auto,Matched source country polygon
+718,"Thu, 26 Sep 2024 22:00:00 GMT",Jungle,camping,2,-74.106377155,11.19038522,Colombia,auto,Matched source country polygon
+721,"Sat, 28 Sep 2024 22:04:00 GMT",Believer Hostel,hostel,1,-74.208090994,11.243587593,Colombia,auto,Matched source country polygon
+723,"Sun, 29 Sep 2024 22:01:00 GMT",Beach next to Costeno,camping,2,-73.847161674,11.272841317,Colombia,auto,Matched source country polygon
+726,"Tue, 01 Oct 2024 22:02:00 GMT",Mingueo,camping,1,-73.382164517,11.214294416,Colombia,auto,Matched source country polygon
+729,"Wed, 02 Oct 2024 22:03:00 GMT",Maicao outskirts,camping,1,-72.267917024,11.364515595,Colombia,auto,Matched source country polygon
+734,"Thu, 03 Oct 2024 22:06:00 GMT",Valledupar rio,camping,3,-73.282837978,10.506015532,Colombia,auto,Matched source country polygon
+735,"Sun, 06 Oct 2024 22:00:00 GMT",Valledupar outskirts,camping,1,-73.253485653,10.488591682,Colombia,auto,Matched source country polygon
+736,"Mon, 07 Oct 2024 22:00:00 GMT",Valledupar parque de la vida,camping,1,-73.260770533,10.474444972,Colombia,auto,Matched source country polygon
+740,"Tue, 08 Oct 2024 22:06:00 GMT","La paz, rio",camping,1,-73.16884895,10.384601882,Colombia,auto,Matched source country polygon
+742,"Wed, 09 Oct 2024 22:01:00 GMT",Manaure,camping,1,-73.036861636,10.391173475,Colombia,auto,Matched source country polygon
+743,"Thu, 10 Oct 2024 22:00:00 GMT",Pozo Azul,camping,1,-73.038578806,10.430227262,Colombia,auto,Matched source country polygon
+744,"Fri, 11 Oct 2024 22:00:00 GMT",Manaure,camping,2,-73.020386989,10.392466906,Colombia,auto,Matched source country polygon
+747,"Sun, 13 Oct 2024 22:02:00 GMT",La Paz,camping,1,-73.168848951,10.384601882,Colombia,auto,Matched source country polygon
+752,"Mon, 14 Oct 2024 22:06:00 GMT",Hatonuevo,house,1,-72.759902469,11.07351952,Colombia,auto,Matched source country polygon
+753,"Tue, 15 Oct 2024 22:00:00 GMT",Maicao,hostel,1,-72.236587591,11.379030638,Colombia,auto,Matched source country polygon
+755,"Wed, 16 Oct 2024 22:01:00 GMT",Police station - Venezuela,camping,1,-72.107263349,11.354003452,Venezuela,auto,Matched source country polygon
+758,"Thu, 17 Oct 2024 22:03:00 GMT",Maracaibo,hostel,1,-71.621099534,10.634823657,Venezuela,auto,Matched source country polygon
+760,"Fri, 18 Oct 2024 22:01:00 GMT",Agua Viva,camping,1,-70.629035023,9.554418754,Venezuela,auto,Matched source country polygon
+763,"Sat, 19 Oct 2024 22:04:00 GMT",Timotes,camping,1,-70.740413111,8.977400035,Venezuela,auto,Matched source country polygon
+764,"Sun, 20 Oct 2024 22:00:00 GMT",Timotes - Leidas house,camping,2,-70.739638251,8.976867809,Venezuela,auto,Matched source country polygon
+768,"Tue, 22 Oct 2024 22:05:00 GMT",Mucuchies,camping,2,-70.926359644,8.744999865,Venezuela,auto,Matched source country polygon
+772,"Sat, 26 Oct 2024 22:00:00 GMT",Merida - Luis house,couchsurfing,5,-71.189384121,8.562058536,Venezuela,auto,Matched source country polygon
+774,"Fri, 01 Nov 2024 23:01:00 GMT",First Refugio,camping,1,-71.039333056,8.774746685,Venezuela,auto,Matched source country polygon
+775,"Sat, 02 Nov 2024 23:00:00 GMT",Cascada El duende,camping,1,-71.005371517,8.792633372,Venezuela,auto,Matched source country polygon
+776,"Sun, 03 Nov 2024 23:00:00 GMT",La Carbonera,camping,1,-70.957346268,8.793087524,Venezuela,auto,Matched source country polygon
+780,"Tue, 05 Nov 2024 23:02:00 GMT",Merida - Luis house,couchsurfing,8,-71.189384121,8.562058537,Venezuela,auto,Matched source country polygon
+783,"Wed, 13 Nov 2024 23:02:00 GMT",Parque Alberto Carnevalli,camping,1,-70.972840501,8.719430164,Venezuela,auto,Matched source country polygon
+787,"Thu, 14 Nov 2024 23:04:00 GMT",Aguas termales,camping,1,-70.959222454,8.751942392,Venezuela,auto,Matched source country polygon
+792,"Fri, 15 Nov 2024 23:07:00 GMT",Santo Domingo El Cerrito,camping,2,-70.69399445,8.864291485,Venezuela,auto,Matched source country polygon
+795,"Sun, 17 Nov 2024 23:04:00 GMT",Maracay Bomberos,house,1,-67.565694434,10.323538142,Venezuela,auto,Matched source country polygon
+797,"Mon, 18 Nov 2024 23:02:00 GMT",Choroni - Tipire,camping,8,-67.607402603,10.509667152,Venezuela,auto,Matched source country polygon
+799,"Tue, 26 Nov 2024 23:01:00 GMT",Choroni - Rio,camping,1,-67.607030671,10.47986873,Venezuela,auto,Matched source country polygon
+801,"Wed, 27 Nov 2024 23:01:00 GMT",Choroni - Tipire,camping,2,-67.607402603,10.509667153,Venezuela,auto,Matched source country polygon
+802,"Fri, 29 Nov 2024 23:00:00 GMT",Cuyagua,camping,10,-67.685563982,10.496752455,Venezuela,auto,Matched source country polygon
+805,"Mon, 09 Dec 2024 23:03:00 GMT",Valencia,couchsurfing,3,-67.997989163,10.179656193,Venezuela,auto,Matched source country polygon
+808,"Thu, 12 Dec 2024 23:03:00 GMT",Maracay Hotel Las Americas,hostel,2,-67.600190135,10.249636318,Venezuela,auto,Matched source country polygon
+811,"Sat, 14 Dec 2024 23:03:00 GMT",La Victoria,camping,1,-67.339217144,10.21995455,Venezuela,auto,Matched source country polygon
+812,"Sun, 15 Dec 2024 23:00:00 GMT",La Victoria,hostel,1,-67.32749291,10.226736628,Venezuela,auto,Matched source country polygon
+815,"Mon, 16 Dec 2024 23:03:00 GMT",Caracas,house,7,-66.873360307,10.485479642,Venezuela,auto,Matched source country polygon
+819,"Tue, 24 Dec 2024 09:04:00 GMT",Medellin Aeropuerto,camping,1,-75.427508352,6.181694418,Colombia,auto,Matched source country polygon
+823,"Tue, 24 Dec 2024 23:05:00 GMT",Bogota Santiagos apartment,couchsurfing,4,-74.057196412,4.648052642,Colombia,auto,Matched source country polygon
+824,"Sat, 28 Dec 2024 23:00:00 GMT",Jorges Apartment,house,1,-74.15602665,4.637885754,Colombia,auto,Matched source country polygon
+825,"Sun, 29 Dec 2024 23:00:00 GMT",Gun Glub Hotel,hostel,3,-74.073566218,4.603274694,Colombia,auto,Matched source country polygon
+828,"Wed, 01 Jan 2025 23:03:00 GMT",Tambo Hostel,hostel,1,-69.939104113,-4.211642233,Brazil,auto,Matched source country polygon
+829,"Thu, 02 Jan 2025 23:00:00 GMT",Apartment of Thiago,house,1,-69.93893418,-4.224860072,Brazil,auto,Matched source country polygon
+831,"Fri, 03 Jan 2025 23:01:00 GMT",Amazonas Ferry,boat,1,-69.999616616,-4.372081042,Brazil,auto,Matched source country polygon
+832,"Sat, 04 Jan 2025 23:00:00 GMT",Amazon Ferry,boat,1,-67.045896531,-2.714697975,Brazil,auto,Matched source country polygon
+833,"Sun, 05 Jan 2025 23:00:00 GMT",Amazon Ferry,boat,1,-64.1021744,-3.693229203,Brazil,auto,Matched source country polygon
+834,"Mon, 06 Jan 2025 23:00:00 GMT",Amazon Ferry,boat,1,-60.924073721,-3.596989418,Brazil,auto,Matched source country polygon
+836,"Tue, 07 Jan 2025 23:01:00 GMT",Ponta Negra Airbnb,airbnb,6,-60.100978356,-3.059335498,Brazil,auto,Matched source country polygon
+838,"Mon, 13 Jan 2025 23:01:00 GMT",Madeira Ferry,boat,1,-59.112713703,-3.271333204,Brazil,auto,Matched source country polygon
+839,"Tue, 14 Jan 2025 23:00:00 GMT",Madeira Ferry,boat,1,-59.542401156,-4.300257023,Brazil,auto,Matched source country polygon
+840,"Wed, 15 Jan 2025 23:00:00 GMT",Madeira Ferry,boat,1,-60.35615328,-5.093476664,Brazil,auto,Matched source country polygon
+841,"Thu, 16 Jan 2025 23:00:00 GMT",Madeira Ferry,boat,1,-61.340039682,-5.828948596,Brazil,auto,Matched source country polygon
+842,"Fri, 17 Jan 2025 23:00:00 GMT",Madeira Ferry,boat,1,-62.341778616,-6.684107395,Brazil,auto,Matched source country polygon
+843,"Sat, 18 Jan 2025 23:00:00 GMT",Madeira Ferry,boat,1,-63.005078303,-7.531343757,Brazil,auto,Matched source country polygon
+844,"Sun, 19 Jan 2025 23:00:00 GMT",Port Porto Velho,boat,1,-63.926423168,-8.728361083,Brazil,auto,Matched source country polygon
+848,"Mon, 20 Jan 2025 23:04:00 GMT",Restaurante Pedra,camping,1,-64.150515221,-9.134321137,Brazil,auto,Matched source country polygon
+851,"Tue, 21 Jan 2025 23:04:00 GMT",Extrema gas station,camping,1,-66.367110331,-9.771649098,Brazil,auto,Matched source country polygon
+855,"Wed, 22 Jan 2025 23:05:00 GMT",Vista Alegre do Abuna,camping,2,-65.737059418,-9.65816813,Brazil,auto,Matched source country polygon
+857,"Fri, 24 Jan 2025 23:02:00 GMT",Brasileia,camping,1,-68.755780569,-10.994203601,Brazil,auto,Matched source country polygon
+863,"Sat, 25 Jan 2025 23:08:00 GMT",Inapari,camping,1,-69.57784417,-10.955046181,Peru,auto,Matched source country polygon
+869,"Sun, 26 Jan 2025 23:09:00 GMT",Mazuko,camping,1,-70.365522821,-13.104916417,Peru,auto,Matched source country polygon
+872,"Mon, 27 Jan 2025 23:03:00 GMT",Saylla,camping,1,-71.811743223,-13.579979933,Peru,auto,Matched source country polygon
+874,"Tue, 28 Jan 2025 23:03:00 GMT",Bosque de Quenqo,camping,1,-71.97309718,-13.507295684,Peru,auto,Matched source country polygon
+877,"Wed, 29 Jan 2025 23:02:00 GMT",Pieros apartment,house,1,-71.90414687,-13.539321141,Peru,auto,Matched source country polygon
+878,"Thu, 30 Jan 2025 23:00:00 GMT",Magic Cusco Hostel,hostel,1,-71.959121901,-13.528887092,Peru,auto,Matched source country polygon
+879,"Fri, 31 Jan 2025 23:00:00 GMT",Pisac,camping,2,-71.834554751,-13.407766284,Peru,auto,Matched source country polygon
+880,"Sun, 02 Feb 2025 23:00:00 GMT",Cuyo Chico,camping,1,-71.834347853,-13.408724927,Peru,auto,Matched source country polygon
+881,"Mon, 03 Feb 2025 23:00:00 GMT",Magic Cusco Hostel,hostel,2,-71.959121901,-13.528887092,Peru,auto,Matched source country polygon
+884,"Wed, 05 Feb 2025 23:03:00 GMT",Anta,camping,1,-72.145703113,-13.470416311,Peru,auto,Matched source country polygon
+889,"Thu, 06 Feb 2025 23:05:00 GMT",Andahuaylas Mirador,camping,1,-73.386124727,-13.6607561,Peru,auto,Matched source country polygon
+896,"Fri, 07 Feb 2025 23:08:00 GMT",Chincheros Cascada,camping,1,-73.712518594,-13.518495606,Peru,auto,Matched source country polygon
+901,"Sat, 08 Feb 2025 23:05:00 GMT",Joshues house,house,1,-74.219115251,-13.177562339,Peru,auto,Matched source country polygon
+902,"Sun, 09 Feb 2025 23:00:00 GMT",Aguas termales de Colpa,camping,1,-74.107910487,-13.091856941,Peru,auto,Matched source country polygon
+910,"Mon, 10 Feb 2025 23:09:00 GMT",Quichuas,camping,1,-74.767440053,-12.472410154,Peru,auto,Matched source country polygon
+912,"Tue, 11 Feb 2025 23:01:00 GMT",Chupaca,couchsurfing,2,-75.280512064,-12.055894437,Peru,auto,Matched source country polygon
+924,"Thu, 13 Feb 2025 23:13:00 GMT",Cerro de Pasco Hotel,hostel,1,-76.256148042,-10.685896,Peru,auto,Matched source country polygon
+929,"Fri, 14 Feb 2025 23:07:00 GMT",Oyon,camping,1,-76.773666018,-10.662685456,Peru,auto,Matched source country polygon
+938,"Sat, 15 Feb 2025 23:10:00 GMT",Banos hot springs,camping,1,-76.71813799,-10.04644294,Peru,auto,Matched source country polygon
+945,"Sun, 16 Feb 2025 23:06:00 GMT",Chiquian,hostel,1,-77.15631693,-10.149767142,Peru,auto,Matched source country polygon
+946,"Mon, 17 Feb 2025 23:00:00 GMT",Pacllon,hostel,1,-77.071746867,-10.234424983,Peru,auto,Matched source country polygon
+947,"Tue, 18 Feb 2025 23:00:00 GMT",Turpa,camping,1,-77.004024684,-10.26609135,Peru,auto,Matched source country polygon
+948,"Wed, 19 Feb 2025 23:00:00 GMT",Huatiaq,camping,1,-76.998660866,-10.335063154,Peru,auto,Matched source country polygon
+949,"Thu, 20 Feb 2025 23:00:00 GMT",Camp Elefante,camping,1,-76.892288632,-10.376575254,Peru,auto,Matched source country polygon
+950,"Fri, 21 Feb 2025 23:00:00 GMT",Aguas termales Gunog,camping,1,-76.858134272,-10.423977428,Peru,auto,Matched source country polygon
+951,"Sat, 22 Feb 2025 23:00:00 GMT",Cajatambo,hostel,1,-76.99333531,-10.472265049,Peru,auto,Matched source country polygon
+953,"Sun, 23 Feb 2025 23:02:00 GMT","Barranca, playa colorado",camping,1,-77.758945446,-10.773192258,Peru,auto,Matched source country polygon
+959,"Mon, 24 Feb 2025 23:06:00 GMT",Chiquian,hostel,1,-77.156316931,-10.149767142,Peru,auto,Matched source country polygon
+962,"Tue, 25 Feb 2025 23:03:00 GMT",Apartment of Elis,house,1,-77.527951816,-9.536221936,Peru,auto,Matched source country polygon
+963,"Wed, 26 Feb 2025 23:00:00 GMT",Cheap Hospedaje,hostel,1,-77.528719008,-9.529150666,Peru,auto,Matched source country polygon
+964,"Thu, 27 Feb 2025 23:00:00 GMT",Guest House of Steven,couchsurfing,2,-77.531627119,-9.519709822,Peru,auto,Matched source country polygon
+965,"Sat, 01 Mar 2025 23:00:00 GMT",Apartment of Elis,house,14,-77.527951816,-9.536221937,Peru,auto,Matched source country polygon
+967,"Fri, 14 Mar 2025 23:15:00 GMT",Camp Morena,camping,1,-77.456308501,-9.438507312,Peru,auto,Matched source country polygon
+969,"Sun, 16 Mar 2025 05:02:00 GMT",Elis Apartment,house,2,-77.527856484,-9.536191396,Peru,auto,Matched source country polygon
+979,"Mon, 17 Mar 2025 23:09:00 GMT",Banos termales Aticara,camping,1,-77.923060205,-8.568955513,Peru,auto,Matched source country polygon
+986,"Tue, 18 Mar 2025 23:09:00 GMT",Santa,camping,1,-78.607251086,-8.98800767,Peru,auto,Matched source country polygon
+989,"Wed, 19 Mar 2025 23:03:00 GMT",Cumbico,house,1,-78.63279408,-7.217265965,Peru,auto,Matched source country polygon
+995,"Thu, 20 Mar 2025 23:07:00 GMT",Kinti Wasi,couchsurfing,4,-78.456308242,-7.161996403,Peru,auto,Matched source country polygon
+997,"Mon, 24 Mar 2025 23:01:00 GMT",Yumagual,camping,1,-78.515397901,-7.247409595,Peru,auto,Matched source country polygon
+999,"Tue, 25 Mar 2025 23:01:00 GMT",Kinti Wasi,couchsurfing,1,-78.456308242,-7.161996403,Peru,auto,Matched source country polygon
+1002,"Wed, 26 Mar 2025 23:04:00 GMT",Mirador Cochabamba,camping,1,-78.88542713,-6.476127565,Peru,auto,Matched source country polygon
+1007,"Thu, 27 Mar 2025 23:05:00 GMT",Lambayeque,camping,1,-79.900076216,-6.715454883,Peru,auto,Matched source country polygon
+1012,"Fri, 28 Mar 2025 23:06:00 GMT","Piura, Apartment of Gabriela",house,1,-80.658367595,-5.194877521,Peru,auto,Matched source country polygon
+1017,"Sat, 29 Mar 2025 23:05:00 GMT",Surfcamp El Muelle,campingPaid,11,-81.277955962,-4.451308125,Peru,auto,Matched source country polygon
+1022,"Wed, 09 Apr 2025 22:06:00 GMT",Zorritos,camping,1,-80.657012083,-3.667278724,Peru,auto,Matched source country polygon
+1030,"Thu, 10 Apr 2025 22:08:00 GMT",Apartment of Royer,house,1,-79.016350951,-2.890174739,Ecuador,auto,Matched source country polygon
+1031,"Fri, 11 Apr 2025 22:00:00 GMT",Apartment of Luis,couchsurfing,1,-78.994727579,-2.898494458,Ecuador,auto,Matched source country polygon
+1032,"Sat, 12 Apr 2025 22:00:00 GMT",Cafecito Hostel,hostel,7,-79.000567618,-2.89555021,Ecuador,auto,Matched source country polygon
+1037,"Sat, 19 Apr 2025 22:04:00 GMT",Calpi,camping,1,-78.738779977,-1.63963496,Ecuador,auto,Matched source country polygon
+1041,"Sun, 20 Apr 2025 22:05:00 GMT",Chimborazo Entrada,camping,1,-78.874718855,-1.4980154,Ecuador,auto,Matched source country polygon
+1046,"Mon, 21 Apr 2025 22:09:00 GMT",Hot springs,camping,1,-78.865001574,-1.339260039,Ecuador,auto,Matched source country polygon
+1049,"Tue, 22 Apr 2025 22:04:00 GMT",Hotel Emperador,hostel,1,-78.624087062,-1.239035336,Ecuador,auto,Matched source country polygon
+1053,"Wed, 23 Apr 2025 22:06:00 GMT",Montano Camping,hostel,5,-78.429067224,-1.397106099,Ecuador,auto,Matched source country polygon
+1055,"Mon, 28 Apr 2025 22:02:00 GMT",Puyo Motocross track,camping,1,-77.988793994,-1.490109272,Ecuador,auto,Matched source country polygon
+1056,"Tue, 29 Apr 2025 22:00:00 GMT",Puyo,hostel,1,-78.004912577,-1.476814141,Ecuador,auto,Matched source country polygon
+1060,"Wed, 30 Apr 2025 22:03:00 GMT",Batan Cocha balneario,camping,1,-77.803606605,-0.872574166,Ecuador,auto,Matched source country polygon
+1064,"Thu, 01 May 2025 22:04:00 GMT",Conocoto - House of Mateo,couchsurfing,4,-78.472303233,-0.297810947,Ecuador,auto,Matched source country polygon
+1073,"Mon, 05 May 2025 22:08:00 GMT",Chone,hostel,1,-80.099318007,-0.708283118,Ecuador,auto,Matched source country polygon
+1078,"Tue, 06 May 2025 22:04:00 GMT",Tramonto Camping,hostel,4,-80.455462851,-0.467152126,Ecuador,auto,Matched source country polygon
+1090,"Sun, 11 May 2025 08:12:00 GMT",Santa Ana,camping,1,-78.48353968,-0.532899332,Ecuador,auto,Matched source country polygon
+1091,"Mon, 12 May 2025 08:00:00 GMT",Park entrance Cotopaxi,camping,1,-78.443218916,-0.563268,Ecuador,auto,Matched source country polygon
+1104,"Mon, 12 May 2025 22:15:00 GMT",House of Mateo,couchsurfing,3,-78.472303233,-0.297810947,Ecuador,auto,Matched source country polygon
+1111,"Thu, 15 May 2025 22:08:00 GMT",Nueva Loja,hostel,1,-76.881880793,0.082295168,Ecuador,auto,Matched source country polygon
+1117,"Fri, 16 May 2025 22:08:00 GMT",House of Jose,house,1,-76.646108488,1.146714951,Colombia,auto,Matched source country polygon
+1123,"Sat, 17 May 2025 22:07:00 GMT",Neiva Hostal,hostel,1,-75.291327378,2.928316315,Colombia,auto,Matched source country polygon
+1131,"Sun, 18 May 2025 22:07:00 GMT",House of Charie,house,1,-74.108021848,4.594349773,Colombia,auto,Matched source country polygon
+1132,"Mon, 19 May 2025 22:00:00 GMT",Hotel El Encanto,hostel,1,-74.068870324,4.650636792,Colombia,auto,Matched source country polygon
+1136,"Wed, 21 May 2025 22:04:00 GMT",Roberto apartment,couchsurfing,2,-3.701034188,40.405288493,Spain,auto,Matched source country polygon
+1143,"Fri, 23 May 2025 22:09:00 GMT",Campo,camping,1,-4.133507621,40.189843989,Spain,auto,Matched source country polygon
+1148,"Sat, 24 May 2025 22:06:00 GMT",Albergue Caceres,hostel,1,-6.37235106,39.47702702,Spain,auto,Matched source country polygon
+1149,"Sun, 25 May 2025 22:00:00 GMT",Casar de Caceres,camping,1,-6.421861648,39.553030062,Spain,auto,Matched source country polygon
+1150,"Mon, 26 May 2025 22:00:00 GMT",Canaveral,camping,1,-6.376864921,39.802195987,Spain,auto,Matched source country polygon
+1151,"Tue, 27 May 2025 22:00:00 GMT",Galisteo,camping,1,-6.270469479,39.98094114,Spain,auto,Matched source country polygon
+1156,"Wed, 28 May 2025 22:07:00 GMT",Villars de Plasencia,house,1,-6.028600526,40.137769818,Spain,auto,Matched source country polygon
+1160,"Thu, 29 May 2025 22:24:00 GMT",Puerto de Bejar,camping,1,-5.846729719,40.349538286,Spain,auto,Matched source country polygon
+1161,"Fri, 30 May 2025 22:00:00 GMT",Fuenteroble de Salvatierra,camping,1,-5.731818047,40.56329221,Spain,auto,Matched source country polygon
+1162,"Sat, 31 May 2025 22:00:00 GMT",San Pedro de Rozados,camping,1,-5.734846268,40.79250584,Spain,auto,Matched source country polygon
+1163,"Sun, 01 Jun 2025 22:00:00 GMT",Albergue Salamanca,hostel,1,-5.66562887,40.959552521,Spain,auto,Matched source country polygon
+1165,"Mon, 02 Jun 2025 22:01:00 GMT",Robertos apartment,couchsurfing,1,-3.701034189,40.405288493,Spain,auto,Matched source country polygon
+1174,"Tue, 03 Jun 2025 22:10:00 GMT",Rocket Hostel Barcelona,hostel,1,2.148441724,41.410012709,Spain,auto,Matched source country polygon
+1177,"Wed, 04 Jun 2025 22:04:00 GMT",Rest area Barcelona,camping,1,2.101767807,41.491654965,Spain,auto,Matched source country polygon
+1188,"Thu, 05 Jun 2025 22:12:00 GMT",Chloes house,friends,1,4.139530711,43.756386057,France,auto,Matched source country polygon
+1189,"Fri, 06 Jun 2025 22:00:00 GMT",Salad Festival,camping,1,3.898029915,44.084904661,France,auto,Matched source country polygon
+1190,"Sat, 07 Jun 2025 22:00:00 GMT",Chloes house,friends,1,4.139530711,43.756386056,France,auto,Matched source country polygon
+1195,"Sun, 08 Jun 2025 22:05:00 GMT",Juliettes apartment,friends,7,6.075056699,45.393071587,France,auto,Matched source country polygon
+1203,"Sun, 15 Jun 2025 22:07:00 GMT",Plage Perroy,camping,1,6.372832442,46.465413971,Switzerland,auto,Matched source country polygon
+1209,"Mon, 16 Jun 2025 22:07:00 GMT",Parents home,friends,9,8.464780555,47.392640522,Switzerland,auto,Matched source country polygon
+1218,"Wed, 25 Jun 2025 22:09:00 GMT",Chaiserstuel,camping,1,8.467625904,46.877249666,Switzerland,auto,Matched source country polygon
+1219,"Thu, 26 Jun 2025 22:00:00 GMT",?,camping,1,8.441491992,46.846592259,Switzerland,auto,Matched source country polygon
+1223,"Fri, 27 Jun 2025 22:05:00 GMT",Wissenberg,camping,1,8.47221174,46.814101988,Switzerland,auto,Matched source country polygon
+1231,"Sat, 28 Jun 2025 22:08:00 GMT",Parents home,friends,1,8.464780555,47.392640522,Switzerland,auto,Matched source country polygon
+1238,"Sun, 29 Jun 2025 22:09:00 GMT",Dutenhofener See,camping,1,8.61316962,50.569651146,Germany,auto,Matched source country polygon
+1243,"Mon, 30 Jun 2025 22:06:00 GMT",Lolas home,friends,2,6.786144259,51.247346853,Germany,auto,Matched source country polygon
+1255,"Wed, 02 Jul 2025 22:13:00 GMT",Jablonec,camping,1,15.170509958,50.746502946,Czechia,auto,Matched source country polygon
+1256,"Thu, 03 Jul 2025 22:00:00 GMT",Pec pod Snezkou,camping,1,15.72644014,50.690784886,Czechia,auto,Matched source country polygon
+1257,"Fri, 04 Jul 2025 22:00:00 GMT",Bukowa Lake,camping,1,15.947381185,50.709526492,Poland,auto,Matched source country polygon
+1258,"Sat, 05 Jul 2025 22:00:00 GMT",Gosias house,friends,1,18.526675924,54.378543009,Poland,auto,Matched source country polygon
+1259,"Sun, 06 Jul 2025 22:00:00 GMT",Lake House Gosia,house,1,17.789069989,54.271560895,Poland,auto,Matched source country polygon
+1260,"Mon, 07 Jul 2025 22:00:00 GMT",Gosias house,house,1,18.526675924,54.378543009,Poland,auto,Matched source country polygon
+1261,"Tue, 08 Jul 2025 22:00:00 GMT",Park in Gdansk,camping,1,18.594056291,54.374299687,Poland,auto,Matched source country polygon
+1262,"Wed, 09 Jul 2025 22:00:00 GMT",Gosias house,house,1,18.526675924,54.378543009,Poland,auto,Matched source country polygon
+1268,"Thu, 10 Jul 2025 22:05:00 GMT",Davids parents,house,3,13.450737735,52.549914566,Germany,auto,Matched source country polygon
+1273,"Sun, 13 Jul 2025 22:05:00 GMT",Lola and Raul,friends,2,6.786144259,51.247346853,Germany,auto,Matched source country polygon
+1281,"Tue, 15 Jul 2025 22:07:00 GMT",Enschede - Marie,friends,1,6.902335216,52.215709308,Netherlands,auto,Matched source country polygon
+1282,"Wed, 16 Jul 2025 22:00:00 GMT","Liege, Maries parents",friends,1,5.682208674,50.647060701,Belgium,auto,Matched source country polygon
+1290,"Thu, 17 Jul 2025 22:08:00 GMT",Saint Ghislain,camping,1,3.797511311,50.452946331,Belgium,auto,Matched source country polygon
+1298,"Fri, 18 Jul 2025 22:09:00 GMT",Omaha beach,camping,1,-0.833419804,49.358624233,France,auto,Matched source country polygon
+1308,"Sat, 19 Jul 2025 22:10:00 GMT","Lannion, house of Denis and Yannick",camping,1,-3.434633923,48.739189811,France,auto,Matched source country polygon
+1309,"Sun, 20 Jul 2025 22:00:00 GMT",Trebeurden,camping,1,-3.587514965,48.768389603,France,manual,French coastal/island points not covered by source polygons
+1310,"Mon, 21 Jul 2025 22:00:00 GMT","Lannion, house of Yann",house,1,-3.450006082,48.73016155,France,auto,Matched source country polygon
+1312,"Tue, 22 Jul 2025 22:01:00 GMT",Tregastel,camping,1,-3.499261498,48.837240908,France,manual,French coastal/island points not covered by source polygons
+1313,"Wed, 23 Jul 2025 22:00:00 GMT",Tregastel,camping,1,-3.502786496,48.828086472,France,auto,Matched source country polygon
+1314,"Thu, 24 Jul 2025 22:00:00 GMT",Perros Guirec,camping,1,-3.413901561,48.800166679,France,auto,Matched source country polygon
+1319,"Fri, 25 Jul 2025 22:05:00 GMT",Port Blanc,camping,1,-3.30442989,48.835731799,France,auto,Matched source country polygon
+1345,"Sun, 27 Jul 2025 22:16:50 GMT",La Greve,camping,1,-1.520526163,48.576125925,France,auto,Matched source country polygon
+1357,"Mon, 28 Jul 2025 22:13:00 GMT",Peage de Vienne,camping,1,4.83204476,45.475021581,France,auto,Matched source country polygon
+1365,"Tue, 29 Jul 2025 22:08:00 GMT",Allevard,camping,1,6.068487222,45.384798654,France,auto,Matched source country polygon
+1373,"Wed, 30 Jul 2025 22:10:00 GMT",Maries place,friends,1,6.183781832,46.202273335,Switzerland,auto,Matched source country polygon
+1374,"Thu, 31 Jul 2025 22:00:00 GMT",Parents home,friends,7,8.464780555,47.392640522,Switzerland,auto,Matched source country polygon
+1379,"Thu, 07 Aug 2025 22:05:00 GMT",Voralpsee,camping,1,9.375930157,47.157355793,Switzerland,auto,Matched source country polygon
+1384,"Fri, 08 Aug 2025 22:06:00 GMT",Parents home,friends,3,8.464780555,47.392640522,Switzerland,auto,Matched source country polygon
+1389,"Mon, 11 Aug 2025 22:05:00 GMT",Hüttchopf,camping,1,8.948533701,47.313371749,Switzerland,auto,Matched source country polygon
+1393,"Tue, 12 Aug 2025 22:05:00 GMT",Parents home,friends,2,8.464780555,47.392640522,Switzerland,auto,Matched source country polygon
+1397,"Thu, 14 Aug 2025 22:04:00 GMT",Bonstetterpark,camping,1,7.629473354,46.725601804,Switzerland,auto,Matched source country polygon
+1404,"Fri, 15 Aug 2025 22:07:00 GMT",Egelsee,camping,1,8.360300755,47.400863316,Switzerland,auto,Matched source country polygon
+1406,"Sat, 16 Aug 2025 22:01:00 GMT",Parents home,friends,1,8.464780555,47.392640522,Switzerland,auto,Matched source country polygon
+1407,"Sun, 17 Aug 2025 22:00:00 GMT",Limmat,camping,1,8.436489196,47.404976663,Switzerland,auto,Matched source country polygon
+1414,"Mon, 18 Aug 2025 22:08:00 GMT",Dole,camping,1,5.505344294,47.08781551,France,auto,Matched source country polygon
+1421,"Tue, 19 Aug 2025 22:09:00 GMT",Yann home,friends,2,2.315396696,48.814357907,France,auto,Matched source country polygon
+1424,"Thu, 21 Aug 2025 22:03:00 GMT",Mariannas place,campingPaid,4,-21.509973564,64.39814224,Iceland,manual,Reykjavik-area points not covered by source polygons
+1425,"Mon, 25 Aug 2025 22:00:00 GMT",Western Fjords,camping,1,-22.132692181,65.582250159,Iceland,auto,Matched source country polygon
+1426,"Tue, 26 Aug 2025 22:00:00 GMT",Hot Springs,camping,1,-23.468754998,65.622667282,Iceland,auto,Matched source country polygon
+1427,"Wed, 27 Aug 2025 22:00:00 GMT",Tree planting place,camping,2,-21.097478716,65.138028751,Iceland,auto,Matched source country polygon
+1429,"Fri, 29 Aug 2025 22:01:00 GMT",Campspot next to a river,camping,1,-21.555382597,64.749300316,Iceland,auto,Matched source country polygon
+1432,"Sat, 30 Aug 2025 22:00:40 GMT",Mariannas Place,campingPaid,1,-21.509973565,64.39814224,Iceland,manual,Reykjavik-area points not covered by source polygons
+1439,"Sat, 30 Aug 2025 22:08:00 GMT",Mariannas place,campingPaid,1,-21.509973565,64.39814224,Iceland,manual,Reykjavik-area points not covered by source polygons
+1456,"Mon, 01 Sep 2025 22:03:00 GMT",Kerlingarfjöll,camping,1,-19.301091419,64.683051353,Iceland,auto,Matched source country polygon
+1459,"Tue, 02 Sep 2025 22:03:00 GMT",Mariannas place,campingPaid,3,-21.509973565,64.39814224,Iceland,manual,Reykjavik-area points not covered by source polygons
+1460,"Fri, 05 Sep 2025 22:00:00 GMT",Keflavik,camping,1,-22.622288718,64.059416946,Iceland,auto,Matched source country polygon
+1463,"Sat, 06 Sep 2025 22:02:00 GMT",Yann home,friends,1,2.315396695,48.814357906,France,auto,Matched source country polygon
+1469,"Sun, 07 Sep 2025 22:06:00 GMT",Tergnier,camping,1,3.316110193,49.645625463,France,auto,Matched source country polygon
+1474,"Mon, 08 Sep 2025 22:07:00 GMT",Tergnier,camping,1,3.316110193,49.645625463,France,auto,Matched source country polygon
+1481,"Tue, 09 Sep 2025 22:05:00 GMT",Arques,camping,1,2.299505662,50.749890755,France,auto,Matched source country polygon
+1488,"Wed, 10 Sep 2025 22:06:00 GMT",Lille Alicias apartment,friends,1,3.095338181,50.62833986,France,auto,Matched source country polygon
+1496,"Thu, 11 Sep 2025 22:07:00 GMT",La Sabliere,camping,1,5.282958156,50.575620346,Belgium,auto,Matched source country polygon
+1500,"Fri, 12 Sep 2025 22:04:00 GMT",Lola and Raul home,friends,4,6.786144259,51.247346853,Germany,auto,Matched source country polygon
+1506,"Tue, 16 Sep 2025 22:06:00 GMT",Beuerbacher See,camping,1,8.204462874,50.273099585,Germany,auto,Matched source country polygon
+1513,"Wed, 17 Sep 2025 22:06:00 GMT",Bürgersee,camping,1,9.417871956,48.63128479,Germany,auto,Matched source country polygon
+1517,"Thu, 18 Sep 2025 22:04:00 GMT","Kempten, Jonis home",friends,5,10.305563952,47.724922841,Germany,auto,Matched source country polygon
+1521,"Tue, 23 Sep 2025 22:04:00 GMT",Mannheim Irenes home,friends,2,8.462899602,49.4940301,Germany,auto,Matched source country polygon
+1526,"Thu, 25 Sep 2025 22:05:00 GMT","Kempten, Jonis home",friends,2,10.305563952,47.724922842,Germany,auto,Matched source country polygon
+1527,"Sat, 27 Sep 2025 22:00:00 GMT","Kempten, Javis home",house,3,10.308124423,47.729717993,Germany,auto,Matched source country polygon
+1541,"Tue, 30 Sep 2025 22:14:00 GMT","Schlieren, Gardenhouse",friends,1,8.465045722,47.393768168,Switzerland,auto,Matched source country polygon
+1544,"Wed, 01 Oct 2025 22:03:00 GMT","Wald, Parents home",friends,1,8.916248129,47.294380265,Switzerland,auto,Matched source country polygon
+1547,"Thu, 02 Oct 2025 22:02:00 GMT","Schlieren, Gardenhouse",friends,3,8.465045722,47.393768168,Switzerland,auto,Matched source country polygon
+1557,"Sun, 05 Oct 2025 22:09:00 GMT","Wald, parents home",friends,2,8.916248129,47.294380265,Switzerland,auto,Matched source country polygon
+1558,"Tue, 07 Oct 2025 22:00:00 GMT","Schlieren, Gardenhouse",friends,1,8.465045722,47.393768168,Switzerland,auto,Matched source country polygon
+1569,"Wed, 08 Oct 2025 22:10:00 GMT",Les Cotes,camping,1,6.467552217,46.910487822,Switzerland,auto,Matched source country polygon
+1580,"Thu, 09 Oct 2025 22:11:00 GMT",Aire des Volcans,camping,1,3.111849902,46.060283783,France,auto,Matched source country polygon
+1586,"Fri, 10 Oct 2025 22:06:00 GMT",Juliette parents home,friends,3,0.742716103,47.399578298,France,auto,Matched source country polygon
+1597,"Mon, 13 Oct 2025 22:11:00 GMT",Bay of Biscay,boat,1,-4.863912212,48.260979843,At sea,manual,Bay of Biscay boat transit night
+1598,"Tue, 14 Oct 2025 22:00:00 GMT",Bay of Biscay,boat,1,-6.786518292,46.471630531,At sea,manual,Bay of Biscay boat transit night
+1599,"Wed, 15 Oct 2025 22:00:00 GMT",Bay of Biscay,boat,1,-8.632222759,44.374617365,At sea,manual,Bay of Biscay boat transit night
+1600,"Thu, 16 Oct 2025 22:00:00 GMT",Camarinas,boat,1,-9.182364111,43.127741803,Spain,manual,Spanish Galician coastal point not covered by source polygons
+1601,"Fri, 17 Oct 2025 22:00:00 GMT",Baiona,boat,2,-8.846093419,42.121865388,Spain,auto,Matched source country polygon
+1602,"Sun, 19 Oct 2025 22:00:00 GMT",Porto,boat,2,-8.650978636,41.143081127,Portugal,auto,Matched source country polygon
+1603,"Tue, 21 Oct 2025 22:00:00 GMT",Porto,hostel,1,-8.603729012,41.159571535,Portugal,auto,Matched source country polygon
+1604,"Tue, 21 Oct 2025 22:00:00 GMT",Porto,hostel,1,-8.603729012,41.159571535,Portugal,auto,Matched source country polygon
+1612,"Wed, 22 Oct 2025 22:07:00 GMT","Aljustrel, Molinos",camping,1,-8.159052633,37.873624919,Portugal,auto,Matched source country polygon
+1621,"Thu, 23 Oct 2025 22:09:00 GMT",Carrapateira beach,camping,1,-8.901843502,37.163980355,Portugal,auto,Matched source country polygon
+1626,"Fri, 24 Oct 2025 22:04:00 GMT",Picota,camping,1,-8.531500253,37.307719985,Portugal,auto,Matched source country polygon
+1630,"Sat, 25 Oct 2025 22:04:00 GMT",Portimao beaches,camping,2,-8.566822271,37.116732387,Portugal,manual,Portuguese coastal points not covered by source polygons
+1636,"Mon, 27 Oct 2025 23:05:00 GMT",Pereiras gare,volunteering,3,-8.433473696,37.438422246,Portugal,auto,Matched source country polygon
+1644,"Thu, 30 Oct 2025 23:08:00 GMT",Lagos beaches,camping,1,-8.667652631,37.084028827,Portugal,manual,Portuguese coastal points not covered by source polygons
+1649,"Fri, 31 Oct 2025 23:05:00 GMT",Portimao Beach,camping,3,-8.566907665,37.116650256,Portugal,manual,Portuguese coastal points not covered by source polygons
+1653,"Mon, 03 Nov 2025 23:05:00 GMT",Lagos marina,boat,2,-8.674652,37.109534062,Portugal,auto,Matched source country polygon
+1654,"Wed, 05 Nov 2025 23:00:00 GMT",Bay of Huelva,boat,1,-7.157176157,36.782997176,At sea,manual,Boat transit night outside a country polygon
+1655,"Thu, 06 Nov 2025 23:00:00 GMT",Cadiz,boat,1,-6.283870193,36.541288235,Spain,manual,Spanish coastal points not covered by source polygons
+1656,"Fri, 07 Nov 2025 23:00:00 GMT",La Linea de la Conception,boat,2,-5.355094224,36.15868266,Spain,auto,Matched source country polygon
+1662,"Sun, 09 Nov 2025 23:07:00 GMT",Torremolinos,camping,1,-4.525442013,36.61507598,Spain,auto,Matched source country polygon
+1671,"Mon, 10 Nov 2025 23:09:00 GMT",Montefrio,camping,1,-4.010098452,37.315619064,Spain,auto,Matched source country polygon
+1675,"Tue, 11 Nov 2025 23:04:00 GMT",Loja,camping,1,-4.151239088,37.161432065,Spain,auto,Matched source country polygon
+1683,"Wed, 12 Nov 2025 23:09:00 GMT",Dona Mencia,house,2,-4.356086955,37.552485318,Spain,auto,Matched source country polygon
+1686,"Fri, 14 Nov 2025 23:03:00 GMT",Rincon de la Victoria,airbnb,1,-4.285005732,36.715467074,Spain,manual,Spanish coastal points not covered by source polygons
+1689,"Sat, 15 Nov 2025 23:04:00 GMT",Torre del Mar,camping,1,-4.116300147,36.724835552,Spain,manual,Spanish coastal points not covered by source polygons
+1694,"Sun, 16 Nov 2025 23:06:00 GMT","Sevilla, port",camping,1,-5.994136135,37.36513329,Spain,auto,Matched source country polygon
+1695,"Mon, 17 Nov 2025 23:00:00 GMT",Sevilla,camping,2,-6.016675309,37.389971041,Spain,auto,Matched source country polygon
+1696,"Wed, 19 Nov 2025 23:00:00 GMT","Sevilla, parque Alamillo",camping,1,-5.996226147,37.417416343,Spain,auto,Matched source country polygon
+1697,"Thu, 20 Nov 2025 23:00:00 GMT",Manu's apartment,house,1,-5.978652323,37.405217297,Spain,auto,Matched source country polygon
+1702,"Fri, 21 Nov 2025 23:06:00 GMT","Lagos, apartment of Vim",house,2,-8.691362482,37.088633872,Portugal,auto,Matched source country polygon
+1705,"Sun, 23 Nov 2025 23:03:00 GMT",Portimao Hotel La Perla,hostel,2,-8.537948716,37.144193135,Portugal,auto,Matched source country polygon
+1712,"Tue, 25 Nov 2025 23:07:00 GMT",Lisbon Park Monsanto,camping,1,-9.176119831,38.737106408,Portugal,auto,Matched source country polygon
+1715,"Wed, 26 Nov 2025 23:04:00 GMT",Madrid apartment de Guillermo,house,1,-3.710007402,40.42400754,Spain,auto,Matched source country polygon
+1718,"Thu, 27 Nov 2025 23:04:00 GMT",Santiago house of family of Javi,house,3,-70.629998368,-33.444418677,Chile,auto,Matched source country polygon
+1721,"Sun, 30 Nov 2025 23:04:00 GMT","Villa Baviera, Eduardos apartment ",house,1,-71.591417187,-36.382698952,Chile,auto,Matched source country polygon
+1723,"Mon, 01 Dec 2025 23:03:00 GMT",La balsa,camping,2,-71.623033283,-36.376403763,Chile,auto,Matched source country polygon
+1728,"Wed, 03 Dec 2025 23:06:00 GMT",San Fabian Balneario,camping,1,-71.56399011,-36.564444914,Chile,auto,Matched source country polygon
+1734,"Thu, 04 Dec 2025 23:07:00 GMT",Pinto,camping,1,-71.896900068,-36.691287763,Chile,auto,Matched source country polygon
+1740,"Fri, 05 Dec 2025 23:09:00 GMT",Aguas calientes de Chillan,camping,1,-71.373521598,-36.905829624,Chile,auto,Matched source country polygon
+1745,"Sat, 06 Dec 2025 23:07:00 GMT","San Pedro, house of Lucianos family",friends,6,-73.117108028,-36.827536728,Chile,auto,Matched source country polygon
+1747,"Fri, 12 Dec 2025 23:01:00 GMT",Playa Punta Parra,camping,1,-72.978453422,-36.66795318,Chile,auto,Matched source country polygon
+1749,"Sat, 13 Dec 2025 23:01:00 GMT","San Pedro, house of Lucianos family",friends,2,-73.117108028,-36.827536728,Chile,auto,Matched source country polygon
+1759,"Mon, 15 Dec 2025 23:09:00 GMT",Villarica,camping,1,-72.227298685,-39.272467264,Chile,auto,Matched source country polygon
+1762,"Tue, 16 Dec 2025 23:02:00 GMT",Caburgua,house,1,-71.826953953,-39.258619304,Chile,auto,Matched source country polygon
+1767,"Wed, 17 Dec 2025 23:06:00 GMT",Pucon. playa grande,camping,1,-71.972448602,-39.261038387,Chile,auto,Matched source country polygon
+1772,"Thu, 18 Dec 2025 23:07:00 GMT","Hostal la casa, Temuco",hostel,2,-72.595674939,-38.734449353,Chile,auto,Matched source country polygon
+1779,"Sat, 20 Dec 2025 23:08:00 GMT",Laguna Verde,camping,1,-71.620526654,-38.696828596,Chile,auto,Matched source country polygon
+1784,"Sun, 21 Dec 2025 23:07:00 GMT",Melipeuco,camping,1,-71.694502882,-38.862748742,Chile,auto,Matched source country polygon
+1787,"Mon, 22 Dec 2025 23:02:00 GMT",Waterfall Canelo,camping,1,-71.760773919,-38.833011769,Chile,auto,Matched source country polygon
+1792,"Tue, 23 Dec 2025 23:06:00 GMT","Hostal la casa, Temuco",hostel,1,-72.595674939,-38.734449354,Chile,auto,Matched source country polygon
+1799,"Wed, 24 Dec 2025 23:09:00 GMT",Villarica Playa Blanca,camping,1,-72.227298685,-39.272467264,Chile,auto,Matched source country polygon
+1801,"Thu, 25 Dec 2025 23:01:00 GMT",Pucon Playa Grande,camping,1,-71.972448602,-39.261038387,Chile,auto,Matched source country polygon
+1804,"Fri, 26 Dec 2025 23:03:00 GMT",Playa Blanca,camping,4,-71.811569454,-39.181998747,Chile,auto,Matched source country polygon
+1808,"Tue, 30 Dec 2025 23:04:00 GMT",Camping las Rosas,campingPaid,1,-71.959295016,-39.271381817,Chile,auto,Matched source country polygon
+1811,"Wed, 31 Dec 2025 23:04:00 GMT",Puerto Varas Beach,camping,1,-72.976928581,-41.310362577,Chile,auto,Matched source country polygon
+1815,"Thu, 01 Jan 2026 23:06:00 GMT",Camping Rio Petrohue,campingPaid,1,-72.308901301,-41.380307907,Chile,manual,Chilean lake/coastal island points not covered by source polygons
+1818,"Fri, 02 Jan 2026 23:04:00 GMT",Camping Los Manzanos,campingPaid,3,-72.142812707,-41.419126391,Chile,auto,Matched source country polygon
+1822,"Mon, 05 Jan 2026 23:07:00 GMT",Camping Rio Petrohue,campingPaid,1,-72.308901301,-41.380307907,Chile,manual,Chilean lake/coastal island points not covered by source polygons
+1825,"Tue, 06 Jan 2026 23:04:00 GMT",Camping Patagonia,campingPaid,1,-72.293638016,-41.663887297,Chile,auto,Matched source country polygon
+1831,"Wed, 07 Jan 2026 23:06:00 GMT",Entre Lagos,camping,1,-72.602896809,-40.678159335,Chile,auto,Matched source country polygon
+1835,"Thu, 08 Jan 2026 23:06:00 GMT",Camping Selva Negra,campingPaid,4,-71.343117127,-41.133470722,Argentina,auto,Matched source country polygon
+1839,"Mon, 12 Jan 2026 23:03:00 GMT",Refugio Lopez,campingPaid,1,-71.560108992,-41.102098805,Argentina,auto,Matched source country polygon
+1844,"Tue, 13 Jan 2026 23:05:00 GMT",Beach Bariloche,camping,1,-71.342913033,-41.130035965,Argentina,auto,Matched source country polygon
+1853,"Wed, 14 Jan 2026 23:08:00 GMT",Gualjaina,camping,1,-70.54165125,-42.724921054,Argentina,auto,Matched source country polygon
+1855,"Thu, 15 Jan 2026 23:01:00 GMT","Pieda Parada, camping libre",camping,9,-70.103989524,-42.655872816,Argentina,auto,Matched source country polygon
+1858,"Sat, 24 Jan 2026 23:02:00 GMT",Abandoned Camping,camping,1,-71.334256213,-42.910884646,Argentina,auto,Matched source country polygon
+1866,"Sun, 25 Jan 2026 23:08:00 GMT",Villa Santa Lucia,campingPaid,1,-72.366411686,-43.414337823,Chile,auto,Matched source country polygon
+1869,"Mon, 26 Jan 2026 23:04:00 GMT",Villa Cerro Castillo,campingPaid,1,-72.159037568,-46.121675467,Chile,auto,Matched source country polygon
+1870,"Tue, 27 Jan 2026 23:00:00 GMT",Cerro Castillo National Park,camping,1,-72.232409396,-46.085513998,Chile,auto,Matched source country polygon
+1871,"Wed, 28 Jan 2026 23:00:00 GMT",Villa Cerro Castillo,campingPaid,1,-72.159037568,-46.121675467,Chile,auto,Matched source country polygon
+1872,"Thu, 29 Jan 2026 23:00:00 GMT",Wild camping spot,camping,1,-72.136024199,-46.12876444,Chile,auto,Matched source country polygon
+1875,"Fri, 30 Jan 2026 23:03:00 GMT",Beach Puerto Ibanez,camping,1,-71.918080934,-46.298290002,Chile,auto,Matched source country polygon
+1879,"Sat, 31 Jan 2026 23:02:00 GMT",Camping Chile Chico,campingPaid,1,-71.725328806,-46.537800932,Chile,auto,Matched source country polygon
+1881,"Sun, 01 Feb 2026 23:02:00 GMT",Camping Chile Chico,campingPaid,1,-71.725328806,-46.537800931,Chile,auto,Matched source country polygon
+1884,"Mon, 02 Feb 2026 23:02:00 GMT",Beach Puerto Ibanez,camping,1,-71.918080934,-46.298290002,Chile,auto,Matched source country polygon
+1887,"Tue, 03 Feb 2026 23:04:00 GMT",Cerro Castillo River,camping,1,-72.158702632,-46.112434569,Chile,auto,Matched source country polygon
+1888,"Wed, 04 Feb 2026 23:00:00 GMT",Lago General Carrera,camping,1,-72.786343313,-46.942115717,Chile,auto,Matched source country polygon
+1889,"Thu, 05 Feb 2026 23:00:00 GMT",Puerto Bertrand,camping,1,-72.829537939,-47.025064462,Chile,auto,Matched source country polygon
+1890,"Fri, 06 Feb 2026 23:00:00 GMT",Laguna Esmeralda,camping,1,-72.595788982,-47.311533695,Chile,auto,Matched source country polygon
+1892,"Sat, 07 Feb 2026 23:01:00 GMT",Parque Nacional Patagonia,campingPaid,1,-72.505370298,-47.127702129,Chile,auto,Matched source country polygon
+1893,"Sun, 08 Feb 2026 23:00:00 GMT",Puerto Bertrand,camping,1,-72.829537938,-47.025064462,Chile,auto,Matched source country polygon
+1894,"Mon, 09 Feb 2026 23:00:00 GMT",Camping El Blanco,campingPaid,1,-71.926473716,-45.807452201,Chile,auto,Matched source country polygon
+1899,"Tue, 10 Feb 2026 23:05:00 GMT",Villa Amengual,camping,1,-72.215226081,-44.741134796,Chile,auto,Matched source country polygon
+1907,"Wed, 11 Feb 2026 23:09:00 GMT",Lago Yuelche,camping,1,-72.231704657,-43.420498231,Chile,auto,Matched source country polygon
+1913,"Fri, 13 Feb 2026 09:20:00 GMT",Contao,camping,1,-72.726084984,-41.799363504,Chile,auto,Matched source country polygon
+1918,"Sat, 14 Feb 2026 09:05:00 GMT",Renting a room,hostel,1,-72.932713468,-41.47319592,Chile,auto,Matched source country polygon
+1924,"Sat, 14 Feb 2026 23:06:00 GMT",Random beach,camping,1,-73.521485885,-41.927049217,Chile,manual,Chilean lake/coastal island points not covered by source polygons
+1926,"Sun, 15 Feb 2026 23:01:00 GMT",Mocopulli,campingPaid,1,-73.741287625,-42.370454469,Chile,auto,Matched source country polygon
+1931,"Mon, 16 Feb 2026 23:05:00 GMT",Mirador ,camping,1,-73.436797883,-42.513292672,Chile,auto,Matched source country polygon
+1934,"Tue, 17 Feb 2026 23:05:00 GMT",Playa Mallil,camping,1,-73.440185097,-42.565074996,Chile,manual,Chilean lake/coastal island points not covered by source polygons
+1941,"Wed, 18 Feb 2026 23:08:00 GMT",Playa Huillinco,camping,1,-73.898424381,-42.664085011,Chile,auto,Matched source country polygon
+1947,"Thu, 19 Feb 2026 23:08:00 GMT",Playa Cole Cole,campingPaid,1,-74.183691919,-42.508600022,Chile,auto,Matched source country polygon
+1954,"Fri, 20 Feb 2026 23:09:00 GMT",Casona Huillinco Festival,campingPaid,1,-73.944474503,-42.682249879,Chile,auto,Matched source country polygon
+1960,"Sat, 21 Feb 2026 23:09:00 GMT",Playa Ahui,camping,1,-73.858931952,-41.831794086,Chile,manual,Chilean lake/coastal island points not covered by source polygons
+1969,"Sun, 22 Feb 2026 23:11:00 GMT",Playa Ancud,camping,1,-73.764405534,-41.864807266,Chile,auto,Matched source country polygon
+1973,"Mon, 23 Feb 2026 23:04:00 GMT",Camping Ceiba,campingPaid,1,-72.973557258,-41.486952632,Chile,auto,Matched source country polygon
+1974,"Tue, 24 Feb 2026 23:00:00 GMT",Home Benjamin,house,6,-73.005780424,-41.458796613,Chile,auto,Matched source country polygon
+1975,"Mon, 02 Mar 2026 23:00:00 GMT",Home Gabito <3,house,3,-72.987236604,-41.480313671,Chile,auto,Matched source country polygon
+1985,"Thu, 05 Mar 2026 23:10:00 GMT",Mirador Lago Rio Negro,camping,1,-72.596145934,-42.722220874,Chile,auto,Matched source country polygon
+1990,"Fri, 06 Mar 2026 23:04:00 GMT",La Junta,camping,1,-72.396260366,-43.961944437,Chile,auto,Matched source country polygon
+1997,"Sat, 07 Mar 2026 23:06:00 GMT",Mirador Rio Simpson,camping,1,-72.078976684,-45.571585041,Chile,auto,Matched source country polygon
+1999,"Sun, 08 Mar 2026 23:01:00 GMT",El Blanco,camping,1,-71.923778662,-45.806634628,Chile,auto,Matched source country polygon
+2006,"Tue, 10 Mar 2026 23:06:00 GMT",Estancia la Ascencion,camping,1,-71.401935485,-46.598277978,Argentina,auto,Matched source country polygon
+2007,"Wed, 11 Mar 2026 23:00:00 GMT",Rio Chico,camping,1,-70.543437158,-48.409675879,Argentina,auto,Matched source country polygon
+2009,"Thu, 12 Mar 2026 23:02:00 GMT",Rio Coig,camping,1,-69.525702881,-51.152084658,Argentina,auto,Matched source country polygon
+2015,"Fri, 13 Mar 2026 23:07:00 GMT",Home of Martin,couchsurfing,4,-68.322248103,-54.810503718,Argentina,auto,Matched source country polygon
+2023,"Tue, 17 Mar 2026 23:07:00 GMT",Police checkpoint,camping,1,-69.583096384,-51.632720979,Argentina,auto,Matched source country polygon
+2026,"Wed, 18 Mar 2026 23:02:00 GMT",Hostal LeoLei,hostel,1,-72.281024357,-50.340931075,Argentina,auto,Matched source country polygon
+2031,"Thu, 19 Mar 2026 23:04:00 GMT",El Chalten Refugio Hostel,hostel,1,-72.889649794,-49.333680291,Argentina,auto,Matched source country polygon
+2034,"Fri, 20 Mar 2026 23:03:00 GMT",Gobernador Gregores Balneario,camping,1,-70.271214768,-48.751830313,Argentina,auto,Matched source country polygon
+2036,"Sat, 21 Mar 2026 23:02:00 GMT",Perito Moreno,camping,1,-70.930188959,-46.596849122,Argentina,auto,Matched source country polygon
+2043,"Sun, 22 Mar 2026 23:06:00 GMT",El Blanco,camping,1,-71.923565109,-45.806716354,Chile,auto,Matched source country polygon
+2051,"Mon, 23 Mar 2026 23:09:00 GMT",Hostal Juanita,hostel,1,-72.559545581,-44.323964157,Chile,auto,Matched source country polygon
+2055,"Tue, 24 Mar 2026 23:04:00 GMT",Chaiten Beach,camping,1,-72.71968955,-42.921573685,Chile,auto,Matched source country polygon
+2062,"Wed, 25 Mar 2026 23:07:00 GMT","Hornopiren, River",camping,1,-72.460701674,-41.96088692,Chile,auto,Matched source country polygon
+2067,"Thu, 26 Mar 2026 23:05:00 GMT",Home Gabito,friends,8,-72.987236604,-41.480313671,Chile,auto,Matched source country polygon
+2068,"Fri, 03 Apr 2026 22:00:00 GMT",Gabos family,friends,1,-73.076032823,-40.305609254,Chile,auto,Matched source country polygon
+2070,"Sat, 04 Apr 2026 22:02:00 GMT",Refugio Puyehue,hostel,1,-72.142080493,-40.615015158,Chile,auto,Matched source country polygon
+2073,"Sun, 05 Apr 2026 22:03:00 GMT",Home Gabito,friends,1,-72.987236604,-41.480313671,Chile,auto,Matched source country polygon
+2085,"Mon, 06 Apr 2026 22:13:00 GMT",Chequian,camping,1,-73.401378209,-42.584956824,Chile,manual,Chilean lake/coastal island points not covered by source polygons
+2091,"Tue, 07 Apr 2026 22:06:00 GMT",Hostel Castro,hostel,2,-73.760602918,-42.478801406,Chile,auto,Matched source country polygon
+2094,"Thu, 09 Apr 2026 22:04:00 GMT",Home Gabito,friends,3,-72.987236604,-41.480313671,Chile,auto,Matched source country polygon
+2097,"Mon, 13 Apr 2026 22:00:00 GMT",Home Javis Family,friends,3,-70.629998368,-33.444418676,Chile,auto,Matched source country polygon
+2106,"Fri, 17 Apr 2026 22:07:00 GMT",Pisco Elqui Camping Andino,campingPaid,4,-70.488169409,-30.122702918,Chile,auto,Matched source country polygon
+2110,"Tue, 21 Apr 2026 22:06:00 GMT",Diaguitas,camping,1,-70.636009273,-30.026163013,Chile,auto,Matched source country polygon
+2117,"Wed, 22 Apr 2026 22:07:00 GMT",Copec,camping,1,-70.365595949,-27.341456993,Chile,auto,Matched source country polygon
+2119,"Thu, 23 Apr 2026 22:03:00 GMT",House Pipe,couchsurfing,2,-70.82717462,-27.068903593,Chile,auto,Matched source country polygon
+2123,"Sat, 25 Apr 2026 22:05:00 GMT",Calama,hostel,1,-68.925586462,-22.463759569,Chile,auto,Matched source country polygon
+2128,"Sun, 26 Apr 2026 22:04:00 GMT",Uyuni Plaza,hostel,3,-66.823534773,-20.462967182,Bolivia,auto,Matched source country polygon
+2130,"Thu, 30 Apr 2026 22:00:00 GMT",La Paz Hostel,hostel,3,-68.127929945,-16.49749899,Bolivia,auto,Matched source country polygon
+2131,"Sun, 03 May 2026 22:00:00 GMT",Lake Titicaca,camping,1,-68.87934681,-16.209271248,Bolivia,auto,Matched source country polygon
+2132,"Mon, 04 May 2026 22:00:00 GMT",Lake Titicaca 2,camping,1,-69.125695185,-16.200339768,Bolivia,auto,Matched source country polygon
+2140,"Tue, 05 May 2026 22:09:00 GMT",Santa Lucia Hotel,hostel,1,-70.602321878,-15.694524745,Peru,auto,Matched source country polygon
+2142,"Wed, 06 May 2026 22:01:00 GMT",Arequipa Hostal,hostel,2,-71.539829978,-16.397451431,Peru,auto,Matched source country polygon
+2147,"Fri, 08 May 2026 22:06:00 GMT",Chala,camping,1,-74.247730303,-15.863279795,Peru,auto,Matched source country polygon
+2150,"Sat, 09 May 2026 22:03:00 GMT",Lima Hostal,hostel,2,-77.044493987,-12.079366332,Peru,auto,Matched source country polygon
+2157,"Wed, 13 May 2026 22:04:00 GMT",Kicking Horse River,camping,1,-116.654338106,51.234114178,Canada,auto,Matched source country polygon
+2164,"Thu, 14 May 2026 22:06:00 GMT",Jonathan's home,camping,9,-119.701779426,49.622803532,Canada,auto,Matched source country polygon

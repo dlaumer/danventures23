@@ -15,6 +15,14 @@ export type SleepStat = {
   night_count: number;
 };
 
+export type SleepCountryStat = {
+  country: string;
+  night_count: number;
+  sleep_points: number;
+};
+
+export type SleepCountryAssignments = Map<string, string>;
+
 export type PeopleStory = {
   coordinates: { lat: number; lng: number } | null;
   date: Date | null;
@@ -101,6 +109,11 @@ export type SelectedChartPart = {
   id: string;
   label: string;
   value: number;
+};
+
+export type ChartCostSummary = {
+  amount: number;
+  label: string;
 };
 
 export type GeneralStats = {

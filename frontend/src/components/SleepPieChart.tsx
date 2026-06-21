@@ -103,6 +103,9 @@ export function SleepPieChart({
     }))
     .sort((a, b) => {
       if (a.group !== b.group) return a.group === "free" ? -1 : 1;
+      if (a.night_count !== b.night_count) {
+        return b.night_count - a.night_count;
+      }
       return (
         sleepCategoryOrder(a.sleepcategory) -
         sleepCategoryOrder(b.sleepcategory)

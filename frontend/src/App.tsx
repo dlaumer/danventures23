@@ -38,12 +38,15 @@ import { TimeRangeSlider } from "./components/TimeRangeSlider";
 import { TravelMap } from "./components/TravelMap";
 import { TravelTimeline } from "./components/TravelTimeline";
 import type {
+  ChartCostSummary,
   FeatureCollection,
   EditableLeg,
   GeneralStats,
   LegAttributeFormState,
   LocationFormState,
   SelectedChartPart,
+  SleepCountryAssignments,
+  SleepCountryStat,
   SleepStat,
   TransportStat,
   TimelineMapPosition,
@@ -76,17 +79,80 @@ type PanelState = {
 
 type AnalysisPanel = "general" | "people" | "sleep" | "transport";
 
+type CategoryCostStats = {
+  paidSleepTotal: number;
+  paidTransportTotal: number;
+  sleepCosts: Map<string, number>;
+  transportCosts: Map<string, number>;
+};
+
+function parseCsvLine(line: string) {
+  const values: string[] = [];
+  let current = "";
+  let inQuotes = false;
+
+  for (let index = 0; index < line.length; index += 1) {
+    const char = line[index];
+    const next = line[index + 1];
+
+    if (char === '"' && inQuotes && next === '"') {
+      current += '"';
+      index += 1;
+    } else if (char === '"') {
+      inQuotes = !inQuotes;
+    } else if (char === "," && !inQuotes) {
+      values.push(current);
+      current = "";
+    } else {
+      current += char;
+    }
+  }
+
+  values.push(current);
+  return values;
+}
+
+function parseSleepCountryAssignments(csvText: string): SleepCountryAssignments {
+  const lines = csvText.trim().split(/\r?\n/);
+  const headers = parseCsvLine(lines[0] ?? "");
+  const idIndex = headers.indexOf("id");
+  const countryIndex = headers.indexOf("country");
+  const assignments: SleepCountryAssignments = new Map();
+
+  if (idIndex === -1 || countryIndex === -1) return assignments;
+
+  lines.slice(1).forEach((line) => {
+    const values = parseCsvLine(line);
+    const id = values[idIndex];
+    const country = values[countryIndex];
+    if (id && country) assignments.set(id, country);
+  });
+
+  return assignments;
+}
+
+async function fetchSleepCountryAssignments() {
+  const response = await fetch(
+    `${import.meta.env.BASE_URL}country-assignment-audit.csv`,
+  );
+
+  if (!response.ok) return new Map<string, string>();
+  return parseSleepCountryAssignments(await response.text());
+}
+
 async function fetchTravelData() {
   const [
     locationsResponse,
     legsResponse,
     statsResponse,
     monthlyTransportResponse,
+    sleepCountryAssignments,
   ] = await Promise.all([
     fetch(`${API_BASE_URL}/locations`),
     fetch(`${API_BASE_URL}/legs?simplify=0.01`),
     fetch(`${API_BASE_URL}/stats/transport-distance`),
     fetch(`${API_BASE_URL}/stats/monthly-transport-distance`),
+    fetchSleepCountryAssignments(),
   ]);
 
   if (
@@ -112,6 +178,7 @@ async function fetchTravelData() {
     stats: statsJson as TransportStat[],
     monthlyTransportStats:
       monthlyTransportJson as MonthlyTransportDistanceBucket[],
+    sleepCountryAssignments,
   };
 }
 
@@ -194,6 +261,35 @@ function calculateSleepStats(locations: FeatureCollection | null): SleepStat[] {
   );
 }
 
+function calculateSleepCountryStats(
+  locations: FeatureCollection | null,
+  assignments: SleepCountryAssignments,
+): SleepCountryStat[] {
+  const statsByCountry = new Map<string, SleepCountryStat>();
+
+  locations?.features.forEach((feature) => {
+    const properties = feature.properties ?? {};
+    if (properties.pointtype !== "sleep") return;
+
+    const id = featureRecordId(feature);
+    const country = id ? (assignments.get(id) ?? "Unassigned") : "Unassigned";
+    const nights = numberFromValue(properties.nonights);
+    const current = statsByCountry.get(country) ?? {
+      country,
+      night_count: 0,
+      sleep_points: 0,
+    };
+
+    current.night_count += nights > 0 ? nights : 1;
+    current.sleep_points += 1;
+    statsByCountry.set(country, current);
+  });
+
+  return Array.from(statsByCountry.values()).sort(
+    (a, b) => b.night_count - a.night_count || a.country.localeCompare(b.country),
+  );
+}
+
 function calculateTransportStats(legs: FeatureCollection | null): TransportStat[] {
   const statsByTransport = new Map<
     string,
@@ -228,6 +324,54 @@ function calculateTransportStats(legs: FeatureCollection | null): TransportStat[
   }));
 }
 
+function calculateCategoryCostStats(
+  locations: FeatureCollection | null,
+): CategoryCostStats {
+  const sleepCosts = new Map<string, number>();
+  const transportCosts = new Map<string, number>();
+  let paidSleepTotal = 0;
+  let paidTransportTotal = 0;
+
+  locations?.features.forEach((feature) => {
+    const properties = feature.properties ?? {};
+    const transport =
+      properties.transport === null || properties.transport === undefined
+        ? "unknown"
+        : String(properties.transport);
+    const transportCost = numberFromValue(properties.travelcost);
+
+    transportCosts.set(
+      transport,
+      (transportCosts.get(transport) ?? 0) + transportCost,
+    );
+    if (!isFreeTransport(transport)) {
+      paidTransportTotal += transportCost;
+    }
+
+    if (properties.pointtype !== "sleep") return;
+
+    const sleepCategory =
+      properties.sleepcategory === null ||
+      properties.sleepcategory === undefined ||
+      properties.sleepcategory === ""
+        ? "unknown"
+        : String(properties.sleepcategory);
+    const sleepCost = numberFromValue(properties.sleepcost);
+
+    sleepCosts.set(sleepCategory, (sleepCosts.get(sleepCategory) ?? 0) + sleepCost);
+    if (paidSleepCategories.has(sleepCategory)) {
+      paidSleepTotal += sleepCost;
+    }
+  });
+
+  return {
+    paidSleepTotal,
+    paidTransportTotal,
+    sleepCosts,
+    transportCosts,
+  };
+}
+
 function randomOrderForStory(value: string) {
   let hash = 2166136261;
 
@@ -246,6 +390,8 @@ function App() {
   const [monthlyTransportStats, setMonthlyTransportStats] = useState<
     MonthlyTransportDistanceBucket[]
   >([]);
+  const [sleepCountryAssignments, setSleepCountryAssignments] =
+    useState<SleepCountryAssignments>(() => new Map());
   const [selectedTransport, setSelectedTransport] = useState<string | null>(
     null,
   );
@@ -255,6 +401,9 @@ function App() {
   const [selectedSleepCategory, setSelectedSleepCategory] = useState<
     string | null
   >(null);
+  const [selectedSleepCountry, setSelectedSleepCountry] = useState<string | null>(
+    null,
+  );
   const [selectedSleepChartPart, setSelectedSleepChartPart] =
     useState<SelectedChartPart | null>(null);
   const [isSleepLayerVisible, setIsSleepLayerVisible] = useState(true);
@@ -329,6 +478,7 @@ function App() {
     setLegs(travelData.legs);
     setStats(travelData.stats);
     setMonthlyTransportStats(travelData.monthlyTransportStats);
+    setSleepCountryAssignments(travelData.sleepCountryAssignments);
     return travelData;
   }, []);
 
@@ -346,6 +496,7 @@ function App() {
         setLegs(travelData.legs);
         setStats(travelData.stats);
         setMonthlyTransportStats(travelData.monthlyTransportStats);
+        setSleepCountryAssignments(travelData.sleepCountryAssignments);
       } catch (caught) {
         if (!isMounted) return;
         setError(caught instanceof Error ? caught.message : "Could not load data.");
@@ -463,9 +614,19 @@ function App() {
     [filteredLocations, freeTransportRides, totalKm],
   );
 
+  const categoryCostStats = useMemo(
+    () => calculateCategoryCostStats(filteredLocations),
+    [filteredLocations],
+  );
+
   const sleepStats = useMemo(
     () => calculateSleepStats(filteredLocations),
     [filteredLocations],
+  );
+
+  const sleepCountryStats = useMemo(
+    () => calculateSleepCountryStats(filteredLocations, sleepCountryAssignments),
+    [filteredLocations, sleepCountryAssignments],
   );
 
   const peopleStories = useMemo<PeopleStory[]>(() => {
@@ -606,9 +767,32 @@ function App() {
         return value > 0 ? { ...current, value } : null;
       }
 
+      if (current.id.startsWith("sleep-country:")) {
+        const country = current.id.replace("sleep-country:", "");
+        const matchingStat = sleepCountryStats.find(
+          (item) => item.country === country,
+        );
+        const value = matchingStat?.night_count ?? 0;
+
+        return value > 0 ? { ...current, value } : null;
+      }
+
       return current;
     });
-  }, [sleepStats]);
+  }, [sleepCountryStats, sleepStats]);
+
+  useEffect(() => {
+    setSelectedSleepCountry((current) => {
+      if (
+        current &&
+        !sleepCountryStats.some((item) => item.country === current)
+      ) {
+        return null;
+      }
+
+      return current;
+    });
+  }, [sleepCountryStats]);
 
   const selectedTransportCostGroup =
     selectedChartPart?.id === "cost:free"
@@ -622,6 +806,46 @@ function App() {
       : selectedSleepChartPart?.id === "sleep-cost:paid"
         ? "paid"
         : null;
+  const selectedTransportCostSummary = useMemo<ChartCostSummary | null>(() => {
+    if (!selectedChartPart) return null;
+
+    if (selectedChartPart.id === "cost:paid") {
+      return {
+        amount: categoryCostStats.paidTransportTotal,
+        label: "Paid transport",
+      };
+    }
+
+    if (!selectedChartPart.id.startsWith("transport:")) return null;
+
+    const transport = selectedChartPart.id.replace("transport:", "");
+    if (isFreeTransport(transport)) return null;
+
+    return {
+      amount: categoryCostStats.transportCosts.get(transport) ?? 0,
+      label: selectedChartPart.label,
+    };
+  }, [categoryCostStats, selectedChartPart]);
+  const selectedSleepCostSummary = useMemo<ChartCostSummary | null>(() => {
+    if (!selectedSleepChartPart) return null;
+
+    if (selectedSleepChartPart.id === "sleep-cost:paid") {
+      return {
+        amount: categoryCostStats.paidSleepTotal,
+        label: "Paid sleep",
+      };
+    }
+
+    if (!selectedSleepChartPart.id.startsWith("sleep:")) return null;
+
+    const sleepCategory = selectedSleepChartPart.id.replace("sleep:", "");
+    if (!paidSleepCategories.has(sleepCategory)) return null;
+
+    return {
+      amount: categoryCostStats.sleepCosts.get(sleepCategory) ?? 0,
+      label: selectedSleepChartPart.label,
+    };
+  }, [categoryCostStats, selectedSleepChartPart]);
 
   function isMobileLayout() {
     return (
@@ -978,7 +1202,9 @@ function App() {
         selectedTransportCostGroup={selectedTransportCostGroup}
         isTransportLayerVisible={isTransportLayerVisible}
         selectedSleepCategory={selectedSleepCategory}
+        selectedSleepCountry={selectedSleepCountry}
         selectedSleepCostGroup={selectedSleepCostGroup}
+        sleepCountryAssignments={sleepCountryAssignments}
         isSleepLayerVisible={isSleepLayerVisible}
         basemap={basemap}
         editableLeg={editableLeg}
@@ -1172,7 +1398,9 @@ function App() {
                       <X size={18} />
                     </button>
                   </div>
-                  <GeneralStatsPanel generalStats={generalStats} />
+                  <div className="panel-scroll-content">
+                    <GeneralStatsPanel generalStats={generalStats} />
+                  </div>
                 </>
               )}
 
@@ -1180,6 +1408,7 @@ function App() {
                 <TransportDistancePanel
                   orderedStats={orderedStats}
                   selectedChartPart={selectedChartPart}
+                  selectedCostSummary={selectedTransportCostSummary}
                   selectedTransport={selectedTransport}
                   isTransportLayerVisible={isTransportLayerVisible}
                   onClose={closeAnalysisPanel}
@@ -1211,12 +1440,16 @@ function App() {
               {activeAnalysisPanel === "sleep" && (
                 <SleepCategoryPanel
                   selectedChartPart={selectedSleepChartPart}
+                  selectedCostSummary={selectedSleepCostSummary}
                   selectedSleepCategory={selectedSleepCategory}
                   isSleepLayerVisible={isSleepLayerVisible}
+                  countryStats={sleepCountryStats}
                   stats={sleepStats}
+                  selectedSleepCountry={selectedSleepCountry}
                   onClose={closeAnalysisPanel}
                   onSelectChartPart={setSelectedSleepChartPart}
                   onSelectSleepCategory={setSelectedSleepCategory}
+                  onSelectSleepCountry={setSelectedSleepCountry}
                   onToggleSleepLayer={() =>
                     setIsSleepLayerVisible((current) => !current)
                   }

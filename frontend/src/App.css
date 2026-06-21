@@ -121,7 +121,8 @@
   display: flex;
   min-height: 0;
   flex-direction: column;
-  overflow: hidden;
+  overflow-x: hidden;
+  overflow-y: auto;
   border: 1px solid rgba(21, 31, 39, 0.16);
   border-radius: 8px;
   background: rgba(251, 250, 245, 0.94);
@@ -1354,6 +1355,7 @@
 
 .panel-heading {
   display: flex;
+  flex: 0 0 auto;
   align-items: flex-start;
   justify-content: space-between;
   gap: 12px;
@@ -1534,10 +1536,89 @@
   white-space: nowrap;
 }
 
+.chart-cost-summary {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  width: 100%;
+  padding: 11px 12px;
+  border: 1px solid rgba(216, 223, 217, 0.96);
+  border-radius: 8px;
+  background: #ffffff;
+  box-shadow: 0 8px 22px rgba(31, 43, 51, 0.06);
+}
+
+.chart-cost-summary span {
+  min-width: 0;
+  overflow: hidden;
+  color: #64707a;
+  font-size: 12px;
+  font-weight: 650;
+  text-overflow: ellipsis;
+  text-transform: capitalize;
+  white-space: nowrap;
+}
+
+.chart-cost-summary strong {
+  color: #18242d;
+  font-size: 15px;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
 .transport-chart.empty {
   justify-content: center;
   min-height: 180px;
   color: #64707a;
+}
+
+.panel-tabs {
+  display: grid;
+  flex: 0 0 auto;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 4px;
+  margin-bottom: 14px;
+  padding: 3px;
+  border: 1px solid rgba(216, 223, 217, 0.9);
+  border-radius: 8px;
+  background: rgba(245, 248, 246, 0.78);
+}
+
+.panel-tabs button {
+  min-width: 0;
+  padding: 7px 10px;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  color: #64707a;
+  cursor: pointer;
+  font-size: 12px;
+  font-weight: 650;
+}
+
+.panel-tabs button:hover,
+.panel-tabs button:focus-visible {
+  background: rgba(255, 255, 255, 0.72);
+  color: #26343e;
+  outline: none;
+}
+
+.panel-tabs button.active {
+  background: #ffffff;
+  color: #18242d;
+  box-shadow: 0 1px 4px rgba(31, 43, 51, 0.08);
+}
+
+.panel-scroll-content {
+  display: flex;
+  min-height: 0;
+  flex: 1;
+  flex-direction: column;
+  gap: 12px;
+  overflow-y: auto;
+  padding: 2px 4px 2px 0;
+  scrollbar-width: thin;
 }
 
 .bar-chart {
@@ -1716,6 +1797,14 @@
   font-weight: 450;
   font-variant-numeric: tabular-nums;
   white-space: nowrap;
+}
+
+.country-chart .bar-chart-row {
+  grid-template-columns: minmax(96px, 1fr) minmax(86px, 1fr) auto;
+}
+
+.country-chart-label {
+  text-transform: none;
 }
 
 .chart-selection.compact {
@@ -1961,6 +2050,7 @@
   left: clamp(296px, 31vw, 410px);
   z-index: 4;
   display: flex;
+  max-height: calc(100vh - 24px);
   max-width: calc(100vw - 24px);
   min-width: 320px;
   flex-direction: column;
@@ -1970,6 +2060,8 @@
   border-radius: 8px;
   background: rgba(251, 250, 245, 0.94);
   box-shadow: 0 14px 36px rgba(31, 43, 51, 0.18);
+  overflow-x: hidden;
+  overflow-y: auto;
   pointer-events: auto;
   backdrop-filter: blur(8px);
 }

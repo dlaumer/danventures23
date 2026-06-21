@@ -1,10 +1,16 @@
 import { Eye, EyeOff, X } from "lucide-react";
-import type { SelectedChartPart, TransportStat } from "../types";
+import type {
+  ChartCostSummary,
+  SelectedChartPart,
+  TransportStat,
+} from "../types";
+import { formatMoney } from "../utils";
 import { TransportPieChart } from "./TransportPieChart";
 
 type TransportDistancePanelProps = {
   orderedStats: TransportStat[];
   selectedChartPart: SelectedChartPart | null;
+  selectedCostSummary: ChartCostSummary | null;
   selectedTransport: string | null;
   isTransportLayerVisible: boolean;
   onClose: () => void;
@@ -16,6 +22,7 @@ type TransportDistancePanelProps = {
 export function TransportDistancePanel({
   orderedStats,
   selectedChartPart,
+  selectedCostSummary,
   selectedTransport,
   isTransportLayerVisible,
   onClose,
@@ -60,13 +67,21 @@ export function TransportDistancePanel({
         </div>
       </div>
 
-      <TransportPieChart
-        stats={orderedStats}
-        selectedPart={selectedChartPart}
-        selectedTransport={selectedTransport}
-        onSelectPart={onSelectChartPart}
-        onSelectTransport={onSelectTransport}
-      />
+      <div className="panel-scroll-content">
+        <TransportPieChart
+          stats={orderedStats}
+          selectedPart={selectedChartPart}
+          selectedTransport={selectedTransport}
+          onSelectPart={onSelectChartPart}
+          onSelectTransport={onSelectTransport}
+        />
+        {selectedCostSummary && (
+          <div className="chart-cost-summary">
+            <span>{selectedCostSummary.label} costs</span>
+            <strong>{formatMoney(selectedCostSummary.amount)}</strong>
+          </div>
+        )}
+      </div>
     </>
   );
 }

@@ -107,6 +107,9 @@ export function TransportPieChart({
     .filter((item) => item.distanceValue > 0)
     .sort((a, b) => {
       if (a.group !== b.group) return a.group === "free" ? -1 : 1;
+      if (a.distanceValue !== b.distanceValue) {
+        return b.distanceValue - a.distanceValue;
+      }
       return transportOrder(a.transport) - transportOrder(b.transport);
     });
   const maxValue = Math.max(...items.map((item) => item.distanceValue), 0);

@@ -8,6 +8,7 @@ type LegAttributesDialogProps = {
   form: LegAttributeFormState;
   isSaving: boolean;
   onClose: () => void;
+  onDelete: () => void;
   onSubmit: (event: FormEvent<HTMLFormElement>) => void;
   onUpdate: (update: Partial<LegAttributeFormState>) => void;
 };
@@ -16,6 +17,7 @@ export function LegAttributesDialog({
   form,
   isSaving,
   onClose,
+  onDelete,
   onSubmit,
   onUpdate,
 }: LegAttributesDialogProps) {
@@ -153,6 +155,14 @@ export function LegAttributesDialog({
         </div>
 
         <div className="dialog-actions">
+          <button
+            type="button"
+            className="danger-button"
+            onClick={onDelete}
+            disabled={isSaving}
+          >
+            Delete leg
+          </button>
           <button type="submit" disabled={isSaving}>
             {isSaving ? "Saving..." : "Save leg"}
           </button>

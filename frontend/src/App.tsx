@@ -892,6 +892,32 @@ function App() {
     }
   }
 
+  async function deleteLeg() {
+    if (!editableLeg) return;
+    const shouldDelete = window.confirm("Delete this leg?");
+    if (!shouldDelete) return;
+
+    setIsSavingLegAttributes(true);
+    setError(null);
+
+    try {
+      const response = await fetch(`${API_BASE_URL}/legs/${editableLeg.id}`, {
+        method: "DELETE",
+      });
+
+      if (!response.ok) {
+        throw new Error("Deleting the leg failed.");
+      }
+
+      await loadTravelData();
+      closeLegEditor();
+    } catch (caught) {
+      setError(caught instanceof Error ? caught.message : "Deleting leg failed.");
+    } finally {
+      setIsSavingLegAttributes(false);
+    }
+  }
+
   async function saveLegGeometry(id: number, coordinates: [number, number][]) {
     const cleanCoordinates = coordinates
       .map(([lng, lat]) => [Number(lng), Number(lat)] as [number, number])
@@ -1311,6 +1337,7 @@ function App() {
           form={legAttributeForm}
           isSaving={isSavingLegAttributes}
           onClose={closeLegEditor}
+          onDelete={deleteLeg}
           onSubmit={saveLegAttributes}
           onUpdate={updateLegAttributeForm}
         />

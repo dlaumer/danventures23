@@ -17,11 +17,17 @@ export type SleepStat = {
 
 export type SleepCountryStat = {
   country: string;
+  iso2: string | null;
   night_count: number;
   sleep_points: number;
 };
 
-export type SleepCountryAssignments = Map<string, string>;
+export type SleepCountryAssignment = {
+  country: string;
+  iso2: string | null;
+};
+
+export type SleepCountryAssignments = Map<string, SleepCountryAssignment>;
 
 export type PeopleStory = {
   coordinates: { lat: number; lng: number } | null;

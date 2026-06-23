@@ -1807,6 +1807,15 @@
   text-transform: none;
 }
 
+.country-flag {
+  display: block;
+  width: 18px;
+  height: 13px;
+  border-radius: 2px;
+  object-fit: cover;
+  box-shadow: 0 0 0 1px rgba(31, 43, 51, 0.08);
+}
+
 .chart-selection.compact {
   width: 100%;
   margin-top: 2px;

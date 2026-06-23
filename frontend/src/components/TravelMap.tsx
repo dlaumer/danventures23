@@ -512,7 +512,7 @@ export function TravelMap({
           const pointType = propertyString(feature.properties, "pointtype");
           return id &&
             pointType === "sleep" &&
-            sleepCountryAssignments.get(id) === selectedSleepCountry
+            sleepCountryAssignments.get(id)?.country === selectedSleepCountry
             ? [id]
             : [];
         })

@@ -1,5 +1,5 @@
 import type { CSSProperties } from "react";
-import { Globe2 } from "lucide-react";
+import { Waves } from "lucide-react";
 import type { SelectedChartPart, SleepCountryStat } from "../types";
 import { formatCount } from "../utils";
 
@@ -54,6 +54,20 @@ function colorForCountry(country: string) {
   return countryPalette[hash % countryPalette.length];
 }
 
+function FlagIcon({ country, iso2 }: { country: string; iso2: string | null }) {
+  if (!iso2) {
+    return country === "At sea" ? <Waves size={14} /> : <span>?</span>;
+  }
+
+  return (
+    <img
+      alt=""
+      className="country-flag"
+      src={`https://flagcdn.com/w20/${iso2.toLowerCase()}.png`}
+    />
+  );
+}
+
 export function SleepCountryChart({
   selectedPart,
   selectedSleepCountry,
@@ -101,7 +115,7 @@ export function SleepCountryChart({
             >
               <span className="bar-chart-label country-chart-label">
                 <span className="bar-chart-icon" style={{ color }}>
-                  <Globe2 size={14} />
+                  <FlagIcon country={item.country} iso2={item.iso2} />
                 </span>
                 <span>{item.country}</span>
               </span>

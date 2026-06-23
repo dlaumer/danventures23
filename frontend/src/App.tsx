@@ -45,6 +45,7 @@ import type {
   LegAttributeFormState,
   LocationFormState,
   SelectedChartPart,
+  SleepCountryAssignment,
   SleepCountryAssignments,
   SleepCountryStat,
   SleepStat,
@@ -86,6 +87,16 @@ type CategoryCostStats = {
   transportCosts: Map<string, number>;
 };
 
+type CountryBoundary = {
+  bbox: [number, number, number, number];
+  country: string;
+  geometry: GeoJSON.Geometry;
+  iso2: string | null;
+};
+
+const COUNTRY_GEOJSON_URL =
+  "https://raw.githubusercontent.com/datasets/geo-countries/master/data/countries.geojson";
+
 function parseCsvLine(line: string) {
   const values: string[] = [];
   let current = "";
@@ -125,7 +136,7 @@ function parseSleepCountryAssignments(csvText: string): SleepCountryAssignments 
     const values = parseCsvLine(line);
     const id = values[idIndex];
     const country = values[countryIndex];
-    if (id && country) assignments.set(id, country);
+    if (id && country) assignments.set(id, { country, iso2: iso2ForCountry(country) });
   });
 
   return assignments;
@@ -136,8 +147,36 @@ async function fetchSleepCountryAssignments() {
     `${import.meta.env.BASE_URL}country-assignment-audit.csv`,
   );
 
-  if (!response.ok) return new Map<string, string>();
+  if (!response.ok) return new Map<string, SleepCountryAssignment>();
   return parseSleepCountryAssignments(await response.text());
+}
+
+async function fetchCountryBoundaries(): Promise<CountryBoundary[]> {
+  try {
+    const response = await fetch(COUNTRY_GEOJSON_URL);
+    if (!response.ok) return [];
+    const data = (await response.json()) as FeatureCollection;
+
+    return data.features.flatMap((feature) => {
+      if (!feature.geometry) return [];
+      const properties = feature.properties ?? {};
+      const country = propertyString(properties, "name");
+      if (!country) return [];
+
+      return [
+        {
+          bbox: bboxForGeometry(feature.geometry),
+          country,
+          geometry: feature.geometry,
+          iso2:
+            normalizeIso2(propertyString(properties, "ISO3166-1-Alpha-2")) ??
+            iso2ForCountry(country),
+        },
+      ];
+    });
+  } catch {
+    return [];
+  }
 }
 
 async function fetchTravelData() {
@@ -146,13 +185,15 @@ async function fetchTravelData() {
     legsResponse,
     statsResponse,
     monthlyTransportResponse,
-    sleepCountryAssignments,
+    auditSleepCountryAssignments,
+    countryBoundaries,
   ] = await Promise.all([
     fetch(`${API_BASE_URL}/locations`),
     fetch(`${API_BASE_URL}/legs?simplify=0.01`),
     fetch(`${API_BASE_URL}/stats/transport-distance`),
     fetch(`${API_BASE_URL}/stats/monthly-transport-distance`),
     fetchSleepCountryAssignments(),
+    fetchCountryBoundaries(),
   ]);
 
   if (
@@ -178,8 +219,211 @@ async function fetchTravelData() {
     stats: statsJson as TransportStat[],
     monthlyTransportStats:
       monthlyTransportJson as MonthlyTransportDistanceBucket[],
-    sleepCountryAssignments,
+    auditSleepCountryAssignments,
+    countryBoundaries,
   };
+}
+
+function bboxForGeometry(geometry: GeoJSON.Geometry): [number, number, number, number] {
+  const bbox: [number, number, number, number] = [
+    Infinity,
+    Infinity,
+    -Infinity,
+    -Infinity,
+  ];
+
+  const visit = (coords: unknown) => {
+    const values = coords as unknown[];
+    if (typeof values[0] === "number") {
+      const [lng, lat] = values as [number, number];
+      bbox[0] = Math.min(bbox[0], lng);
+      bbox[1] = Math.min(bbox[1], lat);
+      bbox[2] = Math.max(bbox[2], lng);
+      bbox[3] = Math.max(bbox[3], lat);
+      return;
+    }
+    values.forEach(visit);
+  };
+
+  if (geometry.type === "GeometryCollection") {
+    geometry.geometries.forEach((child) => {
+      const childBbox = bboxForGeometry(child);
+      bbox[0] = Math.min(bbox[0], childBbox[0]);
+      bbox[1] = Math.min(bbox[1], childBbox[1]);
+      bbox[2] = Math.max(bbox[2], childBbox[2]);
+      bbox[3] = Math.max(bbox[3], childBbox[3]);
+    });
+    return bbox;
+  }
+
+  visit(geometry.coordinates);
+  return bbox;
+}
+
+function ringContains(point: [number, number], ring: GeoJSON.Position[]) {
+  const [x, y] = point;
+  let inside = false;
+
+  for (let i = 0, j = ring.length - 1; i < ring.length; j = i, i += 1) {
+    const [xi, yi] = ring[i];
+    const [xj, yj] = ring[j];
+    const intersects =
+      yi > y !== yj > y && x < ((xj - xi) * (y - yi)) / (yj - yi) + xi;
+    if (intersects) inside = !inside;
+  }
+
+  return inside;
+}
+
+function polygonContains(point: [number, number], polygon: GeoJSON.Position[][]) {
+  if (!ringContains(point, polygon[0])) return false;
+  return polygon.slice(1).every((ring) => !ringContains(point, ring));
+}
+
+function geometryContainsPoint(
+  point: [number, number],
+  geometry: GeoJSON.Geometry,
+): boolean {
+  if (geometry.type === "Polygon") {
+    return polygonContains(point, geometry.coordinates);
+  }
+  if (geometry.type === "MultiPolygon") {
+    return geometry.coordinates.some((polygon) => polygonContains(point, polygon));
+  }
+  if (geometry.type === "GeometryCollection") {
+    return geometry.geometries.some((child) => geometryContainsPoint(point, child));
+  }
+  return false;
+}
+
+function countryForPoint(
+  point: [number, number],
+  boundaries: CountryBoundary[],
+): SleepCountryAssignment | null {
+  const match = boundaries.find((boundary) => {
+    const [minLng, minLat, maxLng, maxLat] = boundary.bbox;
+    if (
+      point[0] < minLng ||
+      point[0] > maxLng ||
+      point[1] < minLat ||
+      point[1] > maxLat
+    ) {
+      return false;
+    }
+    return geometryContainsPoint(point, boundary.geometry);
+  });
+
+  return match ? { country: match.country, iso2: match.iso2 } : null;
+}
+
+function inBox(
+  point: [number, number],
+  { minLng, maxLng, minLat, maxLat }: Record<string, number>,
+) {
+  return (
+    point[0] >= minLng &&
+    point[0] <= maxLng &&
+    point[1] >= minLat &&
+    point[1] <= maxLat
+  );
+}
+
+function manualCountryForSleep(
+  point: [number, number],
+  name: string,
+  category: string,
+): SleepCountryAssignment | null {
+  const assign = (country: string): SleepCountryAssignment => ({
+    country,
+    iso2: iso2ForCountry(country),
+  });
+
+  if (inBox(point, { minLng: -18.3, maxLng: -13.2, minLat: 27.4, maxLat: 29.5 })) {
+    return assign("Spain");
+  }
+  if (inBox(point, { minLng: -5.2, maxLng: -2.8, minLat: 48.0, maxLat: 49.0 })) {
+    return assign("France");
+  }
+  if (inBox(point, { minLng: -22.5, maxLng: -21.0, minLat: 63.8, maxLat: 64.6 })) {
+    return assign("Iceland");
+  }
+  if (inBox(point, { minLng: -9.0, maxLng: -7.8, minLat: 36.8, maxLat: 37.4 })) {
+    return assign("Portugal");
+  }
+  if (inBox(point, { minLng: -6.5, maxLng: -3.8, minLat: 36.4, maxLat: 36.9 })) {
+    return assign("Spain");
+  }
+  if (
+    /camarinas/i.test(name) &&
+    inBox(point, { minLng: -9.4, maxLng: -8.8, minLat: 42.9, maxLat: 43.4 })
+  ) {
+    return assign("Spain");
+  }
+  if (
+    inBox(point, { minLng: -24.6, maxLng: -22.5, minLat: 14.6, maxLat: 17.4 }) &&
+    !/\bday\b/i.test(name)
+  ) {
+    return assign("Cabo Verde");
+  }
+  if (
+    /dakhla/i.test(name) &&
+    inBox(point, { minLng: -16.2, maxLng: -15.6, minLat: 23.4, maxLat: 24.0 })
+  ) {
+    return assign("Morocco");
+  }
+  if (inBox(point, { minLng: -74.2, maxLng: -72.0, minLat: -43.0, maxLat: -41.0 })) {
+    return assign("Chile");
+  }
+  if (
+    category === "boat" &&
+    (/\bday\s*\d*\b/i.test(name) ||
+      /\bbay\b/i.test(name) ||
+      /\bsea\b/i.test(name) ||
+      /\bcoast\b/i.test(name) ||
+      /\banchorage\b/i.test(name))
+  ) {
+    return { country: "At sea", iso2: null };
+  }
+
+  return null;
+}
+
+function iso2ForCountry(country: string) {
+  const isoByCountry: Record<string, string> = {
+    Argentina: "AR",
+    Belgium: "BE",
+    Bolivia: "BO",
+    Brazil: "BR",
+    Canada: "CA",
+    "Cabo Verde": "CV",
+    Chile: "CL",
+    Colombia: "CO",
+    Czechia: "CZ",
+    Ecuador: "EC",
+    France: "FR",
+    Germany: "DE",
+    Gibraltar: "GI",
+    Iceland: "IS",
+    Italy: "IT",
+    Mauritania: "MR",
+    Morocco: "MA",
+    Netherlands: "NL",
+    Peru: "PE",
+    Poland: "PL",
+    Portugal: "PT",
+    Senegal: "SN",
+    Spain: "ES",
+    Sweden: "SE",
+    Switzerland: "CH",
+    Venezuela: "VE",
+  };
+
+  return isoByCountry[country] ?? "";
+}
+
+function normalizeIso2(value: string | null) {
+  if (!value || !/^[A-Za-z]{2}$/.test(value)) return null;
+  return value.toUpperCase();
 }
 
 function calculateGeneralStats(
@@ -272,10 +516,12 @@ function calculateSleepCountryStats(
     if (properties.pointtype !== "sleep") return;
 
     const id = featureRecordId(feature);
-    const country = id ? (assignments.get(id) ?? "Unassigned") : "Unassigned";
+    const assignment = id ? assignments.get(id) : null;
+    const country = assignment?.country ?? "Unassigned";
     const nights = numberFromValue(properties.nonights);
     const current = statsByCountry.get(country) ?? {
       country,
+      iso2: assignment?.iso2 ?? null,
       night_count: 0,
       sleep_points: 0,
     };
@@ -288,6 +534,38 @@ function calculateSleepCountryStats(
   return Array.from(statsByCountry.values()).sort(
     (a, b) => b.night_count - a.night_count || a.country.localeCompare(b.country),
   );
+}
+
+function buildSleepCountryAssignments(
+  locations: FeatureCollection | null,
+  auditAssignments: SleepCountryAssignments,
+  countryBoundaries: CountryBoundary[],
+): SleepCountryAssignments {
+  const assignments: SleepCountryAssignments = new Map();
+
+  locations?.features.forEach((feature) => {
+    const properties = feature.properties ?? {};
+    if (properties.pointtype !== "sleep") return;
+
+    const id = featureRecordId(feature);
+    if (!id) return;
+
+    const coordinates = coordinatesForFeature(feature);
+    const point = coordinates
+      ? ([coordinates.lng, coordinates.lat] as [number, number])
+      : null;
+    const name = propertyString(properties, "name") ?? "";
+    const category = propertyString(properties, "sleepcategory") ?? "";
+    const assignment =
+      (point ? countryForPoint(point, countryBoundaries) : null) ??
+      (point ? manualCountryForSleep(point, name, category) : null) ??
+      auditAssignments.get(id) ??
+      ({ country: "Unassigned", iso2: null } satisfies SleepCountryAssignment);
+
+    assignments.set(id, assignment);
+  });
+
+  return assignments;
 }
 
 function calculateTransportStats(legs: FeatureCollection | null): TransportStat[] {
@@ -390,8 +668,11 @@ function App() {
   const [monthlyTransportStats, setMonthlyTransportStats] = useState<
     MonthlyTransportDistanceBucket[]
   >([]);
-  const [sleepCountryAssignments, setSleepCountryAssignments] =
+  const [auditSleepCountryAssignments, setAuditSleepCountryAssignments] =
     useState<SleepCountryAssignments>(() => new Map());
+  const [countryBoundaries, setCountryBoundaries] = useState<CountryBoundary[]>(
+    [],
+  );
   const [selectedTransport, setSelectedTransport] = useState<string | null>(
     null,
   );
@@ -478,7 +759,8 @@ function App() {
     setLegs(travelData.legs);
     setStats(travelData.stats);
     setMonthlyTransportStats(travelData.monthlyTransportStats);
-    setSleepCountryAssignments(travelData.sleepCountryAssignments);
+    setAuditSleepCountryAssignments(travelData.auditSleepCountryAssignments);
+    setCountryBoundaries(travelData.countryBoundaries);
     return travelData;
   }, []);
 
@@ -496,7 +778,8 @@ function App() {
         setLegs(travelData.legs);
         setStats(travelData.stats);
         setMonthlyTransportStats(travelData.monthlyTransportStats);
-        setSleepCountryAssignments(travelData.sleepCountryAssignments);
+        setAuditSleepCountryAssignments(travelData.auditSleepCountryAssignments);
+        setCountryBoundaries(travelData.countryBoundaries);
       } catch (caught) {
         if (!isMounted) return;
         setError(caught instanceof Error ? caught.message : "Could not load data.");
@@ -622,6 +905,16 @@ function App() {
   const sleepStats = useMemo(
     () => calculateSleepStats(filteredLocations),
     [filteredLocations],
+  );
+
+  const sleepCountryAssignments = useMemo(
+    () =>
+      buildSleepCountryAssignments(
+        filteredLocations,
+        auditSleepCountryAssignments,
+        countryBoundaries,
+      ),
+    [auditSleepCountryAssignments, countryBoundaries, filteredLocations],
   );
 
   const sleepCountryStats = useMemo(

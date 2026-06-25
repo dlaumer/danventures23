@@ -457,13 +457,29 @@ function calculateGeneralStats(
     transportCostTotal += numberFromValue(properties.travelcost);
   });
 
+  const latestDateKey = latestDate ? formatLocalDate(latestDate) : null;
+  const nightsOnLatestDate =
+    latestDateKey && locations
+      ? locations.features.reduce((total, feature) => {
+          const properties = feature.properties ?? {};
+          if (properties.pointtype !== "sleep") return total;
+
+          const travelDate = parseTravelDate(properties.travel_date);
+          if (!travelDate || formatLocalDate(travelDate) !== latestDateKey) {
+            return total;
+          }
+
+          const nights = numberFromValue(properties.nonights);
+          return total + (nights > 0 ? nights : 1);
+        }, 0)
+      : 0;
   const totalDays =
-    earliestDate && latestDate
+    earliestDate && latestDateKey
       ? Math.round(
-          (new Date(formatLocalDate(latestDate)).getTime() -
+          (new Date(latestDateKey).getTime() -
             new Date(formatLocalDate(earliestDate)).getTime()) /
             (24 * 60 * 60 * 1000),
-        )
+        ) + nightsOnLatestDate
       : 0;
 
   return {

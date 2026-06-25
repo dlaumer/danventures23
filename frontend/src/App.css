@@ -121,8 +121,7 @@
   display: flex;
   min-height: 0;
   flex-direction: column;
-  overflow-x: hidden;
-  overflow-y: auto;
+  overflow: hidden;
   border: 1px solid rgba(21, 31, 39, 0.16);
   border-radius: 8px;
   background: rgba(251, 250, 245, 0.94);
@@ -1538,6 +1537,7 @@
 
 .chart-cost-summary {
   display: flex;
+  flex: 0 0 auto;
   align-items: baseline;
   justify-content: space-between;
   gap: 12px;
@@ -1625,10 +1625,11 @@
 .bar-chart {
   display: flex;
   flex-direction: column;
+  flex: 0 0 auto;
   gap: 16px;
   width: 100%;
   min-width: 0;
-  overflow: hidden;
+  overflow: visible;
 }
 
 .bar-chart-group {

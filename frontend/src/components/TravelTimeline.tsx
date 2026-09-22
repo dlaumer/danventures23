@@ -29,6 +29,7 @@ import {
   Users,
 } from "lucide-react";
 import {
+  API_BASE_URL,
   initialTimelineEntryCount,
   timelineEntryBatchSize,
   timelineTargetContextCount,
@@ -181,7 +182,40 @@ function LocationDetails({
   const transport = propertyString(properties, "transport");
   const people = propertyString(properties, "people");
   const description = propertyString(properties, "description");
-  const pictures = locationPicturesFromValue(properties.pictures);
+  const [pictures, setPictures] = useState(() =>
+    locationPicturesFromValue(properties.pictures),
+  );
+  const [pictureError, setPictureError] = useState(false);
+  const [pictureAttempt, setPictureAttempt] = useState(0);
+  const hasPictures = propertyBoolean(properties, "has_pictures");
+  const locationId = featureRecordId(entry.feature);
+  const [picturesLoading, setPicturesLoading] = useState(hasPictures);
+
+  useEffect(() => {
+    if (!hasPictures) return;
+    const controller = new AbortController();
+    setPicturesLoading(true);
+    setPictureError(false);
+    fetch(`${API_BASE_URL}/locations/${locationId}/pictures`, {
+      signal: controller.signal,
+    })
+      .then(async (response) => {
+        if (!response.ok) throw new Error("Could not load pictures");
+        return response.json();
+      })
+      .then((value: unknown) => {
+        if (!controller.signal.aborted) {
+          setPictures(locationPicturesFromValue(value));
+        }
+      })
+      .catch(() => {
+        if (!controller.signal.aborted) setPictureError(true);
+      })
+      .finally(() => {
+        if (!controller.signal.aborted) setPicturesLoading(false);
+      });
+    return () => controller.abort();
+  }, [hasPictures, locationId, pictureAttempt]);
   const metaItems: DetailItem[] = [
     {
       icon: transportIconFor(transport),
@@ -292,6 +326,15 @@ function LocationDetails({
         </div>
       )}
 
+      {picturesLoading && <p role="status">Loading pictures…</p>}
+      {pictureError && (
+        <p role="alert">
+          Could not load pictures.{" "}
+          <button type="button" onClick={() => setPictureAttempt((n) => n + 1)}>
+            Retry
+          </button>
+        </p>
+      )}
       {pictures.length > 0 && (
         <div className="timeline-picture-grid">
           {pictures.map((picture, index) => (

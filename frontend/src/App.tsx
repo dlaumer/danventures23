@@ -62,6 +62,7 @@ import {
   formatLocalDate,
   isDisplayedFreeRide,
   isFreeTransport,
+  locationPicturesFromValue,
   legAttributeFormFromFeature,
   legAttributeFormToPayload,
   normalizeFeatureCollection,
@@ -1829,13 +1830,20 @@ function App() {
               }
               onTimelinePositionChange={setTimelineMapPosition}
               onToggleFavorite={toggleLocationFavorite}
-              onEditLocation={(id, form) => {
+              onEditLocation={async (id, form) => {
                 if (!isAdmin) return;
-                closeLegEditor();
-                setIsPlacingLocation(false);
-                setIsMovingLocation(false);
-                setEditingLocationId(id);
-                setLocationForm(form);
+                try {
+                  const response = await fetch(`${API_BASE_URL}/locations/${id}/pictures`);
+                  if (!response.ok) throw new Error("Could not load pictures for editing.");
+                  const pictures = locationPicturesFromValue(await response.json());
+                  closeLegEditor();
+                  setIsPlacingLocation(false);
+                  setIsMovingLocation(false);
+                  setEditingLocationId(id);
+                  setLocationForm({ ...form, pictures });
+                } catch (error) {
+                  setError(error instanceof Error ? error.message : "Could not open location.");
+                }
               }}
               onEditLeg={(feature) => {
                 if (!isAdmin) return;

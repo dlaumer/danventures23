@@ -135,7 +135,8 @@ def location_feature_query(where_clause: str):
             'type', 'Feature',
             'id', id,
             'geometry', ST_AsGeoJSON(geom)::jsonb,
-            'properties', to_jsonb(feature) - 'geom'
+            'properties', (to_jsonb(feature) - 'geom' - 'pictures')
+                || jsonb_build_object('has_pictures', jsonb_array_length(pictures) > 0)
         ) as geojson
         from public.locations as feature
         {where_clause}
@@ -671,14 +672,42 @@ def remove_location_and_reconnect(conn, location_id: int):
 
 @app.get("/locations")
 def locations(limit: Annotated[int | None, Query(ge=1, le=10000)] = None):
+    # Project metadata before JSON conversion so embedded images never enter
+    # the collection payload (or the map's GeoJSON source).
+    query = text("""
+        select jsonb_build_object(
+            'type', 'FeatureCollection',
+            'features', coalesce(jsonb_agg(jsonb_build_object(
+                'type', 'Feature',
+                'id', feature.id,
+                'geometry', ST_AsGeoJSON(feature.geom)::jsonb,
+                'properties', to_jsonb(feature) - 'geom'
+            ) order by feature.id), '[]'::jsonb)
+        )
+        from (
+            select id, geom, name, transport, travel_date, people,
+                   description, sleepcategory, boat, nonights, pointtype,
+                   waitingtime, travelcost, sleepcost, favorite,
+                   jsonb_array_length(pictures) > 0 as has_pictures
+            from public.locations
+            order by id
+            limit :limit
+        ) as feature
+    """)
     with engine.connect() as conn:
-        if limit is None:
-            return conn.execute(feature_collection_query("locations")).scalar_one()
+        return conn.execute(query, {"limit": limit}).scalar_one()
 
-        return conn.execute(
-            limited_feature_collection_query("locations"),
-            {"limit": limit},
-        ).scalar_one()
+
+@app.get("/locations/{location_id}/pictures")
+def location_pictures(location_id: int):
+    with engine.connect() as conn:
+        row = conn.execute(
+            text("select pictures from public.locations where id = :id"),
+            {"id": location_id},
+        ).first()
+    if row is None:
+        raise HTTPException(status_code=404, detail="Location not found")
+    return row.pictures or []
 
 
 @app.post("/locations", status_code=201)
@@ -779,7 +808,8 @@ def update_location_favorite(location_id: int, payload: LocationFavoriteIn):
             'type', 'Feature',
             'id', id,
             'geometry', ST_AsGeoJSON(geom)::jsonb,
-            'properties', to_jsonb(feature) - 'geom'
+            'properties', (to_jsonb(feature) - 'geom' - 'pictures')
+                || jsonb_build_object('has_pictures', jsonb_array_length(pictures) > 0)
         )
     """)
 

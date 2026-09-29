@@ -18,6 +18,7 @@ import {
   Clock,
   Footprints,
   LocateFixed,
+  Image as ImageIcon,
   MapPin,
   MessageSquareText,
   Plane,
@@ -164,6 +165,39 @@ type DetailItem = {
   label: string;
   value: string | null;
 };
+
+function PictureLoading() {
+  return (
+    <div className="picture-loading" role="status">
+      <ImageIcon size={26} strokeWidth={1.4} aria-hidden="true" />
+      <span><span className="picture-loading-spinner" aria-hidden="true" />Loading picture</span>
+    </div>
+  );
+}
+
+function TimelinePicture({ src, alt }: { src: string; alt: string }) {
+  const [state, setState] = useState<"loading" | "ready" | "error">("loading");
+  return (
+    <div className={`timeline-picture timeline-picture--${state}`}>
+      {state === "loading" && <PictureLoading />}
+      {state === "error" && <div className="picture-loading picture-loading--error" role="status">Picture unavailable</div>}
+      <img
+        alt={alt}
+        src={src}
+        decoding="async"
+        onLoad={async (event) => {
+          try {
+            await event.currentTarget.decode();
+            setState("ready");
+          } catch {
+            setState("error");
+          }
+        }}
+        onError={() => setState("error")}
+      />
+    </div>
+  );
+}
 
 function LocationDetails({
   entry,
@@ -326,7 +360,11 @@ function LocationDetails({
         </div>
       )}
 
-      {picturesLoading && <p role="status">Loading pictures…</p>}
+      {picturesLoading && pictures.length === 0 && (
+        <div className="timeline-picture-grid">
+          <div className="timeline-picture"><PictureLoading /></div>
+        </div>
+      )}
       {pictureError && (
         <p role="alert">
           Could not load pictures.{" "}
@@ -338,9 +376,9 @@ function LocationDetails({
       {pictures.length > 0 && (
         <div className="timeline-picture-grid">
           {pictures.map((picture, index) => (
-            <img
+            <TimelinePicture
               alt={picture.name || `Location picture ${index + 1}`}
-              key={`${picture.name}-${index}`}
+              key={`${picture.dataUrl}-${index}`}
               src={picture.dataUrl}
             />
           ))}

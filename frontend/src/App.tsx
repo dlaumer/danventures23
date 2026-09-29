@@ -1551,14 +1551,16 @@ function App() {
       />
 
       <div className="map-button-row" aria-label="Map controls">
-        <a
-          className="map-action-button"
-          href={`${API_BASE_URL}/export.csv`}
-          aria-label="Download all data as CSV"
-          title="Download all data as CSV"
-        >
-          <Download size={18} />
-        </a>
+        {isAdmin && (
+          <a
+            className="map-action-button"
+            href={`${API_BASE_URL}/export.csv`}
+            aria-label="Download all data as CSV"
+            title="Download all data as CSV"
+          >
+            <Download size={18} />
+          </a>
+        )}
         {isAdmin && (
           <button
             type="button"

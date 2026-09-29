@@ -1,4 +1,6 @@
 import os
+import csv
+import io
 import json
 import math
 import urllib.error
@@ -9,6 +11,7 @@ from typing import Annotated
 from dotenv import load_dotenv
 from fastapi import FastAPI, HTTPException, Query
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import Response
 from pydantic import BaseModel, Field, field_validator
 from sqlalchemy import bindparam, create_engine, text
 from sqlalchemy.dialects.postgresql import JSONB
@@ -668,6 +671,45 @@ def remove_location_and_reconnect(conn, location_id: int):
         create_leg_between_locations(conn, previous_location, next_location)
 
     return True
+
+
+@app.get("/export.csv")
+def export_csv():
+    # Read both collections in one snapshot, without serializing route geometry.
+    query = text("""
+        select * from (
+        select 'location' as entry_type,
+               (to_jsonb(location) - 'geom') || jsonb_build_object(
+                   'longitude', ST_X(location.geom),
+                   'latitude', ST_Y(location.geom)
+               ) as attributes
+        from public.locations as location
+        union all
+        select 'leg' as entry_type, to_jsonb(leg) - 'geom' as attributes
+        from public.legs as leg
+        ) as entries
+        order by entry_type desc, (attributes->>'id')::bigint
+    """)
+    with engine.connect() as conn:
+        rows = conn.execute(query).mappings().all()
+
+    columns = ["entry_type", "id", "longitude", "latitude"]
+    columns += sorted({key for row in rows for key in row["attributes"]} - set(columns))
+    output = io.StringIO(newline="")
+    writer = csv.DictWriter(output, fieldnames=columns)
+    writer.writeheader()
+    for row in rows:
+        attributes = {
+            key: json.dumps(value, ensure_ascii=False) if isinstance(value, (dict, list)) else value
+            for key, value in row["attributes"].items()
+        }
+        writer.writerow(attributes | {"entry_type": row["entry_type"]})
+
+    return Response(
+        content="\ufeff" + output.getvalue(),
+        media_type="text/csv; charset=utf-8",
+        headers={"Content-Disposition": 'attachment; filename="danventures-all-data.csv"'},
+    )
 
 
 @app.get("/locations")

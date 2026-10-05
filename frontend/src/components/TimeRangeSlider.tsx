@@ -8,6 +8,7 @@ import {
   type PointerEvent,
 } from "react";
 import type {
+  FeatureCollection,
   MonthlyTransportDistanceBucket,
   TravelTimeRange,
 } from "../types";
@@ -20,9 +21,12 @@ import {
 } from "../utils";
 import { transportDisplayOrder } from "../constants";
 
+import { StatisticsOverlay } from "./StatisticsOverlay";
+
 type TimeRangeSliderProps = {
   className?: string;
   monthlyStats: MonthlyTransportDistanceBucket[];
+  legs: FeatureCollection | null;
   range: TravelTimeRange | null;
   selectedDistanceKm: number;
   onChange: (range: TravelTimeRange | null) => void;
@@ -163,10 +167,12 @@ function clampRangeEnd(index: number, startIndex: number, maxIndex: number) {
 export function TimeRangeSlider({
   className = "",
   monthlyStats,
+  legs,
   range,
   selectedDistanceKm,
   onChange,
 }: TimeRangeSliderProps) {
+  const [isStatisticsOpen, setIsStatisticsOpen] = useState(false);
   const trackRef = useRef<HTMLDivElement | null>(null);
   const datePopoverRef = useRef<HTMLDivElement | null>(null);
   const [trackWidth, setTrackWidth] = useState(0);
@@ -429,6 +435,7 @@ export function TimeRangeSlider({
           } as CSSProperties
         }
       >
+        <button type="button" className="time-slider-chart-open" aria-label="Open expanded distance statistics" aria-haspopup="dialog" onClick={() => setIsStatisticsOpen(true)} />
         <div className="time-slider-bars" aria-hidden="true">
           {buckets.map((bucket, index) => {
             const isDimmed = index < startIndex || index > endIndex;
@@ -501,6 +508,7 @@ export function TimeRangeSlider({
           );
         })}
       </div>
+      {isStatisticsOpen && <StatisticsOverlay monthlyStats={monthlyStats} legs={legs} onClose={() => setIsStatisticsOpen(false)} />}
     </section>
   );
 }

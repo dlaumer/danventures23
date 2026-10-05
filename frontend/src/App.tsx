@@ -1869,6 +1869,7 @@ function App() {
         <TimeRangeSlider
           className={isMobileLayout() ? "mobile-time-slider" : ""}
           monthlyStats={monthlyTransportStats}
+          legs={legs}
           range={selectedTimeRange}
           selectedDistanceKm={totalKm}
           onChange={setSelectedTimeRange}

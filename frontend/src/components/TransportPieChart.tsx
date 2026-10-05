@@ -17,6 +17,7 @@ import {
   formatKm,
   isFreeTransport,
   numberFromKm,
+  paleTransportColor,
   transportLabel,
 } from "../utils";
 
@@ -75,16 +76,6 @@ function logarithmicBarWidth(value: number, maxValue: number) {
   const logarithmic = Math.log10(value + 1) / Math.log10(maxValue + 1);
   const blended = linear * 0.55 + logarithmic * 0.45;
   return `${Math.max(6, blended * 100)}%`;
-}
-
-function paleColor(color: string) {
-  const hex = color.replace("#", "");
-  if (hex.length !== 6) return color;
-  const red = parseInt(hex.slice(0, 2), 16);
-  const green = parseInt(hex.slice(2, 4), 16);
-  const blue = parseInt(hex.slice(4, 6), 16);
-
-  return `rgba(${red}, ${green}, ${blue}, 0.18)`;
 }
 
 export function TransportPieChart({
@@ -159,7 +150,7 @@ export function TransportPieChart({
               style={
                 {
                   "--group-color": color,
-                  "--group-fill": paleColor(color),
+                  "--group-fill": paleTransportColor(color),
                 } as CSSProperties
               }
               title={group === "free" ? "Free transport" : "Paid transport"}
@@ -215,7 +206,7 @@ export function TransportPieChart({
                         <span
                           className="bar-fill"
                           style={{
-                            backgroundColor: paleColor(item.color),
+                            backgroundColor: paleTransportColor(item.color),
                             borderColor: item.color,
                             width,
                           }}

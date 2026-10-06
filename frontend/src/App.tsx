@@ -17,7 +17,6 @@ import {
   MapPinPlus,
   Moon,
   ListChecks,
-  Satellite,
   SlidersHorizontal,
   UsersRound,
   X,
@@ -739,7 +738,7 @@ function App() {
     useState<TimelineMapPosition | null>(null);
   const [isTimelineCollapsed, setIsTimelineCollapsed] = useState(false);
   const [initialViewSignal, setInitialViewSignal] = useState(0);
-  const [basemap, setBasemap] = useState<MapBasemap>("standard");
+  const [basemap, setBasemap] = useState<MapBasemap>("journey");
   const [selectedTimeRange, setSelectedTimeRange] =
     useState<TravelTimeRange | null>(null);
   const [focusedLocation, setFocusedLocation] = useState<{
@@ -893,6 +892,27 @@ function App() {
     () => (filteredLegs ? calculateTransportStats(filteredLegs) : stats),
     [filteredLegs, stats],
   );
+
+  const journeyCountries = useMemo<FeatureCollection>(() => {
+    const visited = new Set<string>();
+    filteredLocations?.features.forEach((feature) => {
+      const coordinates = coordinatesForFeature(feature);
+      if (!coordinates) return;
+      const point: [number, number] = [coordinates.lng, coordinates.lat];
+      const properties = feature.properties ?? {};
+      const id = featureRecordId(feature);
+      const assignment = countryForPoint(point, countryBoundaries) ??
+        manualCountryForSleep(point, String(properties.name ?? ""), String(properties.sleepcategory ?? "")) ??
+        (id ? auditSleepCountryAssignments.get(id) : null);
+      if (assignment) visited.add(assignment.country);
+    });
+    return {
+      type: "FeatureCollection",
+      features: countryBoundaries.filter(({ country }) => visited.has(country)).map(({ country, geometry }) => ({
+        type: "Feature", geometry, properties: { name: country },
+      })),
+    };
+  }, [filteredLocations, countryBoundaries, auditSleepCountryAssignments]);
 
   const totalKm = useMemo(
     () =>
@@ -1518,6 +1538,7 @@ function App() {
         sleepCountryAssignments={sleepCountryAssignments}
         isSleepLayerVisible={isSleepLayerVisible}
         basemap={basemap}
+        journeyCountries={journeyCountries}
         editableLeg={editableLeg}
         isSavingLegGeometry={isSavingLegGeometry}
         onCancelPlacingLocation={() => setIsPlacingLocation(false)}
@@ -1577,32 +1598,16 @@ function App() {
             <MapPinPlus size={18} />
           </button>
         )}
-        <button
-          type="button"
-          className={
-            basemap === "imagery"
-              ? "map-action-button active"
-              : "map-action-button"
-          }
-          onClick={() =>
-            setBasemap((current) =>
-              current === "standard" ? "imagery" : "standard",
-            )
-          }
-          title={
-            basemap === "standard"
-              ? "Switch to imagery basemap"
-              : "Switch to standard basemap"
-          }
-          aria-pressed={basemap === "imagery"}
-          aria-label={
-            basemap === "standard"
-              ? "Switch to imagery basemap"
-              : "Switch to standard basemap"
-          }
+        <select
+          className="basemap-select"
+          aria-label="Map style"
+          value={basemap}
+          onChange={(event) => setBasemap(event.target.value as MapBasemap)}
         >
-          <Satellite size={18} />
-        </button>
+          <option value="journey">Journey</option>
+          <option value="standard">Street</option>
+          <option value="imagery">Satellite</option>
+        </select>
         <button
           type="button"
           className="map-action-button"

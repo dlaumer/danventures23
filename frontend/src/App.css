@@ -54,6 +54,26 @@
   backdrop-filter: blur(8px);
 }
 
+.basemap-select {
+  height: 46px;
+  max-width: 130px;
+  padding: 0 10px;
+  border: 1px solid rgba(21, 31, 39, 0.16);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.94);
+  color: #355b3d;
+  font: inherit;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  box-shadow: 0 8px 26px rgba(31, 43, 51, 0.14);
+}
+
+.basemap-select:focus-visible {
+  outline: 2px solid #355b3d;
+  outline-offset: 2px;
+}
+
 .map-action-button:hover,
 .map-action-button:focus-visible,
 .map-action-button.active {

@@ -5,7 +5,7 @@ export const API_BASE_URL =
 
 export const MAP_STYLE_URL = "https://tiles.openfreemap.org/styles/liberty";
 
-export type MapBasemap = "standard" | "imagery";
+export type MapBasemap = "journey" | "standard" | "imagery";
 
 export const IMAGERY_MAP_STYLE: maplibregl.StyleSpecification = {
   version: 8,

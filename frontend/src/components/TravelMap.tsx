@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import maplibregl, {
   GeoJSONSource,
   Map as MapLibreMap,
@@ -31,6 +31,7 @@ import type {
   SleepCountryAssignments,
   TimelineMapPosition,
 } from "../types";
+import { createJourneyMapStyle, importantTripStops, journeyPlaceLevels, tripLabelArea, tripPlaceFilter } from "../journeyMapStyle";
 import {
   buildEmptyLocationForm,
   buildTransportColorExpression,
@@ -65,6 +66,7 @@ type TravelMapProps = {
   sleepCountryAssignments: SleepCountryAssignments;
   isSleepLayerVisible: boolean;
   basemap: MapBasemap;
+  journeyCountries: FeatureCollection;
   editableLeg: EditableLeg | null;
   isSavingLegGeometry: boolean;
   onCancelPlacingLocation: () => void;
@@ -219,6 +221,10 @@ function moveTravelLayersToTop(map: MapLibreMap) {
     if (map.getLayer(layerId)) {
       map.moveLayer(layerId);
     }
+  });
+  // The named stops remain readable above routes; transport ordering is unchanged.
+  ["journey-stop-dots", "journey-stop-labels"].forEach((id) => {
+    if (map.getLayer(id)) map.moveLayer(id);
   });
 }
 
@@ -483,6 +489,7 @@ export function TravelMap({
   sleepCountryAssignments,
   isSleepLayerVisible,
   basemap,
+  journeyCountries,
   editableLeg,
   isSavingLegGeometry,
   onCancelPlacingLocation,
@@ -498,7 +505,12 @@ export function TravelMap({
   const mapRef = useRef<MapLibreMap | null>(null);
   const isMapReadyRef = useRef(false);
   const initialBasemapRef = useRef(basemap);
+  const activeBasemapRef = useRef(basemap);
+  const labelArea = useMemo(() => tripLabelArea(locations), [locations]);
+  const importantStops = useMemo(() => importantTripStops(locations), [locations]);
   const [isMapReady, setIsMapReady] = useState(false);
+  const [isMapInitialized, setIsMapInitialized] = useState(false);
+  const [styleRevision, setStyleRevision] = useState(0);
   const [featureChoiceDialog, setFeatureChoiceDialog] =
     useState<FeatureChoiceDialog | null>(null);
   const [editableLegCoordinates, setEditableLegCoordinates] = useState<
@@ -520,6 +532,9 @@ export function TravelMap({
 
   const loadBasemapStyle = useCallback(
     async (nextBasemap: MapBasemap): Promise<maplibregl.StyleSpecification> => {
+      if (nextBasemap === "journey") {
+        return { ...createJourneyMapStyle(), projection: { type: "globe" }, sky: globeSky };
+      }
       if (nextBasemap === "imagery") {
         return {
           ...IMAGERY_MAP_STYLE,
@@ -568,6 +583,7 @@ export function TravelMap({
         mapRef.current.once("load", () => {
           mapRef.current?.resize();
           isMapReadyRef.current = true;
+          setIsMapInitialized(true);
           setIsMapReady(true);
         });
       } catch (caught) {
@@ -584,6 +600,7 @@ export function TravelMap({
     return () => {
       isMounted = false;
       isMapReadyRef.current = false;
+      setIsMapInitialized(false);
       setIsMapReady(false);
       if (mapRef.current) {
         mapRef.current.remove();
@@ -613,7 +630,8 @@ export function TravelMap({
 
   useEffect(() => {
     const map = mapRef.current;
-    if (!map || !isMapReadyRef.current) return;
+    if (!map || !isMapInitialized) return;
+    if (isMapReadyRef.current && activeBasemapRef.current === basemap) return;
 
     const activeMap = map;
     let isMounted = true;
@@ -630,7 +648,9 @@ export function TravelMap({
           if (!isMounted) return;
           activeMap.resize();
           moveTravelLayersToTop(activeMap);
+          activeBasemapRef.current = basemap;
           isMapReadyRef.current = true;
+          setStyleRevision((revision) => revision + 1);
           setIsMapReady(true);
         };
         activeMap.once("style.load", handleStyleLoad);
@@ -652,7 +672,18 @@ export function TravelMap({
         activeMap.off("style.load", handleStyleLoad);
       }
     };
-  }, [basemap, loadBasemapStyle, onMapError]);
+  }, [basemap, isMapInitialized, loadBasemapStyle, onMapError]);
+
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map || !isMapReady || basemap !== "journey") return;
+    (map.getSource("journey-countries") as GeoJSONSource | undefined)?.setData(journeyCountries);
+    (map.getSource("journey-stops") as GeoJSONSource | undefined)?.setData(importantStops);
+    journeyPlaceLevels.forEach(({ name }) => {
+      const layerId = `journey-place-${name}`;
+      if (map.getLayer(layerId)) map.setFilter(layerId, tripPlaceFilter(name, labelArea));
+    });
+  }, [basemap, isMapReady, styleRevision, journeyCountries, labelArea, importantStops]);
 
   useEffect(() => {
     const map = mapRef.current;
@@ -849,7 +880,7 @@ export function TravelMap({
     const activeEditableLeg = editableLeg;
     let isMounted = true;
     const abortController = new AbortController();
-    const useFeatureForEdit = (
+    const applyFeatureForEdit = (
       feature: GeoJSON.Feature<GeoJSON.Geometry, Record<string, unknown>>,
     ) => {
       const coordinates = editableCoordinatesForLeg(feature);
@@ -891,12 +922,12 @@ export function TravelMap({
         >;
         if (!isMounted || abortController.signal.aborted) return;
 
-        useFeatureForEdit(fullLeg);
+        applyFeatureForEdit(fullLeg);
       } catch (caught) {
         if (caught instanceof DOMException && caught.name === "AbortError") {
           return;
         }
-        if (isMounted) useFeatureForEdit(activeEditableLeg.feature);
+        if (isMounted) applyFeatureForEdit(activeEditableLeg.feature);
       }
     }
 

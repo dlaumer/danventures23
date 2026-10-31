@@ -1,13 +1,6 @@
+import { sleepIconFor } from "./categoryIcons";
 import type { CSSProperties } from "react";
-import {
-  BedDouble,
-  TrainFront,
-  HandHeart,
-  Home,
-  Sailboat,
-  Tent,
-  Users,
-} from "lucide-react";
+
 import { costGroupColors, sleepCategoryDisplayOrder } from "../constants";
 import type { SelectedChartPart, SleepStat } from "../types";
 import {
@@ -36,31 +29,6 @@ function sleepCategoryOrder(value: string | null) {
   return index === -1 ? sleepCategoryDisplayOrder.length : index;
 }
 
-function sleepIconFor(value: string | null) {
-  const size = 14;
-
-  switch (value) {
-    case "camping":
-    case "campingPaid":
-      return <Tent size={size} />;
-    case "boat":
-      return <Sailboat size={size} />;
-    case "nightbusNighttrain":
-      return <TrainFront size={size} />;
-    case "house":
-    case "airbnb":
-    case "renting":
-      return <Home size={size} />;
-    case "friends":
-    case "couchsurfing":
-      return <Users size={size} />;
-    case "volunteering":
-      return <HandHeart size={size} />;
-    case "hostel":
-    default:
-      return <BedDouble size={size} />;
-  }
-}
 
 function describeNights(value: number) {
   return `${formatCount(value)} ${value === 1 ? "night" : "nights"}`;

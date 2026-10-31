@@ -24,7 +24,7 @@ DATABASE_URL = os.environ["DATABASE_URL"]
 OPENROUTESERVICE_API_KEY = os.environ.get("OPENROUTESERVICE_API_KEY")
 OPENROUTESERVICE_BASE_URL = os.environ.get(
     "OPENROUTESERVICE_BASE_URL",
-    "https://api.openrouteservice.org",
+    "https://api.heigit.org/openrouteservice",
 ).rstrip("/")
 OPENROUTESERVICE_TIMEOUT_SECONDS = float(
     os.environ.get("OPENROUTESERVICE_TIMEOUT_SECONDS", "20"),

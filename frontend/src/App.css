@@ -2735,3 +2735,20 @@
   .statistics-legend-items { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; overscroll-behavior: contain; }
   .statistics-legend-item { margin: 0; }
 }
+
+.general-cost-button { border: 0; background: transparent; padding: 5px 0 5px 8px; cursor: pointer; border-radius: 5px; }
+.general-cost-button:hover strong { color: #267e84; text-decoration: underline; }
+.general-cost-button:focus-visible, .spending-legend button:focus-visible { outline: 2px solid #267e84; outline-offset: 2px; }
+.spending-content { display: grid; gap: 22px; }
+.spending-chart + .spending-chart { border-top: 1px solid #dce2e2; padding-top: 18px; }
+.spending-chart h3 { font-size: 14px; margin: 4px 0 8px; color: #52616b; }
+.spending-pie { display: block; width: min(100%, 240px); margin: 0 auto; overflow: visible; }
+.spending-pie path { cursor: pointer; transition: opacity 150ms; }
+.spending-pie path:focus-visible { outline: none; stroke: #267e84; stroke-width: 4; }
+.spending-detail { display: grid; text-align: center; gap: 3px; margin: 4px 0 14px; }
+.spending-detail strong { font-size: 23px; color: #18242d; }
+.spending-detail small, .spending-legend small { color: #64707a; font-size: 11px; }
+.spending-legend { display: grid; gap: 4px; }
+.spending-legend button { display: grid; grid-template-columns: 22px minmax(0, 1fr) auto 42px; align-items: center; gap: 6px; width: 100%; border: 1px solid transparent; background: transparent; border-radius: 7px; padding: 7px 5px; text-align: left; cursor: pointer; color: #34434d; font: inherit; font-size: 12px; }
+.spending-legend button:hover, .spending-legend button.selected { background: #e7eeee; border-color: #d2dddd; }
+.spending-legend strong, .spending-legend small { text-align: right; font-variant-numeric: tabular-nums; }

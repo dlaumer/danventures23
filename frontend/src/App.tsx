@@ -28,6 +28,7 @@ import {
   transportDisplayOrder,
   type MapBasemap,
 } from "./constants";
+import { SpendingPanel } from "./components/SpendingPanel";
 import { GeneralStatsPanel } from "./components/GeneralStatsPanel";
 import { LocationDialog } from "./components/LocationDialog";
 import { LegAttributesDialog } from "./components/LegAttributesDialog";
@@ -79,7 +80,7 @@ type PanelState = {
   timeline: boolean;
 };
 
-type AnalysisPanel = "general" | "people" | "sleep" | "transport";
+type AnalysisPanel = "general" | "people" | "sleep" | "transport" | "costs";
 
 type CategoryCostStats = {
   paidSleepTotal: number;
@@ -1725,9 +1726,13 @@ function App() {
                     </button>
                   </div>
                   <div className="panel-scroll-content">
-                    <GeneralStatsPanel generalStats={generalStats} />
+                    <GeneralStatsPanel generalStats={generalStats} onOpenCosts={() => setActiveAnalysisPanel("costs")} />
                   </div>
                 </>
+              )}
+
+              {activeAnalysisPanel === "costs" && (
+                <SpendingPanel transportCosts={categoryCostStats.transportCosts} sleepCosts={categoryCostStats.sleepCosts} onClose={closeAnalysisPanel} onBack={() => setActiveAnalysisPanel("general")} />
               )}
 
               {activeAnalysisPanel === "transport" && (

@@ -1,16 +1,7 @@
+import { transportIconFor } from "./categoryIcons";
 import { costGroupColors, transportDisplayOrder } from "../constants";
 import type { CSSProperties } from "react";
-import {
-  Bike,
-  Bus,
-  Car,
-  Footprints,
-  Plane,
-  Ship,
-  Train,
-  Truck,
-  Users,
-} from "lucide-react";
+
 import type { SelectedChartPart, TransportStat } from "../types";
 import {
   colorForTransport,
@@ -41,34 +32,6 @@ function transportOrder(value: string | null) {
   return index === -1 ? transportDisplayOrder.length : index;
 }
 
-function transportIconFor(value: string | null) {
-  const size = 14;
-
-  switch (value) {
-    case "bike":
-      return <Bike size={size} />;
-    case "bus":
-      return <Bus size={size} />;
-    case "boat":
-    case "ferry":
-      return <Ship size={size} />;
-    case "foot":
-      return <Footprints size={size} />;
-    case "plane":
-      return <Plane size={size} />;
-    case "train":
-      return <Train size={size} />;
-    case "truck":
-      return <Truck size={size} />;
-    case "friends":
-      return <Users size={size} />;
-    case "car":
-    case "rentalCar":
-    case "taxi":
-    default:
-      return <Car size={size} />;
-  }
-}
 
 function logarithmicBarWidth(value: number, maxValue: number) {
   if (!value || !maxValue) return "0%";

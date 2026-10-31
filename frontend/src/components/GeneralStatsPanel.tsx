@@ -11,9 +11,10 @@ import { formatCount, formatKm, formatMoney } from "../utils";
 
 type GeneralStatsPanelProps = {
   generalStats: GeneralStats;
+  onOpenCosts: () => void;
 };
 
-export function GeneralStatsPanel({ generalStats }: GeneralStatsPanelProps) {
+export function GeneralStatsPanel({ generalStats, onOpenCosts }: GeneralStatsPanelProps) {
   const travelRatio =
     generalStats.totalDays > 0
       ? Math.round((generalStats.travelDayCount / generalStats.totalDays) * 100)
@@ -72,7 +73,11 @@ export function GeneralStatsPanel({ generalStats }: GeneralStatsPanelProps) {
           <div className="general-stat-row" key={item.label}>
             <span className="general-stat-icon">{item.icon}</span>
             <span>{item.label}</span>
-            <strong>{item.value}</strong>
+            {item.label.endsWith("costs") ? (
+              <button type="button" className="general-cost-button" onClick={onOpenCosts} aria-label={`View ${item.label.toLowerCase()} breakdown`}>
+                <strong>{item.value}</strong>
+              </button>
+            ) : <strong>{item.value}</strong>}
           </div>
         ))}
       </div>

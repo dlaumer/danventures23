@@ -41,6 +41,18 @@ jobs:
       - name: Build
         run: npm run build
 
+      - name: Build Davidodonalds site
+        env:
+          VITE_API_BASE_URL: ${{ vars.DAVIDODONALDS_API_BASE_URL }}
+          VITE_BASE_PATH: /danventures23/davidodonalds/
+        run: |
+          if [ -z "$VITE_API_BASE_URL" ]; then
+            echo "::error::Set the DAVIDODONALDS_API_BASE_URL repository variable."
+            exit 1
+          fi
+          npm run build -- --outDir dist/davidodonalds
+          rm -f dist/davidodonalds/country-assignment-audit.csv
+
       - name: Upload Pages artifact
         uses: actions/upload-pages-artifact@v3
         with:

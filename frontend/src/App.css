@@ -20,7 +20,7 @@
 
 .floating-panels {
   position: absolute;
-  inset: 114px 18px 24px;
+  inset: 86px 18px 24px;
   z-index: 3;
   display: grid;
   grid-template-columns: minmax(260px, 340px) minmax(260px, 340px);
@@ -2351,7 +2351,7 @@
 
 @media (max-width: 900px) {
   .floating-panels {
-    inset: 114px 12px calc(82px + env(safe-area-inset-bottom, 0px));
+    inset: 86px 12px calc(82px + env(safe-area-inset-bottom, 0px));
     grid-template-columns: 1fr;
     align-content: start;
     overflow: visible;
@@ -2410,7 +2410,7 @@
   .analysis-panel,
   .timeline-shell {
     position: fixed;
-    top: 114px;
+    top: 86px;
     right: 12px;
     bottom: calc(72px + env(safe-area-inset-bottom, 0px));
     left: 12px;
@@ -2561,13 +2561,13 @@
   }
 
   .floating-panels {
-    inset: 114px 12px calc(70px + env(safe-area-inset-bottom, 0px));
+    inset: 78px 12px calc(70px + env(safe-area-inset-bottom, 0px));
     gap: 10px;
   }
 
   .analysis-panel,
   .timeline-shell {
-    top: 114px;
+    top: 78px;
   }
 
   .floating-panel-body {
@@ -2755,10 +2755,10 @@
 
 .place-search {
   position: absolute;
-  top: 62px;
-  left: 18px;
+  top: calc(100% + 8px);
+  right: 0;
   z-index: 5;
-  width: min(380px, calc(100% - 80px));
+  width: min(380px, calc(100vw - 36px));
   border-radius: 12px;
   background: #fff;
   color: #24332e;
@@ -2777,6 +2777,14 @@
 .place-search small { display: block; padding: 6px 12px; font-size: 10px; }
 
 @media (max-width: 560px) {
-  .place-search { left: 12px; width: calc(100% - 24px); }
+  .place-search { width: calc(100vw - 24px); }
   .place-search input { font-size: 16px; }
+}
+
+.place-search-control { flex: 0 0 auto; }
+.ride-waiting-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.ride-waiting-grid > label:last-child { grid-column: 2; }
+@media (max-width: 560px) {
+  .map-button-row { gap: 5px; }
+  .basemap-select { max-width: 92px; padding: 0 5px; }
 }

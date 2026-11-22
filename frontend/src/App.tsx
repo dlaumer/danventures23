@@ -36,6 +36,7 @@ import { PeopleExplorerPanel } from "./components/PeopleExplorerPanel";
 import { SleepCategoryPanel } from "./components/SleepCategoryPanel";
 import { TransportDistancePanel } from "./components/TransportDistancePanel";
 import { TimeRangeSlider } from "./components/TimeRangeSlider";
+import { PlaceSearch } from "./components/PlaceSearch";
 import { TravelMap } from "./components/TravelMap";
 import { TravelTimeline } from "./components/TravelTimeline";
 import type {
@@ -739,7 +740,7 @@ function App() {
     useState<TimelineMapPosition | null>(null);
   const [isTimelineCollapsed, setIsTimelineCollapsed] = useState(false);
   const [initialViewSignal, setInitialViewSignal] = useState(0);
-  const [basemap, setBasemap] = useState<MapBasemap>("journey");
+  const [basemap, setBasemap] = useState<MapBasemap>("standard");
   const [selectedTimeRange, setSelectedTimeRange] =
     useState<TravelTimeRange | null>(null);
   const [focusedLocation, setFocusedLocation] = useState<{
@@ -1570,16 +1571,7 @@ function App() {
       />
 
       <div className="map-button-row" aria-label="Map controls">
-        {isAdmin && (
-          <a
-            className="map-action-button"
-            href={`${API_BASE_URL}/export.csv`}
-            aria-label="Download all data as CSV"
-            title="Download all data as CSV"
-          >
-            <Download size={18} />
-          </a>
-        )}
+        <PlaceSearch getMap={() => window.danventuresMap ?? null} />
         {isAdmin && (
           <button
             type="button"
@@ -1596,6 +1588,15 @@ function App() {
             <MapPinPlus size={18} />
           </button>
         )}
+        <button
+          type="button"
+          className="map-action-button"
+          onClick={() => setInitialViewSignal((current) => current + 1)}
+          title="Zoom to globe view"
+          aria-label="Zoom to globe view"
+        >
+          <Globe2 size={18} />
+        </button>
         <select
           className="basemap-select"
           aria-label="Map style"
@@ -1606,15 +1607,16 @@ function App() {
           <option value="standard">Street</option>
           <option value="imagery">Satellite</option>
         </select>
-        <button
-          type="button"
-          className="map-action-button"
-          onClick={() => setInitialViewSignal((current) => current + 1)}
-          title="Zoom to globe view"
-          aria-label="Zoom to globe view"
-        >
-          <Globe2 size={18} />
-        </button>
+        {isAdmin && (
+          <a
+            className="map-action-button"
+            href={`${API_BASE_URL}/export.csv`}
+            aria-label="Download all data as CSV"
+            title="Download all data as CSV"
+          >
+            <Download size={18} />
+          </a>
+        )}
       </div>
 
       <div className="floating-panels">

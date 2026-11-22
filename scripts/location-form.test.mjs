@@ -55,3 +55,28 @@ test('one ride per entry and legacy defaults preserve the existing ride total', 
   assert.equal(calculateRideCount(rides([])), 0);
   assert.equal(calculateRideCount(null), 0);
 });
+
+const datedEntry = (date, properties = {}) => rides([{ travel_date: date, ...properties }]);
+
+test('new entries advance the latest saved time by one minute', () => {
+  assert.equal(buildEmptyLocationForm(8, 47, datedEntry('2026-11-22T10:03:00')).travelDateTime, '2026-11-22T10:04:00');
+  assert.equal(buildEmptyLocationForm(8, 47, datedEntry('2026-11-22T23:59:00')).travelDateTime, '2026-11-23T00:00:00');
+});
+
+test('sleep entries advance by the full number of nights plus one minute', () => {
+  for (const nights of [1, 3, 10]) {
+    const form = buildEmptyLocationForm(8, 47, datedEntry('2026-11-22T10:03:00', { pointtype: 'sleep', nonights: nights }));
+    const expected = new Date(2026, 10, 22 + nights, 10, 4);
+    const actual = new Date(form.travelDateTime);
+    assert.equal(actual.getTime(), expected.getTime());
+  }
+});
+
+test('zero nights keeps the date, and a manually saved time becomes the next starting time', () => {
+  assert.equal(buildEmptyLocationForm(8, 47, datedEntry('2026-11-22T10:03:00', { pointtype: 'sleep', nonights: 0 })).travelDateTime, '2026-11-22T10:04:00');
+  const entries = rides([
+    { travel_date: '2026-11-22T10:03:00', pointtype: 'sleep', nonights: 3 },
+    { travel_date: '2026-11-25T15:30:00', pointtype: 'waypoint' },
+  ]);
+  assert.equal(buildEmptyLocationForm(8, 47, entries).travelDateTime, '2026-11-25T15:31:00');
+});

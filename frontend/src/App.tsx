@@ -1382,6 +1382,11 @@ function App() {
         throw new Error("Saving the location failed.");
       }
 
+      const savedLocation = await response.json();
+      if (savedLocation.properties?.number_of_rides !== Number(locationForm.number_of_rides)) {
+        throw new Error("The backend did not save the ride count. Deploy the updated backend and restart it to apply the database migration, then try again.");
+      }
+
       await loadTravelData();
       closeLocationDialog();
     } catch (caught) {

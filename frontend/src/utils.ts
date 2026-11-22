@@ -550,17 +550,15 @@ export function buildEmptyLocationForm(
 ): LocationFormState {
   const latestEntry = getLatestTravelEntry(locations);
   const latestDate = latestEntry?.date ?? null;
-  const latestPointType = latestEntry?.feature.properties?.pointtype;
-  if (latestDate && latestPointType === "sleep") {
-    const nextDay = new Date(latestDate);
-    nextDay.setDate(nextDay.getDate() + 1);
-    nextDay.setHours(0, 0, 0, 0);
-
-    return buildLocationFormWithDateTime(
-      lng,
-      lat,
-      formatDateTimeLocal(nextDay),
-    );
+  if (latestDate) {
+    const next = new Date(latestDate);
+    const properties = latestEntry?.feature.properties ?? {};
+    const nights = Number(properties.nonights ?? 0);
+    if (properties.pointtype === "sleep" && Number.isInteger(nights) && nights > 0) {
+      next.setDate(next.getDate() + nights);
+    }
+    next.setMinutes(next.getMinutes() + 1);
+    return buildLocationFormWithDateTime(lng, lat, formatDateTimeLocal(next));
   }
 
   const dateValue = latestDate

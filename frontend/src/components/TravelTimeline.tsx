@@ -279,6 +279,11 @@ function LocationDetails({
       value: propertyString(properties, "boat"),
     },
     {
+      icon: <Car size={14} />,
+      label: "Rides",
+      value: String(properties.number_of_rides ?? 1),
+    },
+    {
       icon: <Clock size={14} />,
       label: "Waiting",
       value: propertyString(properties, "waitingtime")

@@ -4,6 +4,7 @@ import maplibregl, {
   Map as MapLibreMap,
 } from "maplibre-gl";
 import "maplibre-gl/dist/maplibre-gl.css";
+import { PlaceSearch } from "./PlaceSearch";
 import {
   CalendarDays,
   Check,
@@ -2279,6 +2280,7 @@ export function TravelMap({
         ref={mapContainerRef}
         className={isMapLoading ? "map map-loading" : "map"}
       />
+      <PlaceSearch getMap={() => mapRef.current} />
       <div className="topbar">
         <div>
           <p className="eyebrow">Danventures</p>

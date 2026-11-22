@@ -86,6 +86,7 @@ class LocationIn(BaseModel):
     travelcost: int | None = None
     sleepcost: int | None = None
     favorite: bool = False
+    number_of_rides: int = Field(default=1, ge=1, le=2147483647, strict=True)
 
 
 class LocationFavoriteIn(BaseModel):
@@ -247,6 +248,7 @@ def parse_bbox(bbox: str | None):
 @app.on_event("startup")
 def ensure_location_schema():
     with engine.begin() as conn:
+        conn.execute(text((BACKEND_DIR / "migrations" / "001_number_of_rides.sql").read_text()))
         conn.execute(
             text("""
                 alter table public.locations
@@ -729,7 +731,7 @@ def locations(limit: Annotated[int | None, Query(ge=1, le=10000)] = None):
         from (
             select id, geom, name, transport, travel_date, people,
                    description, sleepcategory, boat, nonights, pointtype,
-                   waitingtime, travelcost, sleepcost, favorite,
+                   waitingtime, travelcost, sleepcost, favorite, number_of_rides,
                    jsonb_array_length(pictures) > 0 as has_pictures
             from public.locations
             order by id
@@ -771,7 +773,8 @@ def create_location(location: LocationIn):
             pictures,
             travelcost,
             sleepcost,
-            favorite
+            favorite,
+            number_of_rides
         )
         values (
             ST_SetSRID(ST_MakePoint(:lng, :lat, 0), 4326),
@@ -788,7 +791,8 @@ def create_location(location: LocationIn):
             :pictures,
             :travelcost,
             :sleepcost,
-            :favorite
+            :favorite,
+            :number_of_rides
         )
         returning id
     """).bindparams(bindparam("pictures", type_=JSONB))
@@ -823,7 +827,8 @@ def update_location(location_id: int, location: LocationIn):
             pictures = :pictures,
             travelcost = :travelcost,
             sleepcost = :sleepcost,
-            favorite = :favorite
+            favorite = :favorite,
+            number_of_rides = :number_of_rides
         where id = :id
         returning id
     """).bindparams(bindparam("pictures", type_=JSONB))

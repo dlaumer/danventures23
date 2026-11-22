@@ -95,6 +95,13 @@ export function LocationDialog({
         </div>
 
         <label>
+          <span>Number of rides</span>
+          <input type="number" min="1" max="2147483647" step="1" required
+            value={locationForm.number_of_rides}
+            onChange={(event) => onUpdate({ number_of_rides: event.target.value })} />
+        </label>
+
+        <label>
           <span>Name</span>
           <input
             required

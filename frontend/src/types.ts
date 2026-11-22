@@ -62,6 +62,7 @@ export type LocationFormState = {
   boat: string;
   nonights: string;
   waitingtime: string;
+  number_of_rides: string;
   pictures: LocationPicture[];
   travelcost: string;
   sleepcost: string;

@@ -61,7 +61,7 @@ import {
   featureRecordId,
   formToPayload,
   formatLocalDate,
-  isDisplayedFreeRide,
+  calculateRideCount,
   isFreeTransport,
   locationPicturesFromValue,
   legAttributeFormFromFeature,
@@ -924,11 +924,8 @@ function App() {
   );
 
   const freeTransportRides = useMemo(
-    () =>
-      activeTransportStats.reduce((sum, item) => {
-        return isDisplayedFreeRide(item.transport) ? sum + item.leg_count : sum;
-      }, 0),
-    [activeTransportStats],
+    () => calculateRideCount(filteredLocations),
+    [filteredLocations],
   );
 
   const generalStats = useMemo(

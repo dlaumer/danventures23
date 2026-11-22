@@ -20,7 +20,7 @@
 
 .floating-panels {
   position: absolute;
-  inset: 86px 18px 24px;
+  inset: 114px 18px 24px;
   z-index: 3;
   display: grid;
   grid-template-columns: minmax(260px, 340px) minmax(260px, 340px);
@@ -2351,7 +2351,7 @@
 
 @media (max-width: 900px) {
   .floating-panels {
-    inset: 86px 12px calc(82px + env(safe-area-inset-bottom, 0px));
+    inset: 114px 12px calc(82px + env(safe-area-inset-bottom, 0px));
     grid-template-columns: 1fr;
     align-content: start;
     overflow: visible;
@@ -2410,7 +2410,7 @@
   .analysis-panel,
   .timeline-shell {
     position: fixed;
-    top: 86px;
+    top: 114px;
     right: 12px;
     bottom: calc(72px + env(safe-area-inset-bottom, 0px));
     left: 12px;
@@ -2561,13 +2561,13 @@
   }
 
   .floating-panels {
-    inset: 78px 12px calc(70px + env(safe-area-inset-bottom, 0px));
+    inset: 114px 12px calc(70px + env(safe-area-inset-bottom, 0px));
     gap: 10px;
   }
 
   .analysis-panel,
   .timeline-shell {
-    top: 78px;
+    top: 114px;
   }
 
   .floating-panel-body {
@@ -2752,3 +2752,31 @@
 .spending-legend button { display: grid; grid-template-columns: 22px minmax(0, 1fr) auto 42px; align-items: center; gap: 6px; width: 100%; border: 1px solid transparent; background: transparent; border-radius: 7px; padding: 7px 5px; text-align: left; cursor: pointer; color: #34434d; font: inherit; font-size: 12px; }
 .spending-legend button:hover, .spending-legend button.selected { background: #e7eeee; border-color: #d2dddd; }
 .spending-legend strong, .spending-legend small { text-align: right; font-variant-numeric: tabular-nums; }
+
+.place-search {
+  position: absolute;
+  top: 62px;
+  left: 18px;
+  z-index: 5;
+  width: min(380px, calc(100% - 80px));
+  border-radius: 12px;
+  background: #fff;
+  color: #24332e;
+  box-shadow: 0 3px 18px #0002;
+  overflow: hidden;
+}
+.place-search form { display: flex; }
+.place-search input { min-width: 0; flex: 1; border: 0; padding: 12px; font: inherit; }
+.place-search button { border: 0; padding: 12px; background: #eef3ef; color: inherit; cursor: pointer; font: inherit; }
+.place-search button:disabled { opacity: .5; cursor: default; }
+.place-search button:focus-visible, .place-search input:focus-visible { outline: 2px solid #247451; outline-offset: -2px; }
+.place-search ul { list-style: none; padding: 0; margin: 0; max-height: 40vh; overflow-y: auto; }
+.place-search li button { width: 100%; text-align: left; background: white; }
+.place-search li button:hover { background: #eef3ef; }
+.place-search p { margin: 10px 12px; }
+.place-search small { display: block; padding: 6px 12px; font-size: 10px; }
+
+@media (max-width: 560px) {
+  .place-search { left: 12px; width: calc(100% - 24px); }
+  .place-search input { font-size: 16px; }
+}

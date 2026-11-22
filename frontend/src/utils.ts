@@ -125,6 +125,15 @@ export function isDisplayedFreeRide(value: string | null) {
   return Boolean(value && displayedFreeRideModes.has(value));
 }
 
+export function calculateRideCount(locations: FeatureCollection | null): number {
+  return locations?.features.reduce((total, feature) => {
+    const properties = feature.properties ?? {};
+    return isDisplayedFreeRide(propertyString(properties, "transport"))
+      ? total + Number(properties.number_of_rides ?? 1)
+      : total;
+  }, 0) ?? 0;
+}
+
 export function isPaidSleepCategory(value: string | null) {
   return Boolean(value && paidSleepCategories.has(value));
 }
@@ -526,6 +535,7 @@ function buildLocationFormWithDateTime(
     boat: "",
     nonights: "1",
     waitingtime: "",
+    number_of_rides: "1",
     pictures: [],
     travelcost: "",
     sleepcost: "",
@@ -586,6 +596,7 @@ export function formFromFeature(feature: GeoJSON.Feature): LocationFormState {
     nonights: properties.nonights == null ? "1" : String(properties.nonights),
     waitingtime:
       properties.waitingtime == null ? "" : String(properties.waitingtime),
+    number_of_rides: String(properties.number_of_rides ?? 1),
     pictures: locationPicturesFromValue(properties.pictures),
     travelcost:
       properties.travelcost == null ? "" : String(properties.travelcost),
@@ -620,6 +631,7 @@ export function formToPayload(form: LocationFormState) {
       isPaidTransport && form.travelcost ? Number(form.travelcost) : null,
     sleepcost: isPaidSleep && form.sleepcost ? Number(form.sleepcost) : null,
     favorite: form.favorite,
+    number_of_rides: Number(form.number_of_rides),
   };
 }
 

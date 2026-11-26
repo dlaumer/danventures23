@@ -63,10 +63,10 @@ test('new entries advance the latest saved time by one minute', () => {
   assert.equal(buildEmptyLocationForm(8, 47, datedEntry('2026-11-22T23:59:00')).travelDateTime, '2026-11-23T00:00:00');
 });
 
-test('sleep entries advance by the full number of nights plus one minute', () => {
+test('sleep entries advance by the full number of nights and reset to midnight', () => {
   for (const nights of [1, 3, 10]) {
     const form = buildEmptyLocationForm(8, 47, datedEntry('2026-11-22T10:03:00', { pointtype: 'sleep', nonights: nights }));
-    const expected = new Date(2026, 10, 22 + nights, 10, 4);
+    const expected = new Date(2026, 10, 22 + nights, 0, 0);
     const actual = new Date(form.travelDateTime);
     assert.equal(actual.getTime(), expected.getTime());
   }
@@ -79,4 +79,13 @@ test('zero nights keeps the date, and a manually saved time becomes the next sta
     { travel_date: '2026-11-25T15:30:00', pointtype: 'waypoint' },
   ]);
   assert.equal(buildEmptyLocationForm(8, 47, entries).travelDateTime, '2026-11-25T15:31:00');
+});
+
+
+test('the entry after a midnight reset resumes minute increments on the new day', () => {
+  const entries = rides([
+    { travel_date: '2026-11-22T10:03:00', pointtype: 'sleep', nonights: 3 },
+    { travel_date: '2026-11-25T00:00:00', pointtype: 'waypoint' },
+  ]);
+  assert.equal(buildEmptyLocationForm(8, 47, entries).travelDateTime, '2026-11-25T00:01:00');
 });

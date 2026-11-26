@@ -556,8 +556,10 @@ export function buildEmptyLocationForm(
     const nights = Number(properties.nonights ?? 0);
     if (properties.pointtype === "sleep" && Number.isInteger(nights) && nights > 0) {
       next.setDate(next.getDate() + nights);
+      next.setHours(0, 0, 0, 0);
+    } else {
+      next.setMinutes(next.getMinutes() + 1);
     }
-    next.setMinutes(next.getMinutes() + 1);
     return buildLocationFormWithDateTime(lng, lat, formatDateTimeLocal(next));
   }
 

@@ -1383,8 +1383,13 @@ function App() {
       }
 
       const savedLocation = await response.json();
-      if (savedLocation.properties?.number_of_rides !== Number(locationForm.number_of_rides)) {
-        throw new Error("The backend did not save the ride count. Deploy the updated backend and restart it to apply the database migration, then try again.");
+      const savedRideCount = savedLocation.properties?.number_of_rides;
+      const requestedRideCount = Number(locationForm.number_of_rides);
+      if (savedRideCount == null || Number(savedRideCount) !== requestedRideCount) {
+        const returnedValue = savedRideCount == null ? "no ride count" : String(savedRideCount);
+        throw new Error(
+          `Ride count could not be verified: requested ${requestedRideCount}, but the API returned ${returnedValue}. API: ${API_BASE_URL}. Keep this editor open and check the backend logs before saving again.`,
+        );
       }
 
       await loadTravelData();
